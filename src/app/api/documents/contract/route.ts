@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 
+// Field names below match the `properties` table as defined in
+// supabase/migrations/002_properties_leads.sql:
+//   type, area_size, bedrooms, bathrooms, currency, country
+// (NOT the old property_type / listing_type / size_sqm / rooms names.)
+
 export async function POST(req: NextRequest) {
   try {
     const { org_id, property_id, contact_id, deal_id } = await req.json()
@@ -74,18 +79,19 @@ export async function POST(req: NextRequest) {
     drawText(`Seller/Agency: ${org.name}`, 50, 165, 11)
     drawText(`Buyer/Client: ${contact.first_name} ${contact.last_name || ''}`, 50, 180, 11)
 
-    // Property
+    // Property — fields match 002_properties_leads.sql:
+    //   type (property_type enum), area_size, bedrooms, bathrooms, currency, country
     drawText('PROPERTY DETAILS', 50, 215, 14, true)
     drawText(`Title: ${property.title}`, 50, 240, 11)
-    drawText(`Type: ${property.property_type}`, 50, 255, 11)
-    drawText(`Listing: ${property.listing_type}`, 50, 270, 11)
+    drawText(`Type: ${property.type}`, 50, 255, 11)
 
-    if (property.address) drawText(`Address: ${property.address}`, 50, 285, 11)
-    if (property.city) drawText(`City: ${property.city}`, 50, 300, 11)
-    if (property.country) drawText(`Country: ${property.country}`, 50, 315, 11)
+    if (property.address) drawText(`Address: ${property.address}`, 50, 270, 11)
+    if (property.city) drawText(`City: ${property.city}`, 50, 285, 11)
+    if (property.country) drawText(`Country: ${property.country}`, 50, 300, 11)
 
-    if (property.size_sqm) drawText(`Size: ${property.size_sqm} m²`, 50, 340, 11)
-    if (property.rooms) drawText(`Rooms: ${property.rooms}`, 50, 355, 11)
+    if (property.area_size) drawText(`Size: ${property.area_size} m²`, 50, 325, 11)
+    if (property.bedrooms) drawText(`Bedrooms: ${property.bedrooms}`, 50, 340, 11)
+    if (property.bathrooms) drawText(`Bathrooms: ${property.bathrooms}`, 50, 355, 11)
     if (property.year_built) drawText(`Year Built: ${property.year_built}`, 50, 370, 11)
 
     // Financial

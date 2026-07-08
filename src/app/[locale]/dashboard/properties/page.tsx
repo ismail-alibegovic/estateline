@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
+import { useTranslations } from 'next-intl'
 import type { Database } from '@/lib/supabase'
 
 type Property = Database['public']['Tables']['properties']['Row']
 
 export default function PropertiesPage() {
+  const t = useTranslations('properties')
+  const tc = useTranslations('common')
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -20,27 +23,24 @@ export default function PropertiesPage() {
     load()
   }, [])
 
-  if (loading) {
-    return <div className="flex justify-center py-24"><div className="animate-spin h-7 w-7 border-b-2 border-primary rounded-full" /></div>
-  }
+  if (loading) return <div className="p-8"><div className="animate-spin h-6 w-6 border-b-2 border-primary rounded-full" /></div>
 
   return (
-    <div className="max-w-6xl">
-      <header className="flex items-end justify-between mb-10">
+    <div>
+      <header className="mb-12 flex items-end justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Inventory</p>
-          <h1 className="font-display text-4xl tracking-tight">Properties</h1>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">{t('title')}</p>
+          <h1 className="font-display text-3xl tracking-tight">{t('title')}</h1>
         </div>
-        <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-          + Add Property
+        <button className="rounded-md border border-border bg-card px-4 py-2 text-sm hover:bg-muted transition-colors">
+          {t('addProperty')}
         </button>
       </header>
 
-      {properties.length === 0 ? (
-        <p className="text-muted-foreground py-12 text-center border border-dashed border-border rounded-lg">
-          No properties yet.
-        </p>
-      ) : (
+      <div className="grid gap-px bg-border rounded-xl overflow-hidden border border-border">
+        {properties.length === 0 && (
+          <div className="bg-card p-12 text-center text-muted-foreground">{t('empty')}</div>
+        )}
         <div className="border border-border rounded-lg overflow-hidden divide-y divide-border">
           {properties.map((p) => (
             <article key={p.id} className="grid grid-cols-[1fr_auto] gap-6 px-6 py-5 bg-card hover:bg-muted/40 transition-colors">
@@ -62,7 +62,7 @@ export default function PropertiesPage() {
             </article>
           ))}
         </div>
-      )}
+      </div>
     </div>
   )
 }

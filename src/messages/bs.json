@@ -1,0 +1,102 @@
+{
+  "common": {
+    "appName": "Estateline",
+    "tagline": "CRM za nekretnine za agencije na Balkanu",
+    "loading": "Učitavanje…",
+    "save": "Sačuvaj",
+    "cancel": "Odustani",
+    "delete": "Obriši",
+    "edit": "Uredi",
+    "create": "Kreiraj",
+    "search": "Pretraga",
+    "signOut": "Odjava",
+    "back": "Nazad"
+  },
+  "nav": {
+    "overview": "Pregled",
+    "properties": "Nekretnine",
+    "leads": "Potencijalni klijenti",
+    "contacts": "Kontakti",
+    "pipeline": "Prodajni ljevak",
+    "viewings": "Obilasci",
+    "activity": "Aktivnost"
+  },
+  "auth": {
+    "signIn": "Prijava",
+    "signUp": "Registracija",
+    "email": "Email",
+    "password": "Lozinka",
+    "keepMeLoggedIn": "Ostani prijavljen",
+    "welcomeBack": "Dobrodošli nazad"
+  },
+  "dashboard": {
+    "welcome": "Dobrodošli",
+    "plan": "plan",
+    "properties": "Nekretnine",
+    "leads": "Potencijalni klijenti",
+    "activeDeals": "Aktivni poslovi",
+    "teamMembers": "Članovi tima",
+    "organizationDetails": "Detalji organizacije",
+    "name": "Naziv",
+    "planLabel": "Plan",
+    "currency": "Valuta",
+    "locale": "Lokal"
+  },
+  "properties": {
+    "title": "Nekretnine",
+    "addProperty": "Dodaj nekretninu",
+    "empty": "Nema nekretnina.",
+    "reference": "Oznaka",
+    "price": "Cijena",
+    "status": "Status",
+    "type": "Tip",
+    "city": "Grad",
+    "details": "Detalji",
+    "featured": "Istaknuto"
+  },
+  "leads": {
+    "title": "Potencijalni klijenti",
+    "pipeline": "Prodajni ljevak",
+    "addLead": "Dodaj potencijalnog klijenta",
+    "empty": "Nema potencijalnih klijenata.",
+    "stageNew": "Novi",
+    "stageContacted": "Kontaktiran",
+    "stageQualified": "Kvalificiran",
+    "stageUnqualified": "Nekvalificiran",
+    "stageConverted": "Konvertovan",
+    "stageLost": "Izgubljen"
+  },
+  "contacts": {
+    "title": "Kontakti",
+    "addContact": "Dodaj kontakt",
+    "empty": "Nema kontakata.",
+    "name": "Ime",
+    "email": "Email",
+    "phone": "Telefon",
+    "type": "Tip",
+    "city": "Grad"
+  },
+  "viewings": {
+    "title": "Obilasci",
+    "addViewing": "Dodaj obilazak",
+    "empty": "Nema obilazaka.",
+    "scheduled": "Zakazano",
+    "confirmed": "Potvrđeno",
+    "completed": "Završeno",
+    "cancelled": "Otkazano",
+    "noShow": "Nije se pojavio"
+  },
+  "microsite": {
+    "pageTitle": "Dostupne nekretnine",
+    "pageSubtitle": "Pregledajte naše aktivne oglase",
+    "forSale": "Na prodaju",
+    "forRent": "Na iznajmljivanje",
+    "viewDetails": "Pogledaj detalje",
+    "bedrooms": "spavaće sobe",
+    "bathrooms": "kupatila",
+    "area": "površina",
+    "yearBuilt": "Godina izgradnje",
+    "contactUs": "Kontaktirajte nas",
+    "noResults": "Još nema objavljenih nekretnina."
+  }
+}
