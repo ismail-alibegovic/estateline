@@ -1,0 +1,90 @@
+<!-- Estateline Lead Capture Form -->
+<!-- Paste this snippet into any website to capture leads directly into your CRM. -->
+<!-- Replace "YOUR_ORG_SLUG" with your Estateline organization slug (e.g., "my-agency") -->
+
+<div id="estateline-lead-form" style="font-family: system-ui, sans-serif; max-width: 400px; margin: 0 auto;">
+  <form id="el-form" style="background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); padding: 24px;">
+    <h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #111;">Interested in this property?</h3>
+
+    <input type="hidden" name="organization_slug" value="YOUR_ORG_SLUG" />
+    <input type="hidden" name="property_id" id="el-property-id" value="" />
+
+    <div style="margin-bottom: 12px;">
+      <input name="first_name" placeholder="Your name *" required
+        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;" />
+    </div>
+    <div style="margin-bottom: 12px;">
+      <input name="email" type="email" placeholder="Your email"
+        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;" />
+    </div>
+    <div style="margin-bottom: 12px;">
+      <input name="phone" type="tel" placeholder="Your phone"
+        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;" />
+    </div>
+    <div style="margin-bottom: 16px;">
+      <textarea name="message" placeholder="Message (optional)" rows="3"
+        style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; box-sizing: border-box; resize: vertical;"></textarea>
+    </div>
+
+    <button type="submit"
+      style="width: 100%; padding: 12px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer;">
+      Send Inquiry
+    </button>
+    <p id="el-message" style="margin: 8px 0 0; font-size: 13px; text-align: center; display: none;"></p>
+  </form>
+</div>
+
+<script>
+  (function() {
+    const form = document.getElementById('el-form');
+    const msg = document.getElementById('el-message');
+    const slugInput = form.querySelector('input[name="organization_slug"]');
+
+    // Auto-detect property_id from URL query param ?el_property=
+    const params = new URLSearchParams(window.location.search);
+    const propId = params.get('el_property');
+    if (propId) document.getElementById('el-property-id').value = propId;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      msg.style.display = 'none';
+
+      const data = {
+        organization_slug: slugInput.value,
+        first_name: form.querySelector('input[name="first_name"]').value,
+        last_name: '',
+        email: form.querySelector('input[name="email"]').value || null,
+        phone: form.querySelector('input[name="phone"]').value || null,
+        message: form.querySelector('textarea[name="message"]').value || null,
+        property_id: document.getElementById('el-property-id').value || null,
+      };
+
+      try {
+        const res = await fetch('https://estateline.vercel.app/api/leads/public', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (json.success) {
+          msg.textContent = 'Thanks! We\'ll be in touch soon.';
+          msg.style.color = '#16a34a';
+          form.reset();
+        } else {
+          msg.textContent = json.error || 'Something went wrong.';
+          msg.style.color = '#dc2626';
+        }
+      } catch {
+        msg.textContent = 'Network error. Please try again.';
+        msg.style.color = '#dc2626';
+      }
+
+      msg.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Inquiry';
+    });
+  })();
+</script>

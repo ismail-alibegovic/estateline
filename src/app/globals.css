@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Estateline — editorial / warm editorial palette
+ * Reference brief: warm parchment/cream backgrounds (not stark white),
+ * warm accent (terracotta/clay), serif display + sans body pairing.
+ * Replaces the stock shadcn blue/Inter default.
+ */
+
+@layer base {
+  :root {
+    /* Surfaces — warm paper, not #fff */
+    --background: 32 36% 96%;          /* #faf7f2 parchment */
+    --foreground: 24 12% 14%;          /* deep warm ink */
+
+    --card: 30 30% 98%;                /* #fffaf4 cream card */
+    --card-foreground: 24 12% 14%;
+
+    --popover: 30 33% 99%;
+    --popover-foreground: 24 12% 14%;
+
+    /* Primary — clay/terracotta, not blue */
+    --primary: 12 70% 41%;             /* #b4451f clay */
+    --primary-foreground: 30 44% 97%;
+
+    --secondary: 30 25% 92%;           /* warm grey stone */
+    --secondary-foreground: 24 12% 18%;
+
+    --muted: 30 22% 90%;
+    --muted-foreground: 28 9% 42%;
+
+    --accent: 28 60% 52%;              /* #d98841 amber-clay */
+    --accent-foreground: 24 14% 14%;
+
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 30 44% 97%;
+
+    --border: 30 18% 86%;              /* soft warm hairline */
+    --input: 30 18% 86%;
+    --ring: 12 70% 41%;
+
+    --radius: 0.375rem;
+  }
+
+  .dark {
+    /* Warm-dark: deep walnut, still recognisably the same brand */
+    --background: 24 14% 9%;           /* #16120e walnut */
+    --foreground: 32 28% 92%;
+
+    --card: 26 11% 13%;
+    --card-foreground: 32 28% 92%;
+
+    --popover: 26 11% 13%;
+    --popover-foreground: 32 28% 92%;
+
+    --primary: 14 72% 55%;             /* lighter clay for contrast on dark */
+    --primary-foreground: 24 14% 9%;
+
+    --secondary: 26 9% 18%;
+    --secondary-foreground: 32 28% 92%;
+
+    --muted: 26 9% 18%;
+    --muted-foreground: 30 12% 62%;
+
+    --accent: 28 60% 58%;
+    --accent-foreground: 24 14% 9%;
+
+    --destructive: 0 55% 52%;
+    --destructive-foreground: 30 44% 97%;
+
+    --border: 26 9% 22%;
+    --input: 26 9% 22%;
+    --ring: 14 72% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* Serif display font for headings */
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-display), Georgia, 'Times New Roman', serif;
+    font-feature-settings: 'opsz' auto;
+    letter-spacing: -0.01em;
+  }
+}
