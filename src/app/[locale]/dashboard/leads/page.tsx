@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
+import { WhatsAppButton } from '@/components/WhatsAppButton'
 
 type Lead = Database['public']['Tables']['leads']['Row']
 
@@ -59,6 +60,12 @@ export default function LeadsPage() {
                     </p>
                     {lead.email && <p className="text-xs text-muted-foreground mt-0.5">{lead.email}</p>}
                     {lead.phone && <p className="text-xs text-muted-foreground">{lead.phone}</p>}
+                    <WhatsAppButton
+                      phone={lead.phone}
+                      entityType="lead"
+                      entityId={lead.id}
+                      className="mt-2"
+                    />
                     <select
                       value={lead.status}
                       onChange={(e) => updateStatus(lead.id, e.target.value)}

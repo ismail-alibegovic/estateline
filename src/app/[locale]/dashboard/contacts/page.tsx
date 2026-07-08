@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
+import { WhatsAppButton } from '@/components/WhatsAppButton'
 
 interface ContactRow {
   id: string
@@ -69,7 +70,16 @@ export default function ContactsPage() {
                   {c.first_name} {c.last_name || ''}
                 </td>
                 <td className="px-6 py-4 text-[hsl(var(--muted-foreground))]">{c.email || '—'}</td>
-                <td className="px-6 py-4 text-[hsl(var(--muted-foreground))]">{c.phone || '—'}</td>
+                <td className="px-6 py-4 text-[hsl(var(--muted-foreground))]">
+                  <div className="flex items-center gap-2">
+                    <span>{c.phone || '—'}</span>
+                    <WhatsAppButton
+                      phone={c.phone}
+                      entityType="contact"
+                      entityId={c.id}
+                    />
+                  </div>
+                </td>
                 <td className="px-6 py-4">
                   <span className="inline-block rounded-full bg-[hsl(var(--accent))] px-3 py-0.5 text-xs capitalize text-[hsl(var(--accent-foreground))]">
                     {c.type}
