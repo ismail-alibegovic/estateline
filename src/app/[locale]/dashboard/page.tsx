@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { createBrowserClient } from '@/lib/supabase'
 
 interface Counts {
@@ -11,8 +12,10 @@ interface Counts {
 }
 
 export default function DashboardHome() {
-  const [user, setUser] = useState<{ full_name: string | null } | null>(null)
-  const [org, setOrg] = useState<{ name: string; subscription_tier: string; currency_default: string; locale_default: string } | null>(null)
+  const t = useTranslations('dashboard')
+  const tc = useTranslations('common')
+  const [user, setUser] = useState<any>(null)
+  const [org, setOrg] = useState<any>(null)
   const [counts, setCounts] = useState<Counts>({ properties: 0, leads: 0, active_deals: 0, team_members: 1 })
   const [loading, setLoading] = useState(true)
 
@@ -57,10 +60,10 @@ export default function DashboardHome() {
   }
 
   const cards = [
-    { label: 'Properties', value: counts.properties, hint: 'Listings live' },
-    { label: 'Leads', value: counts.leads, hint: 'Across all stages' },
-    { label: 'Active Deals', value: counts.active_deals, hint: 'Qualified → Negotiation' },
-    { label: 'Team Members', value: counts.team_members, hint: 'In this organization' },
+    { label: t('properties'), value: counts.properties, hint: 'Listings live' },
+    { label: t('leads'), value: counts.leads, hint: 'Across all stages' },
+    { label: t('activeDeals'), value: counts.active_deals, hint: 'Qualified → Negotiation' },
+    { label: t('teamMembers'), value: counts.team_members, hint: 'In this organization' },
   ]
 
   return (
@@ -68,10 +71,10 @@ export default function DashboardHome() {
       <header className="mb-12">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Overview</p>
         <h1 className="font-display text-4xl tracking-tight">
-          Welcome{user?.full_name ? `, ${user.full_name}` : ''}.
+          {t('welcome')}{user?.full_name ? `, ${user.full_name}` : ''}.
         </h1>
         <p className="mt-2 text-muted-foreground">
-          {org?.name} <span className="text-foreground/30 mx-1.5">·</span> {org?.subscription_tier} plan
+          {org?.name} <span className="text-foreground/30 mx-1.5">&middot;</span> {org?.subscription_tier} {t('plan')}
         </p>
       </header>
 

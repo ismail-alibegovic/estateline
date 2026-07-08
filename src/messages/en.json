@@ -1,0 +1,102 @@
+{
+  "common": {
+    "appName": "Estateline",
+    "tagline": "Real estate CRM for Balkan agencies",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "signOut": "Sign out",
+    "back": "Back"
+  },
+  "nav": {
+    "overview": "Overview",
+    "properties": "Properties",
+    "leads": "Leads",
+    "contacts": "Contacts",
+    "pipeline": "Pipeline",
+    "viewings": "Viewings",
+    "activity": "Activity"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "keepMeLoggedIn": "Keep me logged in",
+    "welcomeBack": "Welcome back"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "plan": "plan",
+    "properties": "Properties",
+    "leads": "Leads",
+    "activeDeals": "Active Deals",
+    "teamMembers": "Team Members",
+    "organizationDetails": "Organization Details",
+    "name": "Name",
+    "planLabel": "Plan",
+    "currency": "Currency",
+    "locale": "Locale"
+  },
+  "properties": {
+    "title": "Properties",
+    "addProperty": "Add Property",
+    "empty": "No properties yet.",
+    "reference": "Ref",
+    "price": "Price",
+    "status": "Status",
+    "type": "Type",
+    "city": "City",
+    "details": "Details",
+    "featured": "Featured"
+  },
+  "leads": {
+    "title": "Leads",
+    "pipeline": "Leads Pipeline",
+    "addLead": "Add Lead",
+    "empty": "No leads yet.",
+    "stageNew": "New",
+    "stageContacted": "Contacted",
+    "stageQualified": "Qualified",
+    "stageUnqualified": "Unqualified",
+    "stageConverted": "Converted",
+    "stageLost": "Lost"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "addContact": "Add Contact",
+    "empty": "No contacts yet.",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "type": "Type",
+    "city": "City"
+  },
+  "viewings": {
+    "title": "Viewings",
+    "addViewing": "Add Viewing",
+    "empty": "No viewings yet.",
+    "scheduled": "Scheduled",
+    "confirmed": "Confirmed",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "noShow": "No-show"
+  },
+  "microsite": {
+    "pageTitle": "Available properties",
+    "pageSubtitle": "Browse our active listings",
+    "forSale": "For sale",
+    "forRent": "For rent",
+    "viewDetails": "View details",
+    "bedrooms": "bedrooms",
+    "bathrooms": "bathrooms",
+    "area": "area",
+    "yearBuilt": "Year built",
+    "contactUs": "Contact us",
+    "noResults": "No published properties yet."
+  }
+}

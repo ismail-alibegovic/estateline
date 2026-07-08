@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
+import { useTranslations } from 'next-intl'
 
 type Lead = Database['public']['Tables']['leads']['Row']
 
 const STAGES = ['new', 'contacted', 'qualified', 'unqualified', 'converted', 'lost']
 
 export default function LeadsPage() {
+  const t = useTranslations('leads')
+  const tc = useTranslations('common')
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -28,17 +31,15 @@ export default function LeadsPage() {
     setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)))
   }
 
-  if (loading) {
-    return <div className="flex justify-center py-24"><div className="animate-spin h-7 w-7 border-b-2 border-primary rounded-full" /></div>
-  }
+  if (loading) return <div className="p-8"><div className="animate-spin h-6 w-6 border-b-2 border-primary rounded-full" /></div>
 
-  const leadsByStage = Object.fromEntries(STAGES.map((s) => [s, leads.filter((l) => l.status === s)])) as Record<string, Lead[]>
+  const leadsByStage = Object.fromEntries(STAGES.map(s => [s, leads.filter(l => l.status === s)]))
 
   return (
     <div>
-      <header className="mb-10">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">CRM</p>
-        <h1 className="font-display text-4xl tracking-tight">Leads</h1>
+      <header className="mb-12">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">{t('pipeline')}</p>
+        <h1 className="font-display text-3xl tracking-tight">{t('title')}</h1>
       </header>
 
       <div className="flex gap-4 overflow-x-auto pb-6">

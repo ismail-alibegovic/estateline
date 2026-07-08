@@ -3,38 +3,21 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface Session {
   user: { id: string; full_name: string | null; email: string } | null
   org: { id: string; name: string; slug: string; subscription_tier: string } | null
 }
 
-const NAV = [
-  {
-    group: 'Workspace',
-    items: [{ href: '/dashboard', label: 'Overview' }],
-  },
-  {
-    group: 'CRM',
-    items: [
-      { href: '/dashboard/leads', label: 'Leads' },
-      { href: '/dashboard/contacts', label: 'Contacts' },
-      { href: '/dashboard/pipeline', label: 'Pipeline' },
-    ],
-  },
-  {
-    group: 'Inventory',
-    items: [
-      { href: '/dashboard/properties', label: 'Properties' },
-      { href: '/dashboard/viewings', label: 'Viewings' },
-    ],
-  },
-]
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session>({ user: null, org: null })
   const pathname = usePathname()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
+  const t = useTranslations('nav')
+  const tc = useTranslations('common')
 
   useEffect(() => {
     const load = async () => {
@@ -64,10 +47,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     load()
   }, [])
 
-  const isActive = (href: string) =>
-    href === '/dashboard'
-      ? pathname === '/dashboard'
-      : pathname.startsWith(href)
+  const toRelative = (href: string) => href.replace(`/${locale}`, '')
+  const isActive = (href: string) => {
+    const rel = toRelative(href)
+    return rel === '/dashboard' ? pathname.endsWith('/dashboard') : pathname.includes(rel)
+  }
+
+  const NAV = [
+    {
+      group: 'Workspace',
+      items: [{ href: `/${locale}/dashboard`, label: t('overview') }],
+    },
+    {
+      group: 'CRM',
+      items: [
+        { href: `/${locale}/dashboard/leads`, label: t('leads') },
+        { href: `/${locale}/dashboard/contacts`, label: t('contacts') },
+        { href: `/${locale}/dashboard/pipeline`, label: t('pipeline') },
+      ],
+    },
+    {
+      group: 'Inventory',
+      items: [
+        { href: `/${locale}/dashboard/properties`, label: t('properties') },
+        { href: `/${locale}/dashboard/viewings`, label: t('viewings') },
+      ],
+    },
+  ]
 
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
@@ -135,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="hidden lg:flex items-center justify-end gap-4 px-8 py-3 border-b border-border bg-card/60">
           <form action="/api/auth/signout" method="POST">
             <button type="submit" className="text-sm text-muted-foreground hover:text-destructive transition-colors">
-              Sign out
+              {tc('signOut')}
             </button>
           </form>
         </div>
