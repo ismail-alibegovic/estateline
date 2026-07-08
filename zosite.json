@@ -1,0 +1,15 @@
+{
+  "name": "estateline",
+  "local_port": 3002,
+  "entrypoint": "npm run dev",
+  "publish": {
+    "label": "estateline",
+    "type": "http",
+    "entrypoint": "bash -c './start-prod.sh'",
+    "published_port": 3003,
+    "env": {
+      "NODE_ENV": "production",
+      "ZO_CLIENT_IDENTITY_TOKEN": "none"
+    }
+  }
+}
