@@ -10,7 +10,8 @@
     "create": "Create",
     "search": "Search",
     "signOut": "Sign out",
-    "back": "Back"
+    "back": "Back",
+    "messageOnWhatsApp": "Message on WhatsApp"
   },
   "nav": {
     "overview": "Overview",

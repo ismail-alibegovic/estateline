@@ -10,7 +10,8 @@
     "create": "Kreiraj",
     "search": "Pretraga",
     "signOut": "Odjava",
-    "back": "Nazad"
+    "back": "Nazad",
+    "messageOnWhatsApp": "Pošalji poruku"
   },
   "nav": {
     "overview": "Pregled",
