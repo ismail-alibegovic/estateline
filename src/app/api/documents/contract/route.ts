@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { getRouteContext, isAuthError } from '@/lib/auth'
 
 // Field names below match the `properties` table as defined in
 // supabase/migrations/002_properties_leads.sql:
@@ -9,19 +9,20 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 
 export async function POST(req: NextRequest) {
   try {
-    const { org_id, property_id, contact_id, deal_id } = await req.json()
+    // Resolve the caller's org via auth + RLS. Never trust org_id from the
+    // request body — a contract may only be generated for a property/contact
+    // the authenticated user is permitted to see.
+    const ctx = await getRouteContext()
+    if (isAuthError(ctx)) return ctx
+    const { org, supabase } = ctx
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { get: () => '', set: () => {}, remove: () => {} } }
-    )
+    const { property_id, contact_id, deal_id } = await req.json()
 
-    // Fetch property details
+    // Fetch property details (RLS-scoped to the user's org)
     const { data: property } = await supabase
       .from('properties')
       .select('*')
-      .eq('organization_id', org_id)
+      .eq('organization_id', org.id)
       .eq('id', property_id)
       .single()
 
@@ -29,27 +30,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Property not found' }, { status: 404 })
     }
 
-    // Fetch contact details
+    // Fetch contact details (RLS-scoped)
     const { data: contact } = await supabase
       .from('contacts')
       .select('*')
-      .eq('organization_id', org_id)
+      .eq('organization_id', org.id)
       .eq('id', contact_id)
       .single()
 
     if (!contact) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
-    }
-
-    // Fetch organization
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', org_id)
-      .single()
-
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
     }
 
     // Build the contract PDF
