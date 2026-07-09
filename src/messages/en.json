@@ -20,7 +20,8 @@
     "contacts": "Contacts",
     "pipeline": "Pipeline",
     "viewings": "Viewings",
-    "activity": "Activity"
+    "activity": "Activity",
+    "billing": "Billing"
   },
   "auth": {
     "signIn": "Sign in",
@@ -99,5 +100,12 @@
     "yearBuilt": "Year built",
     "contactUs": "Contact us",
     "noResults": "No published properties yet."
+  },
+  "billing": {
+    "title": "Billing",
+    "heading": "Billing",
+    "currentPlan": "Current plan",
+    "status": "Status",
+    "comingSoon": "Billing is coming soon. Plan-based limits and payments will be enabled in a future update."
   }
 }

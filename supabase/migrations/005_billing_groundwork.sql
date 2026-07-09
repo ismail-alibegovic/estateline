@@ -14,10 +14,11 @@ BEGIN
   END IF;
 END $$;
 
--- 2. Add corrected CHECK (NOT VALID — tolerates existing legacy rows)
+-- 2. Add corrected CHECK. Backfill (step 3) has already run, so every row
+--    now conforms; the constraint is added fully VALIDATED (no NOT VALID).
 ALTER TABLE organizations
   ADD CONSTRAINT organizations_subscription_tier_check
-  CHECK (subscription_tier IN ('starter', 'pro', 'agency', 'beta')) NOT VALID;
+  CHECK (subscription_tier IN ('starter', 'pro', 'agency', 'beta'));
 
 -- 3. Backfill legacy tier values -> 'starter'
 UPDATE organizations SET subscription_tier = 'starter'

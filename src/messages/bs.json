@@ -20,7 +20,8 @@
     "contacts": "Kontakti",
     "pipeline": "Prodajni ljevak",
     "viewings": "Obilasci",
-    "activity": "Aktivnost"
+    "activity": "Aktivnost",
+    "billing": "Naplata"
   },
   "auth": {
     "signIn": "Prijava",
@@ -99,5 +100,12 @@
     "yearBuilt": "Godina izgradnje",
     "contactUs": "Kontaktirajte nas",
     "noResults": "Još nema objavljenih nekretnina."
+  },
+  "billing": {
+    "title": "Naplata",
+    "heading": "Naplata",
+    "currentPlan": "Trenutni plan",
+    "status": "Status",
+    "comingSoon": "Naplata stiže uskoro. Limiti po planu i plaćanja će biti omogućeni u budućem ažuriranju."
   }
 }

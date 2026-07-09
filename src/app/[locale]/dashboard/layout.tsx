@@ -73,6 +73,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { href: `/${locale}/dashboard/viewings`, label: t('viewings') },
       ],
     },
+    {
+      group: 'Settings',
+      items: [
+        { href: `/${locale}/dashboard/settings/billing`, label: t('billing') },
+      ],
+    },
   ]
 
   return (

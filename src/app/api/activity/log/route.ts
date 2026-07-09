@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'entity_id required' }, { status: 400 })
   }
   if (!action || !VALID_ACTIONS.has(action)) {
-    return NextResponse.json({ error: `action must be one of: ${[...VALID_ACTIONS].join(', ')}` }, { status: 400 })
+    return NextResponse.json({ error: `action must be one of: ${Array.from(VALID_ACTIONS).join(', ')}` }, { status: 400 })
   }
 
   const column = ENTITY_TO_COLUMN[entity_type as 'lead' | 'contact']

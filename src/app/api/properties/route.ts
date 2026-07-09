@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
+import { canAddProperty } from '@/lib/limits'
 
 export async function GET(request: Request) {
   try {
@@ -43,6 +44,17 @@ export async function POST(request: Request) {
     if (isAuthError(ctx)) return ctx
     if (ctx.role === 'viewer')
       return NextResponse.json({ error: 'Insufficient role' }, { status: 403 })
+
+    // Plan limit check — groundwork only (always allowed). Call site established
+    // so tier-based caps can be enforced here later without hunting the codebase.
+    const [{ count: propCount }, { data: orgRow }] = await Promise.all([
+      ctx.supabase.from('properties').select('*', { count: 'exact', head: true }).eq('organization_id', ctx.org.id),
+      ctx.supabase.from('organizations').select('subscription_tier').eq('id', ctx.org.id).single(),
+    ])
+    const propertyLimit = canAddProperty(orgRow ?? {}, propCount || 0)
+    if (!propertyLimit.allowed) {
+      return NextResponse.json({ error: propertyLimit.reason || 'Plan limit reached' }, { status: 403 })
+    }
 
     const body = await request.json()
 
