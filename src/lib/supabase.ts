@@ -43,7 +43,7 @@ export type Database = {
           name: string
           slug: string
           logo_url: string | null
-          subscription_tier: 'free' | 'pro' | 'enterprise'
+          subscription_tier: 'starter' | 'pro' | 'agency' | 'beta'
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
