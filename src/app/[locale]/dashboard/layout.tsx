@@ -182,7 +182,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium text-[#302e4c] truncate">{session.user?.full_name || session.user?.email}</p>
-                  <p className="text-[11px] text-[#697077] truncate">{session.org?.name}</p>
+                   <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-[11px] text-[#697077] truncate">{session.org?.name}</p>
+                    {session.org?.subscription_tier && (
+                      <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[#3520D5]/10 text-[#3520D5]">
+                        {session.org.subscription_tier}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <form action="/api/auth/signout" method="POST" className="px-2">

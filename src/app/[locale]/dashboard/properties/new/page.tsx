@@ -1,275 +1,226 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase'
-import MapPicker from '@/components/MapPicker'
+import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import Link from 'next/link'
 
 export default function NewPropertyPage() {
   const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
     currency: 'EUR',
-    type: 'sale',
+    type: 'apartment',
     status: 'draft',
     city: '',
     address: '',
+    bedrooms: '',
+    bathrooms: '',
     area_size: '',
+    year_built: '',
   })
-  
-  const [location, setLocation] = useState({ lat: 43.8563, lng: 18.4131 })
-  const [images, setImages] = useState<File[]>([])
-  const [imageUrls, setImageUrls] = useState<string[]>([])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages(Array.from(e.target.files))
-    }
-  }
+  const field = (key: keyof typeof formData) => ({
+    value: formData[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+      setFormData(prev => ({ ...prev, [key]: e.target.value })),
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
     const supabase = createBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setError('Not authenticated'); setLoading(false); return }
 
-    // Get organization ID
     const { data: member } = await supabase
       .from('organization_members')
       .select('organization_id')
       .eq('user_id', user.id)
       .eq('is_primary', true)
       .single()
-    if (!member) return
+    if (!member) { setError('No organization found'); setLoading(false); return }
 
-    try {
-      // 1. Upload Images
-      const uploadedImagePaths: string[] = []
-      for (const file of images) {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${Math.random()}.${fileExt}`
-        const filePath = `${member.organization_id}/${fileName}`
+    // Generate slug from title
+    const slug = formData.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') + '-' + Date.now()
 
-        // Upload to bucket 'property-images' (must exist in Supabase storage)
-        const { error: uploadError } = await supabase.storage
-          .from('property-images')
-          .upload(filePath, file)
+    const { error: insertError } = await supabase.from('properties').insert({
+      organization_id: member.organization_id,
+      title: formData.title,
+      description: formData.description || null,
+      slug,
+      price: parseFloat(formData.price),
+      currency: formData.currency,
+      type: formData.type,
+      status: formData.status,
+      city: formData.city,
+      address: formData.address || null,
+      area_size: formData.area_size ? parseFloat(formData.area_size) : null,
+      bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
+      bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
+      year_built: formData.year_built ? parseInt(formData.year_built) : null,
+      features: [],
+      images: [],
+      country: 'BA',
+    })
 
-        if (!uploadError) {
-          uploadedImagePaths.push(`property-images/${filePath}`)
-        } else {
-          console.error('Image upload failed:', uploadError)
-        }
-      }
-
-      // 2. Insert Property Record
-      const { error } = await supabase.from('properties').insert({
-        organization_id: member.organization_id,
-        title: formData.title,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        currency: formData.currency,
-        type: formData.type as any,
-        status: formData.status as any,
-        city: formData.city,
-        area_size: formData.area_size ? parseFloat(formData.area_size) : null,
-        location: {
-          address: formData.address,
-          latitude: location.lat,
-          longitude: location.lng
-        },
-        images: uploadedImagePaths,
-        custom_fields: {}
-      })
-
-      if (error) throw error
-
-      router.push('/dashboard/properties')
-      router.refresh()
-    } catch (err: any) {
-      console.error(err)
-      alert(err.message || 'Error creating property')
-    } finally {
-      setLoading(false)
+    setLoading(false)
+    if (insertError) {
+      setError(insertError.message)
+    } else {
+      setSuccess(true)
+      setTimeout(() => router.push(`/${locale}/dashboard/properties`), 1200)
     }
   }
 
+  const inputClass = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors'
+  const labelClass = 'block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5'
+
+  if (success) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+          <CheckCircle2 className="text-emerald-500" size={32} />
+        </div>
+        <h2 className="text-xl font-display font-bold text-foreground">Property Added!</h2>
+        <p className="text-muted-foreground text-sm">Redirecting to properties list…</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="max-w-4xl mx-auto py-10 px-6">
-      <header className="mb-8">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Properties</p>
+    <div className="max-w-3xl mx-auto py-8 px-4">
+      <div className="mb-8">
+        <Link
+          href={`/${locale}/dashboard/properties`}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+        >
+          <ArrowLeft size={14} /> Back to Properties
+        </Link>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Properties</p>
         <h1 className="font-display text-3xl font-bold tracking-tight">Add New Property</h1>
-      </header>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
-          <h2 className="text-lg font-display font-bold">Basic Details</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">Property Title</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
+      {error && (
+        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Details */}
+        <div className="bg-card border border-border rounded-xl p-6 space-y-5 shadow-sm">
+          <h2 className="text-base font-display font-bold">Basic Details</h2>
+          <div>
+            <label className={labelClass}>Property Title *</label>
+            <input type="text" required placeholder="e.g. Modern 2-Bedroom Apartment in Sarajevo" className={inputClass} {...field('title')} />
+          </div>
+          <div>
+            <label className={labelClass}>Description</label>
+            <textarea
+              placeholder="Describe the property, its features, and surroundings..."
+              rows={4}
+              className={inputClass}
+              value={formData.description}
+              onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="col-span-2">
+              <label className={labelClass}>Price *</label>
+              <input type="number" required placeholder="250000" min="0" className={inputClass} {...field('price')} />
             </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary min-h-[120px]"
-              />
-            </div>
-
             <div>
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">Price</label>
-              <input
-                type="number"
-                required
-                value={formData.price}
-                onChange={e => setFormData({ ...formData, price: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">Currency</label>
-              <select
-                value={formData.currency}
-                onChange={e => setFormData({ ...formData, currency: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary"
-              >
+              <label className={labelClass}>Currency</label>
+              <select className={inputClass} {...field('currency')}>
                 <option value="EUR">EUR (€)</option>
                 <option value="BAM">BAM (KM)</option>
                 <option value="RSD">RSD (din)</option>
+                <option value="USD">USD ($)</option>
               </select>
             </div>
-
             <div>
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">Type</label>
-              <select
-                value={formData.type}
-                onChange={e => setFormData({ ...formData, type: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary"
-              >
-                <option value="sale">For Sale</option>
-                <option value="rent">For Rent</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">Status</label>
-              <select
-                value={formData.status}
-                onChange={e => setFormData({ ...formData, status: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary"
-              >
+              <label className={labelClass}>Status</label>
+              <select className={inputClass} {...field('status')}>
                 <option value="draft">Draft</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
-
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">Area Size (m²)</label>
-              <input
-                type="number"
-                value={formData.area_size}
-                onChange={e => setFormData({ ...formData, area_size: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
+              <label className={labelClass}>Property Type</label>
+              <select className={inputClass} {...field('type')}>
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="villa">Villa</option>
+                <option value="office">Office</option>
+                <option value="land">Land</option>
+                <option value="commercial">Commercial</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Area Size (m²)</label>
+              <input type="number" placeholder="75" min="0" className={inputClass} {...field('area_size')} />
+            </div>
+            <div>
+              <label className={labelClass}>Year Built</label>
+              <input type="number" placeholder="2010" min="1800" max="2030" className={inputClass} {...field('year_built')} />
+            </div>
+            <div>
+              <label className={labelClass}>Bedrooms</label>
+              <input type="number" placeholder="2" min="0" className={inputClass} {...field('bedrooms')} />
+            </div>
+            <div>
+              <label className={labelClass}>Bathrooms</label>
+              <input type="number" placeholder="1" min="0" className={inputClass} {...field('bathrooms')} />
             </div>
           </div>
         </div>
 
-        {/* Location & Map */}
-        <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
-          <h2 className="text-lg font-display font-bold">Location & Coordinates</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Location */}
+        <div className="bg-card border border-border rounded-xl p-6 space-y-5 shadow-sm">
+          <h2 className="text-base font-display font-bold">Location</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">City</label>
-              <input
-                type="text"
-                required
-                value={formData.city}
-                onChange={e => setFormData({ ...formData, city: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
+              <label className={labelClass}>City *</label>
+              <input type="text" required placeholder="e.g. Sarajevo" className={inputClass} {...field('city')} />
             </div>
-
             <div>
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-1.5">Address</label>
-              <input
-                type="text"
-                required
-                value={formData.address}
-                onChange={e => setFormData({ ...formData, address: e.target.value })}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
+              <label className={labelClass}>Address</label>
+              <input type="text" placeholder="e.g. Ferhadija 12" className={inputClass} {...field('address')} />
             </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">Pin Location on Map</label>
-              <MapPicker 
-                initialLat={location.lat} 
-                initialLng={location.lng} 
-                onChange={(lat, lng) => setLocation({ lat, lng })} 
-              />
-              <p className="text-xs text-muted-foreground mt-2">Selected coordinates: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Media / Images */}
-        <div className="bg-card border border-border rounded-xl p-6 space-y-6 shadow-sm">
-          <h2 className="text-lg font-display font-bold">Property Media</h2>
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-muted-foreground mb-2">Upload Property Photos</label>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-            />
-            {images.length > 0 && (
-              <ul className="mt-4 space-y-1">
-                {images.map((file, i) => (
-                  <li key={i} className="text-xs text-muted-foreground flex items-center gap-2">
-                    📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-4">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-6 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+        <div className="flex justify-end gap-3 pt-2">
+          <Link
+            href={`/${locale}/dashboard/properties`}
+            className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors"
           >
             Cancel
-          </button>
+          </Link>
           <button
             type="submit"
             disabled={loading}
-            className="rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all"
           >
-            {loading ? 'Adding Property...' : 'Add Property'}
+            {loading ? 'Saving…' : 'Add Property'}
           </button>
         </div>
       </form>

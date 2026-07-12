@@ -52,15 +52,22 @@ const DEFAULT_DOCUMENTS: DocumentItem[] = [
 ]
 
 export default function DocumentsPage() {
-  const [documents, setDocuments] = useState<DocumentItem[]>()
+  const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'contracts' | 'brochures' | 'templates' | 'leases'>('all')
+  const [toasts, setToasts] = useState<{id: string; message: string}[]>([])
   
   // Modal State
   const [isOpen, setIsOpen] = useState(false)
   const [newTitle, setNewTitle] = useState('')
-  const [newFileName, setNewFileName] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [newCategory, setNewCategory] = useState<DocumentItem['category']>('contracts')
+
+  const toast = (message: string) => {
+    const id = Math.random().toString(36).slice(2)
+    setToasts(prev => [...prev, { id, message }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
+  }
 
   useEffect(() => {
     const saved = localStorage.getItem('estateline_documents')
@@ -85,23 +92,29 @@ export default function DocumentsPage() {
     e.preventDefault()
     if (!newTitle.trim()) return
 
-    const name = newFileName.trim() || 'uploaded_document.pdf'
+    const fileName = selectedFile ? selectedFile.name : 'uploaded_document.pdf'
+    const fileSize = selectedFile
+      ? selectedFile.size > 1048576
+        ? `${(selectedFile.size / 1048576).toFixed(1)} MB`
+        : `${Math.round(selectedFile.size / 1024)} KB`
+      : '—'
 
     const newDoc: DocumentItem = {
       id: Math.random().toString(36).substr(2, 9),
       title: newTitle,
-      fileName: name,
-      fileSize: `${(Math.random() * 2 + 0.1).toFixed(1)} MB`,
+      fileName,
+      fileSize,
       category: newCategory,
       uploadedAt: new Date().toISOString().split('T')[0]
     }
 
     const updated = [newDoc, ...(documents || [])]
     saveDocs(updated)
+    toast('Document added!')
 
     // Reset Form
     setNewTitle('')
-    setNewFileName('')
+    setSelectedFile(null)
     setNewCategory('contracts')
     setIsOpen(false)
   }
@@ -120,7 +133,16 @@ export default function DocumentsPage() {
   })
 
   return (
+    <>
     <div className="space-y-6">
+      {/* Toast Notifications */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
+        {toasts.map(t => (
+          <div key={t.id} className="pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
+            ✓ {t.message}
+          </div>
+        ))}
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-display text-foreground">Documents Library</h1>
@@ -275,20 +297,7 @@ export default function DocumentsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  File Name
-                </label>
-                <input
-                  type="text"
-                  value={newFileName}
-                  onChange={(e) => setNewFileName(e.target.value)}
-                  placeholder="e.g. contract_draft.pdf"
-                  className="w-full px-3 py-2 border border-border bg-background rounded-lg text-foreground text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                   Category
                 </label>
                 <select
@@ -296,16 +305,38 @@ export default function DocumentsPage() {
                   onChange={(e) => setNewCategory(e.target.value as any)}
                   className="w-full px-3 py-2 border border-border bg-background rounded-lg text-foreground text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 >
-                  <option value="contracts">Contracts & Agreements</option>
+                  <option value="contracts">Contracts &amp; Agreements</option>
                   <option value="leases">Lease Agreements</option>
                   <option value="templates">Templates</option>
-                  <option value="brochures">Brochures & Media</option>
+                  <option value="brochures">Brochures &amp; Media</option>
                 </select>
               </div>
 
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:bg-muted/10 transition-colors">
-                <Upload className="mx-auto h-8 w-8 text-muted-foreground/60 mb-2" />
-                <p className="text-xs text-muted-foreground">Drag and drop file here or click to browse</p>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  Select File
+                </label>
+                <label className="flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl p-6 text-center hover:bg-muted/10 hover:border-primary/30 transition-all cursor-pointer">
+                  <Upload className="h-8 w-8 text-muted-foreground/60" />
+                  {selectedFile ? (
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedFile.size > 1048576
+                          ? `${(selectedFile.size / 1048576).toFixed(1)} MB`
+                          : `${Math.round(selectedFile.size / 1024)} KB`}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Click to browse or drag &amp; drop</p>
+                  )}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png"
+                    onChange={e => setSelectedFile(e.target.files?.[0] || null)}
+                  />
+                </label>
               </div>
 
               <button
@@ -319,5 +350,6 @@ export default function DocumentsPage() {
         </div>
       )}
     </div>
+    </>
   )
 }
