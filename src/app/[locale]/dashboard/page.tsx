@@ -17,6 +17,7 @@ export default function DashboardHome() {
   const [user, setUser] = useState<any>(null)
   const [org, setOrg] = useState<any>(null)
   const [counts, setCounts] = useState<Counts>({ properties: 0, leads: 0, active_deals: 0, team_members: 1 })
+  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -37,13 +38,15 @@ export default function DashboardHome() {
         const orgData = (member as any)?.organizations
         if (orgData) {
           setOrg(orgData)
-          const [{ count: pc }, { count: lc }, { count: dc }, { count: tc }] = await Promise.all([
+          const [{ count: pc }, { count: lc }, { count: dc }, { count: tc }, { data: act }] = await Promise.all([
             supabase.from('properties').select('*', { count: 'exact', head: true }).eq('organization_id', orgData.id),
             supabase.from('leads').select('*', { count: 'exact', head: true }).eq('organization_id', orgData.id),
             supabase.from('deals').select('*', { count: 'exact', head: true }).eq('organization_id', orgData.id).in('stage', ['qualified', 'proposal', 'negotiation']),
             supabase.from('organization_members').select('*', { count: 'exact', head: true }).eq('organization_id', orgData.id),
+            supabase.from('activity_log').select('*, users(full_name)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(5)
           ])
           setCounts({ properties: pc || 0, leads: lc || 0, active_deals: dc || 0, team_members: tc || 1 })
+          if (act) setActivities(act)
         }
       }
       setLoading(false)
@@ -97,6 +100,38 @@ export default function DashboardHome() {
             <Field label="Currency" value={org.currency_default} />
             <Field label="Locale" value={org.locale_default} />
           </dl>
+        </section>
+      )}
+
+      {activities.length > 0 && (
+        <section className="mt-10 mb-10">
+          <h2 className="font-display text-xl mb-4">Recent Activity</h2>
+          <div className="bg-card border border-border rounded-lg p-5">
+            <div className="space-y-6">
+              {activities.map((act) => (
+                <div key={act.id} className="flex gap-4">
+                  <div className="mt-0.5 flex-shrink-0">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))] text-xs font-medium uppercase">
+                      {act.activity_type.substring(0, 1)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[hsl(var(--foreground))]">
+                      <span className="font-medium">{act.users?.full_name || 'System'}</span> 
+                      <span className="text-[hsl(var(--muted-foreground))]"> logged a </span>
+                      {act.activity_type}
+                    </p>
+                    {act.notes && (
+                      <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))] italic">"{act.notes}"</p>
+                    )}
+                    <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
+                      {new Date(act.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
       )}
     </div>

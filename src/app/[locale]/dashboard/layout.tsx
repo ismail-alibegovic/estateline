@@ -14,6 +14,9 @@ import {
   CalendarDays,
   Settings,
   LogOut,
+  CheckSquare,
+  MessageSquare,
+  FileText,
 } from 'lucide-react'
 
 interface Session {
@@ -67,7 +70,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const NAV = [
     {
       group: 'Workspace',
-      items: [{ href: `/${locale}/dashboard`, label: t('overview'), icon: <LayoutGrid size={16} /> }],
+      items: [
+        { href: `/${locale}/dashboard`, label: t('overview'), icon: <LayoutGrid size={16} /> },
+        { href: `/${locale}/dashboard/documents`, label: t('documents'), icon: <FileText size={16} /> },
+      ],
     },
     {
       group: 'CRM',
@@ -75,6 +81,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { href: `/${locale}/dashboard/leads`, label: t('leads'), icon: <Users size={16} /> },
         { href: `/${locale}/dashboard/contacts`, label: t('contacts'), icon: <Phone size={16} /> },
         { href: `/${locale}/dashboard/pipeline`, label: t('pipeline'), icon: <Briefcase size={16} /> },
+        { href: `/${locale}/dashboard/tasks`, label: t('tasks'), icon: <CheckSquare size={16} /> },
+        { href: `/${locale}/dashboard/communications`, label: t('communications'), icon: <MessageSquare size={16} /> },
       ],
     },
     {
