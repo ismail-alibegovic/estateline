@@ -3,76 +3,78 @@
 @tailwind utilities;
 
 /*
- * Estateline — editorial / warm editorial palette
- * Reference brief: warm parchment/cream backgrounds (not stark white),
- * warm accent (terracotta/clay), serif display + sans body pairing.
- * Replaces the stock shadcn blue/Inter default.
+ * Estateline — RealEstateCRM look
+ * Transplant of the prolinkinfo/RealEstateCRM design language:
+ *  - Single typeface (DM Sans) for display + body
+ *  - Brand indigo #3520D5 as primary
+ *  - Soft cool-gray surfaces (secondaryGray), white cards
+ *  - 16px control radius, soft drop shadow on actions
+ *  - Light-tinted status badges (pending / onHold / completed / toDo / inProgress)
  */
 
 @layer base {
   :root {
-    /* Surfaces — warm paper, not #fff */
-    --background: 32 36% 96%;          /* #faf7f2 parchment */
-    --foreground: 24 12% 14%;          /* deep warm ink */
+    /* Surfaces — cool light gray app background, white cards */
+    --background: 210 20% 98%;          /* #f8fafc */
+    --foreground: 221 26% 14%;          /* #1b2027 deep slate ink */
 
-    --card: 30 30% 98%;                /* #fffaf4 cream card */
-    --card-foreground: 24 12% 14%;
+    --card: 0 0% 100%;                  /* #ffffff */
+    --card-foreground: 221 26% 14%;
 
-    --popover: 30 33% 99%;
-    --popover-foreground: 24 12% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 26% 14%;
 
-    /* Primary — clay/terracotta, not blue */
-    --primary: 12 70% 41%;             /* #b4451f clay */
-    --primary-foreground: 30 44% 97%;
+    /* Primary — RealEstateCRM brand indigo #3520D5 */
+    --primary: 248 68% 48%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 25% 92%;           /* warm grey stone */
-    --secondary-foreground: 24 12% 18%;
+    --secondary: 220 16% 94%;           /* #ecedf1 */
+    --secondary-foreground: 221 26% 14%;
 
-    --muted: 30 22% 90%;
-    --muted-foreground: 28 9% 42%;
+    --muted: 220 16% 94%;
+    --muted-foreground: 216 15% 52%;    /* #718096 */
 
-    --accent: 28 60% 52%;              /* #d98841 amber-clay */
-    --accent-foreground: 24 14% 14%;
+    --accent: 251 60% 97%;              /* #F2EFFF light indigo */
+    --accent-foreground: 248 68% 30%;
 
-    --destructive: 0 65% 45%;
-    --destructive-foreground: 30 44% 97%;
+    --destructive: 5 89% 60%;           /* #f44d3e */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 30 18% 86%;              /* soft warm hairline */
-    --input: 30 18% 86%;
-    --ring: 12 70% 41%;
+    --border: 214 32% 91%;              /* #e2e8f0 */
+    --input: 214 32% 91%;
+    --ring: 248 68% 48%;
 
-    --radius: 0.375rem;
+    --radius: 1rem;                     /* 16px — matches RealEstateCRM buttons */
   }
 
   .dark {
-    /* Warm-dark: deep walnut, still recognisably the same brand */
-    --background: 24 14% 9%;           /* #16120e walnut */
-    --foreground: 32 28% 92%;
+    --background: 221 26% 14%;          /* #1a202c */
+    --foreground: 214 30% 92%;         /* #e2e8f0 */
 
-    --card: 26 11% 13%;
-    --card-foreground: 32 28% 92%;
+    --card: 230 21% 11%;                /* #171923 */
+    --card-foreground: 214 30% 92%;
 
-    --popover: 26 11% 13%;
-    --popover-foreground: 32 28% 92%;
+    --popover: 230 21% 11%;
+    --popover-foreground: 214 30% 92%;
 
-    --primary: 14 72% 55%;             /* lighter clay for contrast on dark */
-    --primary-foreground: 24 14% 9%;
+    --primary: 247 74% 58%;             /* brand.400 #5745e3 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 26 9% 18%;
-    --secondary-foreground: 32 28% 92%;
+    --secondary: 218 23% 23%;           /* #2d3748 */
+    --secondary-foreground: 214 30% 92%;
 
-    --muted: 26 9% 18%;
-    --muted-foreground: 30 12% 62%;
+    --muted: 218 23% 23%;
+    --muted-foreground: 214 20% 69%;    /* #a0aec0 */
 
-    --accent: 28 60% 58%;
-    --accent-foreground: 24 14% 9%;
+    --accent: 248 40% 22%;
+    --accent-foreground: 248 80% 85%;
 
-    --destructive: 0 55% 52%;
-    --destructive-foreground: 30 44% 97%;
+    --destructive: 5 70% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 26 9% 22%;
-    --input: 26 9% 22%;
-    --ring: 14 72% 55%;
+    --border: 218 18% 22%;
+    --input: 218 18% 22%;
+    --ring: 247 74% 58%;
   }
 }
 
@@ -82,11 +84,41 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.3px;
   }
-  /* Serif display font for headings */
+  /* DM Sans for headings (no serif) — tighter tracking like RealEstateCRM */
   h1, h2, h3, h4, h5 {
-    font-family: var(--font-display), Georgia, 'Times New Roman', serif;
-    font-feature-settings: 'opsz' auto;
+    font-family: var(--font-display), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  /* Soft action shadow from RealEstateCRM button base style */
+  .shadow-soft {
+    box-shadow: 45px 76px 113px 7px rgba(112, 144, 176, 0.08);
+  }
+
+  /* RealEstateCRM status badge tints */
+  .badge-pending {
+    background-color: #fbf4dd;
+    color: #a37f08;
+  }
+  .badge-onhold {
+    background-color: #ffeeeb;
+    color: #db5436;
+  }
+  .badge-completed {
+    background-color: #eaf9e6;
+    color: #4d8f3a;
+  }
+  .badge-todo {
+    background-color: #ebf5ff;
+    color: #1f7eeb;
+  }
+  .badge-inprogress {
+    background-color: #eee7fc;
+    color: #7038db;
   }
 }
