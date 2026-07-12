@@ -4,8 +4,34 @@ import type { Database } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-type Property = Database['public']['Tables']['properties']['Row']
-type Org = { id: string; name: string; slug: string; logo_url: string | null; locale_default: string; currency_default: string }
+type Property = {
+  id: string
+  title: string
+  description: string | null
+  slug: string
+  price: number
+  currency: string
+  price_period: string | null
+  city: string
+  address: string | null
+  area_size: number | null
+  bedrooms: number | null
+  bathrooms: number | null
+  year_built: number | null
+  cover_image_url: string | null
+  images: unknown
+  type: Database['public']['Enums']['property_type']
+  featured: boolean
+}
+
+type Org = {
+  id: string
+  name: string
+  slug: string
+  logo_url: string | null
+  locale_default: string
+  currency_default: string
+}
 
 const theme = {
   bg: '#faf6f0',
@@ -34,24 +60,20 @@ export default async function OrgMicrosite({ params }: { params: { subdomain: st
     { cookies: { get: () => '', set: () => {}, remove: () => {} } }
   )
 
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('id, name, slug, logo_url, locale_default, currency_default')
-    .eq('slug', slug)
-    .single()
+  const { data: org, error: orgErr } = await supabase
+    .rpc<Org>('get_public_org_by_slug', { p_slug: slug })
 
-  if (!org) notFound()
+  if (orgErr || !org || org.length === 0) notFound()
+  const org_ = org[0]
 
-  const org_ = org as Org
-  const { data: properties } = await supabase
-    .from('properties')
-    .select('*')
-    .eq('organization_id', org_.id)
-    .eq('status', 'active')
-    .order('featured', { ascending: false })
-    .order('created_at', { ascending: false })
+  const { data: properties, error: propErr } = await supabase
+    .rpc<Property>('get_public_properties', { p_org_id: org_.id })
 
-  const listings = (properties as Property[] | null) ?? []
+  if (propErr) {
+    console.error('RPC error:', propErr)
+  }
+
+  const listings = (properties ?? []) as Property[]
 
   return (
     <main
