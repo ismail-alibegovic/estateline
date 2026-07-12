@@ -21,7 +21,10 @@
     "pipeline": "Pipeline",
     "viewings": "Viewings",
     "activity": "Activity",
-    "billing": "Billing"
+    "billing": "Billing",
+    "tasks": "Tasks",
+    "communications": "Communications",
+    "documents": "Documents"
   },
   "auth": {
     "signIn": "Sign in",

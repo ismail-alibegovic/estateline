@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 
 export default function SignupPage() {
   const [step, setStep] = useState(1)
@@ -15,6 +15,8 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const params = useParams()
+  const locale = params?.locale || 'en'
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -39,7 +41,7 @@ export default function SignupPage() {
         return
       }
 
-      router.push('/dashboard')
+      router.push(`/${locale}/dashboard`)
     } catch {
       setError('An unexpected error occurred')
     } finally {
@@ -176,7 +178,7 @@ export default function SignupPage() {
 
         <p className="mt-4 text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <a href="/login" className="text-primary hover:underline">
+          <a href={`/${locale}/login`} className="text-primary hover:underline">
             Sign in
           </a>
         </p>

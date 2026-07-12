@@ -21,7 +21,10 @@
     "pipeline": "Prodajni ljevak",
     "viewings": "Obilasci",
     "activity": "Aktivnost",
-    "billing": "Naplata"
+    "billing": "Naplata",
+    "tasks": "Zadaci",
+    "communications": "Komunikacije",
+    "documents": "Dokumenti"
   },
   "auth": {
     "signIn": "Prijava",

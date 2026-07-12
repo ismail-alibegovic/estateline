@@ -178,6 +178,60 @@ export type Database = {
         }
         Update: Partial<Database['public']['Tables']['leads']['Row']>
       }
+      property_syndications: {
+        Row: {
+          id: string
+          organization_id: string
+          property_id: string
+          portal_name: 'olx' | 'njuskalo' | 'nekretnine_rs'
+          status: 'active' | 'paused' | 'error'
+          external_id: string | null
+          last_synced_at: string | null
+          error_message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          property_id: string
+          portal_name: 'olx' | 'njuskalo' | 'nekretnine_rs'
+          status?: 'active' | 'paused' | 'error'
+          external_id?: string | null
+          last_synced_at?: string | null
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          property_id?: string
+          portal_name?: 'olx' | 'njuskalo' | 'nekretnine_rs'
+          status?: 'active' | 'paused' | 'error'
+          external_id?: string | null
+          last_synced_at?: string | null
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_syndications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_syndications_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       lead_stages: {
         Row: {
           id: string
