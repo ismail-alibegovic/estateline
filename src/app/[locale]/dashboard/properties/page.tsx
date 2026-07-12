@@ -5,7 +5,7 @@ import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import type { Database } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
-import { Plus, RefreshCw, Building2, ExternalLink, MapPin } from 'lucide-react'
+import { Plus, RefreshCw, Building2, ExternalLink, MapPin, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 type Property = Database['public']['Tables']['properties']['Row']
@@ -154,9 +154,12 @@ export default function PropertiesPage() {
             const propSyns = syndications.filter(s => s.property_id === p.id && s.status === 'active')
             return (
               <article key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 hover:bg-muted/20 transition-colors">
-                <div className="min-w-0 flex-1">
+                <Link
+                  href={`/${locale}/dashboard/properties/${p.id}`}
+                  className="flex-1 min-w-0 group"
+                >
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="font-display text-base font-bold text-foreground leading-tight">{p.title}</h3>
+                    <h3 className="font-display text-base font-bold text-foreground leading-tight group-hover:text-primary transition-colors">{p.title}</h3>
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${STATUS_COLORS[p.status] || STATUS_COLORS.draft}`}>
                       {p.status}
                     </span>
@@ -174,7 +177,7 @@ export default function PropertiesPage() {
                       </span>
                     )}
                   </div>
-                </div>
+                </Link>
 
                 <div className="flex items-center gap-4 shrink-0">
                   <p className="font-display text-lg font-bold text-foreground whitespace-nowrap">
@@ -187,6 +190,12 @@ export default function PropertiesPage() {
                     <ExternalLink size={12} />
                     Syndicate
                   </button>
+                  <Link
+                    href={`/${locale}/dashboard/properties/${p.id}`}
+                    className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronRight size={16} />
+                  </Link>
                 </div>
               </article>
             )
