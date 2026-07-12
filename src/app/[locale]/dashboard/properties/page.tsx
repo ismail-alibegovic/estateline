@@ -1,76 +1,67 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import type { Database } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
+import { Plus, RefreshCw, Building2, ExternalLink, MapPin } from 'lucide-react'
+import Link from 'next/link'
 
 type Property = Database['public']['Tables']['properties']['Row']
 type Syndication = Database['public']['Tables']['property_syndications']['Row']
 
+const STATUS_COLORS: Record<string, string> = {
+  active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  sold: 'bg-purple-50 text-purple-700 border-purple-200',
+  rented: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  inactive: 'bg-gray-50 text-gray-500 border-gray-200',
+  draft: 'bg-amber-50 text-amber-600 border-amber-200',
+}
+
 export default function PropertiesPage() {
   const t = useTranslations('properties')
-  const tc = useTranslations('common')
   const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const [properties, setProperties] = useState<Property[]>([])
   const [syndications, setSyndications] = useState<Syndication[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [syncingPortal, setSyncingPortal] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'all' | string>('all')
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const supabase = createBrowserClient()
     const { data: props } = await supabase.from('properties').select('*').order('created_at', { ascending: false })
     const { data: syns } = await supabase.from('property_syndications').select('*')
     if (props) setProperties(props as Property[])
     if (syns) setSyndications(syns as Syndication[])
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => { loadData() }, [loadData])
 
   const toggleSyndication = async (propertyId: string, portal: 'olx' | 'njuskalo' | 'nekretnine_rs') => {
     const supabase = createBrowserClient()
     const existing = syndications.find(s => s.property_id === propertyId && s.portal_name === portal)
 
     if (existing) {
-      // Toggle logic: delete to stop sync, or toggle status
-      if (existing.status === 'active') {
-        await supabase
-          .from('property_syndications')
-          .update({ status: 'paused' })
-          .eq('id', existing.id)
-      } else {
-        await supabase
-          .from('property_syndications')
-          .update({ status: 'active' })
-          .eq('id', existing.id)
-      }
+      await supabase.from('property_syndications').update({ status: existing.status === 'active' ? 'paused' : 'active' }).eq('id', existing.id)
     } else {
-      // Get org id
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data: member } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .eq('is_primary', true)
-        .single()
+      const { data: u } = await supabase.from('users').select('id').eq('auth_id', user.id).single()
+      if (!u) return
+      const { data: member } = await supabase.from('organization_members').select('organization_id').eq('user_id', (u as any).id).eq('is_primary', true).single()
       if (!member) return
-
-      await supabase
-        .from('property_syndications')
-        .insert({
-          organization_id: member.organization_id,
-          property_id: propertyId,
-          portal_name: portal,
-          status: 'active'
-        })
+      await supabase.from('property_syndications').insert({
+        organization_id: (member as any).organization_id,
+        property_id: propertyId,
+        portal_name: portal,
+        status: 'active'
+      })
     }
-
     loadData()
   }
 
@@ -78,116 +69,170 @@ export default function PropertiesPage() {
     setSyncingPortal('olx')
     try {
       await fetch('/api/sync/olx', { method: 'POST' })
-      alert('OLX Sync triggered successfully!')
-    } catch (e) {
-      alert('Failed to trigger OLX sync.')
+      alert('OLX Sync triggered!')
+    } catch {
+      alert('Sync failed.')
     } finally {
       setSyncingPortal(null)
     }
   }
 
-  if (loading) return <div className="p-8"><div className="animate-spin h-6 w-6 border-b-2 border-primary rounded-full" /></div>
+  const filtered = statusFilter === 'all' ? properties : properties.filter(p => p.status === statusFilter)
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-32">
+        <div className="animate-spin h-8 w-8 border-2 border-primary/20 border-t-primary rounded-full" />
+      </div>
+    )
+  }
 
   return (
-    <div className="mx-auto max-w-[1200px] px-6 py-10">
-      <header className="mb-12 flex items-end justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">{t('title')}</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Listings</p>
           <h1 className="font-display text-3xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{properties.length} properties total</p>
         </div>
         <div className="flex gap-3">
-          <button 
+          <button
             onClick={triggerOlxSync}
             disabled={syncingPortal === 'olx'}
-            className="rounded-full border border-border bg-card px-5 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
           >
-            {syncingPortal === 'olx' ? 'Syncing OLX...' : 'Sync OLX'}
+            <RefreshCw size={14} className={syncingPortal === 'olx' ? 'animate-spin' : ''} />
+            {syncingPortal === 'olx' ? 'Syncing…' : 'Sync OLX'}
           </button>
-          <button 
-            onClick={() => router.push('/dashboard/properties/new')}
-            className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          <Link
+            href={`/${locale}/dashboard/properties/new`}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
           >
-            {t('addProperty')}
-          </button>
+            <Plus size={16} /> {t('addProperty')}
+          </Link>
         </div>
-      </header>
+      </div>
 
-      <div className="grid gap-px bg-border rounded-xl overflow-hidden border border-border">
-        {properties.length === 0 && (
-          <div className="bg-card p-12 text-center text-muted-foreground">{t('empty')}</div>
-        )}
-        <div className="border border-border rounded-lg overflow-hidden divide-y divide-border">
-          {properties.map((p) => {
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {['all', 'active', 'draft', 'inactive', 'sold', 'rented'].map(status => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(status)}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-all capitalize ${
+              statusFilter === status ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground border-border hover:bg-muted'
+            }`}
+          >
+            {status === 'all' ? `All (${properties.length})` : `${status} (${properties.filter(p => p.status === status).length})`}
+          </button>
+        ))}
+      </div>
+
+      {/* Properties List */}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-2xl bg-card">
+          <Building2 size={48} className="text-muted-foreground/30 mb-3" />
+          <h3 className="font-display font-semibold text-foreground mb-1">
+            {statusFilter !== 'all' ? `No ${statusFilter} properties` : 'No properties yet'}
+          </h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            {statusFilter !== 'all' ? 'Try another status filter.' : 'Add your first property listing.'}
+          </p>
+          {statusFilter === 'all' && (
+            <Link
+              href={`/${locale}/dashboard/properties/new`}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90"
+            >
+              <Plus size={16} /> Add Property
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border">
+          {filtered.map((p) => {
             const propSyns = syndications.filter(s => s.property_id === p.id && s.status === 'active')
             return (
-              <article key={p.id} className="grid grid-cols-[1fr_auto] gap-6 px-6 py-5 bg-card hover:bg-muted/40 transition-colors">
-                <div className="min-w-0">
-                  <h3 className="font-display text-lg font-bold leading-tight">{p.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1 truncate">
-                    {p.city} <span className="text-foreground/30 mx-1.5">·</span> <span className="capitalize">{p.type}</span> <span className="text-foreground/30 mx-1.5">·</span> <span className="capitalize">{p.status}</span>
-                  </p>
-                  <div className="flex gap-2 mt-3 items-center">
-                    <button 
-                      onClick={() => setSelectedProperty(p)}
-                      className="text-xs border border-border hover:bg-muted px-2.5 py-1 rounded transition-colors"
-                    >
-                      🔗 Syndicate ({propSyns.length})
-                    </button>
-                    {propSyns.map(s => (
-                      <span key={s.id} className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                        {s.portal_name}
+              <article key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 hover:bg-muted/20 transition-colors">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="font-display text-base font-bold text-foreground leading-tight">{p.title}</h3>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${STATUS_COLORS[p.status] || STATUS_COLORS.draft}`}>
+                      {p.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin size={12} className="shrink-0" />
+                    <span className="truncate">{p.city} · <span className="capitalize">{p.type}</span></span>
+                    {propSyns.length > 0 && (
+                      <span className="ml-2 flex items-center gap-1">
+                        {propSyns.map(s => (
+                          <span key={s.id} className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 border border-blue-200">
+                            {s.portal_name}
+                          </span>
+                        ))}
                       </span>
-                    ))}
+                    )}
                   </div>
                 </div>
-                <div className="text-right whitespace-nowrap">
-                  <p className="font-display text-xl font-bold">{Number(p.price).toLocaleString()} <span className="text-sm text-muted-foreground">{p.currency}</span></p>
-                  <p className="mt-1.5">
-                    <StatusPill status={p.status} />
+
+                <div className="flex items-center gap-4 shrink-0">
+                  <p className="font-display text-lg font-bold text-foreground whitespace-nowrap">
+                    {Number(p.price).toLocaleString()} <span className="text-xs text-muted-foreground font-normal">{p.currency}</span>
                   </p>
+                  <button
+                    onClick={() => setSelectedProperty(p)}
+                    className="flex items-center gap-1.5 text-xs border border-border hover:bg-muted px-2.5 py-1.5 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  >
+                    <ExternalLink size={12} />
+                    Syndicate
+                  </button>
                 </div>
               </article>
             )
           })}
         </div>
-      </div>
+      )}
 
+      {/* Syndication Modal */}
       {selectedProperty && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-[hsl(var(--card))] p-6 shadow-xl border border-[hsl(var(--border))]">
-            <h2 className="text-xl font-display font-bold mb-4">Syndicate: {selectedProperty.title}</h2>
-            <div className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-display font-bold">Syndicate Property</h2>
+              <button onClick={() => setSelectedProperty(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4 font-medium">{selectedProperty.title}</p>
+            <div className="space-y-3">
               {(['olx', 'njuskalo', 'nekretnine_rs'] as const).map(portal => {
                 const syn = syndications.find(s => s.property_id === selectedProperty.id && s.portal_name === portal)
                 const isActive = syn?.status === 'active'
                 return (
-                  <div key={portal} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div key={portal} className="flex items-center justify-between py-3 border-b border-border last:border-0">
                     <div>
-                      <p className="text-sm font-medium uppercase tracking-wider text-foreground">{portal.replace('_', '.')}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {isActive ? 'Syndication active' : 'Paused / Inactive'}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground">{portal.replace('_', '.')}</p>
+                      <p className="text-xs text-muted-foreground">{isActive ? 'Active syndication' : 'Not syndicating'}</p>
                     </div>
                     <button
                       onClick={() => toggleSyndication(selectedProperty.id, portal)}
-                      className={`text-xs px-3.5 py-1.5 rounded-full font-semibold transition-colors ${
-                        isActive 
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20' 
-                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      className={`text-xs px-3.5 py-1.5 rounded-full font-semibold transition-colors border ${
+                        isActive
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
                       }`}
                     >
-                      {isActive ? 'Active' : 'Enable'}
+                      {isActive ? '● Active' : 'Enable'}
                     </button>
                   </div>
                 )
               })}
             </div>
-            <div className="pt-6 flex justify-end">
-              <button 
+            <div className="pt-5">
+              <button
                 onClick={() => setSelectedProperty(null)}
-                className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                className="w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                Close
+                Done
               </button>
             </div>
           </div>
@@ -195,15 +240,4 @@ export default function PropertiesPage() {
       )}
     </div>
   )
-}
-
-function StatusPill({ status }: { status: Property['status'] }) {
-  const palette: Record<string, string> = {
-    active: 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/40',
-    sold: 'text-clay-700 bg-clay-50 dark:text-clay-300 dark:bg-clay-950/40',
-    rented: 'text-indigo-700 bg-indigo-50 dark:text-indigo-300 dark:bg-indigo-950/40',
-    inactive: 'text-muted-foreground bg-muted',
-    draft: 'text-muted-foreground bg-muted',
-  }
-  return <span className={`inline-block text-[10px] uppercase tracking-wide px-2 py-0.5 rounded ${palette[status] || palette.draft}`}>{status}</span>
 }
