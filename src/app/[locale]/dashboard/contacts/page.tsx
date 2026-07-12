@@ -19,11 +19,10 @@ interface ContactRow {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  buyer: 'bg-blue-50 text-blue-700 border-blue-200',
-  seller: 'bg-violet-50 text-violet-700 border-violet-200',
+  client: 'bg-blue-50 text-blue-700 border-blue-200',
+  owner: 'bg-violet-50 text-violet-700 border-violet-200',
   tenant: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  landlord: 'bg-amber-50 text-amber-700 border-amber-200',
-  partner: 'bg-pink-50 text-pink-700 border-pink-200',
+  vendor: 'bg-amber-50 text-amber-700 border-amber-200',
   other: 'bg-gray-50 text-gray-600 border-gray-200',
 }
 
@@ -35,7 +34,7 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'client' | 'owner' | 'tenant' | 'vendor' | 'other'>('all')
   const [toasts, setToasts] = useState<Toast[]>([])
 
   // Modal
@@ -43,7 +42,7 @@ export default function ContactsPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     first_name: '', last_name: '', email: '', phone: '',
-    type: 'buyer', city: '', company: '',
+    type: 'client', city: '', company: '',
   })
 
   const toast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -171,7 +170,7 @@ export default function ContactsPage() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {['all', 'buyer', 'seller', 'tenant', 'landlord', 'partner'].map(type => (
+          {['all', 'client', 'owner', 'tenant', 'vendor', 'other'].map(type => (
             <button
               key={type}
               onClick={() => setTypeFilter(type)}
@@ -283,11 +282,10 @@ export default function ContactsPage() {
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Type</label>
                   <select className={inputClass} value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}>
-                    <option value="buyer">Buyer</option>
-                    <option value="seller">Seller</option>
+                    <option value="client">Client</option>
+                    <option value="owner">Owner</option>
                     <option value="tenant">Tenant</option>
-                    <option value="landlord">Landlord</option>
-                    <option value="partner">Partner</option>
+                    <option value="vendor">Vendor</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
