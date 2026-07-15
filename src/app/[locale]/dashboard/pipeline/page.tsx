@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
-import { Plus, X, TrendingUp, DollarSign, FileText, Trash2 } from 'lucide-react'
+import { Plus, X, TrendingUp, DollarSign, FileText, Trash2, Building2, User } from 'lucide-react'
 import { useCurrency } from '@/components/CurrencyContext'
 
 type Deal = Database['public']['Tables']['deals']['Row']
@@ -27,15 +27,15 @@ const DEFAULT_STAGES = [
 ] as const
 
 const STYLE: Record<string, { dot: string; label: string; bg: string }> = {
-  new: { dot: 'bg-sky-400', label: 'New', bg: 'bg-sky-50' },
-  qualified: { dot: 'bg-emerald-400', label: 'Qualified', bg: 'bg-emerald-50' },
-  viewing: { dot: 'bg-violet-400', label: 'Viewing', bg: 'bg-violet-50' },
-  offer: { dot: 'bg-pink-400', label: 'Offer', bg: 'bg-pink-50' },
-  negotiation: { dot: 'bg-orange-400', label: 'Negotiation', bg: 'bg-orange-50' },
-  under_contract: { dot: 'bg-amber-400', label: 'Under Contract', bg: 'bg-amber-50' },
-  closed_won: { dot: 'bg-green-500', label: 'Closed Won', bg: 'bg-green-50' },
-  closed_lost: { dot: 'bg-red-400', label: 'Closed Lost', bg: 'bg-red-50' },
-  withdrawn: { dot: 'bg-gray-400', label: 'Withdrawn', bg: 'bg-gray-50' },
+  new: { dot: 'bg-[#5fa1e0]', label: 'New', bg: 'bg-[#5fa1e0]/10' },
+  qualified: { dot: 'bg-[#10b981]', label: 'Qualified', bg: 'bg-emerald-500/10' },
+  viewing: { dot: 'bg-[#8b5cf6]', label: 'Viewing', bg: 'bg-[#8b5cf6]/10' },
+  offer: { dot: 'bg-pink-400', label: 'Offer', bg: 'bg-pink-500/10' },
+  negotiation: { dot: 'bg-orange-400', label: 'Negotiation', bg: 'bg-orange-500/10' },
+  under_contract: { dot: 'bg-[#C9963B]', label: 'Under Contract', bg: 'bg-[#C9963B]/10' },
+  closed_won: { dot: 'bg-[#12533F]', label: 'Closed Won', bg: 'bg-[#12533F]/10' },
+  closed_lost: { dot: 'bg-rose-500', label: 'Closed Lost', bg: 'bg-rose-500/10' },
+  withdrawn: { dot: 'bg-neutral-400', label: 'Withdrawn', bg: 'bg-neutral-400/10' },
 }
 
 export default function KanbanPage() {
@@ -315,18 +315,24 @@ export default function KanbanPage() {
                                 <h4 className="text-sm font-semibold text-foreground leading-tight mb-1">{deal.title}</h4>
 
                                 {Number(deal.price) > 0 && (
-                                  <p className="text-sm font-bold text-primary mb-2">
+                                  <p className="text-sm font-bold text-[#C9963B] mb-2">
                                     {formatPrice(Number(deal.price))}
                                   </p>
                                 )}
 
                                 {(deal.properties || deal.contacts) && (
-                                  <div className="space-y-1 mb-2 pt-2 border-t border-border/50">
+                                  <div className="space-y-1.5 mb-2 pt-2 border-t border-border/50">
                                     {deal.properties && (
-                                      <p className="text-xs text-muted-foreground truncate">🏠 {deal.properties.title}</p>
+                                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                                        <Building2 size={12} className="text-muted-foreground/75 shrink-0" />
+                                        <span>{deal.properties.title}</span>
+                                      </p>
                                     )}
                                     {deal.contacts && (
-                                      <p className="text-xs text-muted-foreground truncate">👤 {deal.contacts.first_name} {deal.contacts.last_name}</p>
+                                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                                        <User size={12} className="text-muted-foreground/75 shrink-0" />
+                                        <span>{deal.contacts.first_name} {deal.contacts.last_name}</span>
+                                      </p>
                                     )}
                                   </div>
                                 )}
@@ -334,12 +340,12 @@ export default function KanbanPage() {
                                 {deal.probability !== null && deal.probability > 0 && (
                                   <div className="mb-2">
                                     <div className="flex justify-between items-center mb-1">
-                                      <span className="text-[10px] text-muted-foreground">Probability</span>
+                                      <span className="text-[10px] text-muted-foreground font-semibold">Probability</span>
                                       <span className="text-[10px] font-bold text-muted-foreground">{deal.probability}%</span>
                                     </div>
-                                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                                       <div
-                                        className="h-full bg-primary rounded-full transition-all"
+                                        className="h-full bg-amber-500 rounded-full transition-all"
                                         style={{ width: `${deal.probability}%` }}
                                       />
                                     </div>
@@ -363,10 +369,10 @@ export default function KanbanPage() {
                                       <button
                                         onClick={() => generateContract(deal)}
                                         disabled={generating === deal.id}
-                                        className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:text-primary/80 bg-primary/10 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+                                        className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider badge badge-gold px-2 py-1 rounded-md transition-colors disabled:opacity-50 hover:bg-amber-500/25 cursor-pointer"
                                       >
                                         {generating === deal.id ? (
-                                          <span className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
+                                          <span className="w-3 h-3 border border-amber-600 border-t-transparent rounded-full animate-spin" />
                                         ) : (
                                           <FileText size={10} />
                                         )}
