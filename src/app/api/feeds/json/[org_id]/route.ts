@@ -31,9 +31,14 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
         price,
         currency,
         type,
-        location,
-        custom_fields,
-        images
+        price_period,
+        city,
+        address,
+        latitude,
+        longitude,
+        cover_image_url,
+        images,
+        custom_fields
       )
     `)
     .eq('organization_id', org_id)
@@ -49,7 +54,22 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     const prop = syn.properties
     if (!prop) return null
 
-    const imagesMapped = (prop.images as string[] || []).map(img => 
+    const getImages = (): string[] => {
+      const imgs = prop.images
+      if (Array.isArray(imgs)) {
+        return imgs.map((item: any) => {
+          if (typeof item === 'string') return item
+          if (item && typeof item === 'object' && item.url) return item.url
+          return ''
+        }).filter(Boolean)
+      }
+      if (prop.cover_image_url) {
+        return [prop.cover_image_url]
+      }
+      return []
+    }
+
+    const imagesMapped = getImages().map(img => 
       `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'}/storage/v1/object/public/${img}`
     )
 
@@ -63,7 +83,12 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
       price: prop.price,
       currency: prop.currency || 'BAM',
       type: prop.type,
-      location: prop.location,
+      location: {
+        city: prop.city,
+        address: prop.address,
+        latitude: prop.latitude,
+        longitude: prop.longitude
+      },
       features: prop.custom_fields,
       images: imagesMapped
     }

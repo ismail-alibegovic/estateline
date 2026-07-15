@@ -208,29 +208,13 @@ CREATE POLICY "Members can log activity in their org" ON activity_log FOR INSERT
 CREATE POLICY "Members can view custom field definitions" ON custom_field_definitions FOR SELECT
   USING (is_org_member(organization_id));
 CREATE POLICY "Admins can manage custom field definitions" ON custom_field_definitions FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM organization_members om
-      JOIN users u ON u.id = om.user_id
-      WHERE om.organization_id = custom_field_definitions.organization_id
-        AND u.auth_id = auth.uid()
-        AND om.role IN ('owner', 'admin')
-    )
-  );
+  USING (is_admin(organization_id));
 
 -- Invitations: members can see pending invites to their org; admins manage.
 CREATE POLICY "Members can view invitations to their org" ON invitations FOR SELECT
   USING (is_org_member(organization_id));
 CREATE POLICY "Admins can manage invitations" ON invitations FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM organization_members om
-      JOIN users u ON u.id = om.user_id
-      WHERE om.organization_id = invitations.organization_id
-        AND u.auth_id = auth.uid()
-        AND om.role IN ('owner', 'admin')
-    )
-  );
+  USING (is_admin(organization_id));
 
 -- lead_contacts: members can read + manage (joins are org-scoped via the
 -- parent lead/contact, but we enforce directly via RLS membership too).

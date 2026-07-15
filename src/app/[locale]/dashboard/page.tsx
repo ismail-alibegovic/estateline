@@ -25,7 +25,7 @@ interface ActivityItem {
   type: string
   description: string
   created_at: string
-  users?: { full_name: string | null }
+  users?: { full_name: string | null } | { full_name: string | null }[] | null
 }
 
 interface LeadStageStat { stage: string; count: number; percentage: number }
@@ -624,7 +624,12 @@ export default function DashboardHome() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px]" style={{ color: '#171c26' }}>
-                    <span className="font-semibold">{act.users?.full_name || 'System'}</span>
+                    <span className="font-semibold">
+                      {(() => {
+                        const userObj = Array.isArray(act.users) ? act.users[0] : act.users
+                        return userObj?.full_name || 'System'
+                      })()}
+                    </span>
                     <span style={{ color: 'rgba(23,28,38,0.45)' }}> — </span>
                     <span style={{ color: 'rgba(23,28,38,0.7)' }}>{act.description}</span>
                   </p>

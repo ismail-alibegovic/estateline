@@ -65,6 +65,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to check if current user is admin/owner of org
+CREATE OR REPLACE FUNCTION is_admin(org_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM organization_members om
+    JOIN users u ON u.id = om.user_id
+    WHERE om.organization_id = org_id AND u.auth_id = auth.uid() AND om.role IN ('owner', 'admin')
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Organizations policies
 CREATE POLICY "Users can view their organizations"
 ON organizations FOR SELECT
@@ -72,15 +84,7 @@ USING (is_org_member(id));
 
 CREATE POLICY "Users can update their organizations"
 ON organizations FOR UPDATE
-USING (
-  EXISTS (
-    SELECT 1 FROM organization_members om
-    JOIN users u ON u.id = om.user_id
-    WHERE om.organization_id = id 
-      AND u.auth_id = auth.uid() 
-      AND om.role IN ('owner', 'admin')
-  )
-);
+USING (is_admin(id));
 
 -- Users policies
 CREATE POLICY "Users can view their own profile"
@@ -108,15 +112,7 @@ USING (is_org_member(organization_id));
 
 CREATE POLICY "Admins can manage organization members"
 ON organization_members FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM organization_members om
-    JOIN users u ON u.id = om.user_id
-    WHERE om.organization_id = organization_id 
-      AND u.auth_id = auth.uid() 
-      AND om.role IN ('owner', 'admin')
-  )
-);
+USING (is_admin(organization_id));
 
 -- Function to create organization (atomic: user profile + org + membership)
 CREATE OR REPLACE FUNCTION create_organization(

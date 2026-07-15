@@ -28,8 +28,12 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
         price,
         currency,
         type,
-        location,
-        custom_fields,
+        price_period,
+        city,
+        address,
+        latitude,
+        longitude,
+        cover_image_url,
         images
       )
     `)
@@ -50,7 +54,7 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     if (!prop) return
 
     // OLX category mapping (Real estate is typically category 1)
-    const isSale = prop.type?.toLowerCase() === 'sale'
+    const isSale = !prop.price_period
     const vrsta = isSale ? 'Prodaja' : 'Najam'
 
     xml += `  <artikal>\n`
@@ -62,15 +66,28 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     xml += `    <vrsta>${vrsta}</vrsta>\n`
     xml += `    <stanje>Korišteno</stanje>\n` // Standard tag
     
-    const location = prop.location as any
-    if (location && location.city) {
-      xml += `    <grad><![CDATA[${location.city}]]></grad>\n`
+    if (prop.city) {
+      xml += `    <grad><![CDATA[${prop.city}]]></grad>\n`
     }
-    if (location && location.address) {
-      xml += `    <adresa><![CDATA[${location.address}]]></adresa>\n`
+    if (prop.address) {
+      xml += `    <adresa><![CDATA[${prop.address}]]></adresa>\n`
     }
     
-    const images = prop.images as string[]
+    const getImages = (): string[] => {
+      const imgs = prop.images
+      if (Array.isArray(imgs)) {
+        return imgs.map((item: any) => {
+          if (typeof item === 'string') return item
+          if (item && typeof item === 'object' && item.url) return item.url
+          return ''
+        }).filter(Boolean)
+      }
+      if (prop.cover_image_url) {
+        return [prop.cover_image_url]
+      }
+      return []
+    }
+    const images = getImages()
     if (images && images.length > 0) {
       xml += `    <slike>\n`
       images.forEach(img => {

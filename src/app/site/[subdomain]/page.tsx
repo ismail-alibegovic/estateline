@@ -20,7 +20,7 @@ type Property = {
   year_built: number | null
   cover_image_url: string | null
   images: unknown
-  type: Database['public']['Enums']['property_type']
+  type: string
   featured: boolean
 }
 
@@ -54,26 +54,28 @@ function fmt(n: number, cur = 'BAM', locale = 'en') {
 export default async function OrgMicrosite({ params }: { params: { subdomain: string } }) {
   const slug = params.subdomain
 
-  const supabase = createServerClient<Database>(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     { cookies: { get: () => '', set: () => {}, remove: () => {} } }
   )
 
-  const { data: org, error: orgErr } = await supabase
-    .rpc<Org>('get_public_org_by_slug', { p_slug: slug })
+  const { data: orgRaw, error: orgErr } = await supabase
+    .rpc('get_public_org_by_slug', { p_slug: slug })
+
+  const org = orgRaw as any[]
 
   if (orgErr || !org || org.length === 0) notFound()
-  const org_ = org[0]
+  const org_ = org[0] as Org
 
-  const { data: properties, error: propErr } = await supabase
-    .rpc<Property>('get_public_properties', { p_org_id: org_.id })
+  const { data: propertiesRaw, error: propErr } = await supabase
+    .rpc('get_public_properties', { p_org_id: org_.id })
 
   if (propErr) {
     console.error('RPC error:', propErr)
   }
 
-  const listings = (properties ?? []) as Property[]
+  const listings = (propertiesRaw ?? []) as Property[]
 
   return (
     <main

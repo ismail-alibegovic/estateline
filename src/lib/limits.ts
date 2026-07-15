@@ -20,16 +20,40 @@ export interface PlanLimitResult {
 
 export function canAddAgent(
   org: { subscription_tier?: string | null },
-  _currentAgentCount: number,
+  currentAgentCount: number,
 ): PlanLimitResult {
-  // Groundwork only: all plans unlimited until tiers are enforced.
+  const tier = (org?.subscription_tier || 'beta').toLowerCase()
+  let limit = 1
+  if (tier === 'starter') limit = 3
+  else if (tier === 'pro') limit = 15
+  else if (tier === 'agency') return { allowed: true }
+
+  if (currentAgentCount >= limit) {
+    return {
+      allowed: false,
+      reason: `Your organization has reached the active agent limit of ${limit} for the ${tier} plan. Please upgrade your subscription to add more agents.`,
+      limit,
+    }
+  }
   return { allowed: true }
 }
 
 export function canAddProperty(
   org: { subscription_tier?: string | null },
-  _currentCount: number,
+  currentCount: number,
 ): PlanLimitResult {
-  // Groundwork only: all plans unlimited until tiers are enforced.
+  const tier = (org?.subscription_tier || 'beta').toLowerCase()
+  let limit = 10
+  if (tier === 'starter' || tier === 'pro' || tier === 'agency') {
+    return { allowed: true }
+  }
+
+  if (currentCount >= limit) {
+    return {
+      allowed: false,
+      reason: `Your organization has reached the property listing limit of ${limit} for the ${tier} plan. Please upgrade your subscription to add more properties.`,
+      limit,
+    }
+  }
   return { allowed: true }
 }

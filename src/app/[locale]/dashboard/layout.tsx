@@ -27,6 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
+  Sliders,
 } from 'lucide-react'
 
 interface Session {
@@ -157,6 +158,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { href: `/${locale}/dashboard/settings/profile`, label: 'Profile', icon: <User size={14} /> },
         { href: `/${locale}/dashboard/settings/team`, label: 'Team', icon: <Shield size={14} /> },
         { href: `/${locale}/dashboard/settings/integrations`, label: 'Integrations', icon: <Globe size={14} /> },
+        { href: `/${locale}/dashboard/settings/custom-fields`, label: 'Custom Fields', icon: <Sliders size={14} /> },
         { href: `/${locale}/dashboard/settings/billing`, label: t('billing'), icon: <Settings size={14} /> },
       ],
     },
