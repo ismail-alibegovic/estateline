@@ -10,7 +10,14 @@ export default function BillingPage() {
   const [plan, setPlan] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' }[]>([])
   const searchParams = useSearchParams()
+
+  const toast = (message: string, type: 'success' | 'error' = 'success') => {
+    const id = Math.random().toString(36).slice(2)
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+  }
 
   useEffect(() => {
     loadBilling()
@@ -69,10 +76,10 @@ export default function BillingPage() {
       if (data.url) {
         window.location.href = data.url
       } else {
-        alert(data.error || 'Checkout initialization failed')
+        toast(data.error || 'Checkout initialization failed', 'error')
       }
     } catch (e) {
-      alert('Error initiating checkout')
+      toast('Error initiating checkout', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -90,7 +97,7 @@ export default function BillingPage() {
         window.location.reload()
       }
     } catch (e) {
-      alert('Error opening customer portal')
+      toast('Error opening customer portal', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -217,6 +224,15 @@ export default function BillingPage() {
           </div>
         </div>
       </section>
+
+      {/* Floating Toasts */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
+        {toasts.map(t => (
+          <div key={t.id} className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${t.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+            {t.type === 'success' ? '✓' : '✗'} {t.message}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
