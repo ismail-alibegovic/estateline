@@ -13,11 +13,11 @@ type Property = Database['public']['Tables']['properties']['Row']
 type Syndication = Database['public']['Tables']['property_syndications']['Row']
 
 const STATUS_COLORS: Record<string, string> = {
-  active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  sold: 'bg-purple-50 text-purple-700 border-purple-200',
-  rented: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  inactive: 'bg-gray-50 text-gray-500 border-gray-200',
-  draft: 'bg-amber-50 text-amber-600 border-amber-200',
+  active: 'badge-sage',
+  sold: 'badge-gold',
+  rented: 'badge-indigo',
+  inactive: 'badge-rose opacity-75',
+  draft: 'badge-gold',
 }
 
 export default function PropertiesPage() {

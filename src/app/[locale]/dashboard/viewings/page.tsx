@@ -34,19 +34,19 @@ interface LeadOption { id: string; first_name: string; last_name: string | null 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 const STATUS_COLORS: Record<string, string> = {
-  scheduled: 'bg-blue-500',
+  scheduled: 'bg-[#C9963B]',
   confirmed: 'bg-emerald-500',
-  completed: 'bg-purple-500',
+  completed: 'bg-[#12533F]',
   cancelled: 'bg-red-400',
   'no-show': 'bg-gray-400',
 }
 
 const STATUS_CHIP: Record<string, string> = {
-  scheduled: 'bg-blue-50 text-blue-700 border-blue-200',
-  confirmed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  completed: 'bg-purple-50 text-purple-700 border-purple-200',
-  cancelled: 'bg-red-50 text-red-600 border-red-200',
-  'no-show': 'bg-gray-50 text-gray-600 border-gray-200',
+  scheduled: 'badge-gold',
+  confirmed: 'badge-sage',
+  completed: 'badge-indigo',
+  cancelled: 'badge-rose',
+  'no-show': 'badge-rose opacity-60',
 }
 
 export default function ViewingsPage() {

@@ -160,9 +160,9 @@ export default function TasksPage() {
   }
 
   const priorityColors: Record<string, string> = {
-    high: 'bg-red-50 text-red-600 border-red-200',
-    medium: 'bg-amber-50 text-amber-600 border-amber-200',
-    low: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+    high: 'badge-rose',
+    medium: 'badge-gold',
+    low: 'badge-sage',
   }
 
   const inputClass = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors'
@@ -275,13 +275,13 @@ export default function TasksPage() {
                   <h3 className={`font-semibold text-foreground text-sm ${task.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
                     {task.title}
                   </h3>
-                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wide ${priorityColors[task.priority]}`}>
+                  <span className={`badge ${priorityColors[task.priority]}`}>
                     {task.priority}
                   </span>
-                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wide ${
-                    task.status === 'completed' ? 'bg-muted text-muted-foreground border-border' :
-                    task.status === 'in_progress' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                    'bg-blue-50 text-blue-600 border-blue-200'
+                  <span className={`badge ${
+                    task.status === 'completed' ? 'badge-sage opacity-75' :
+                    task.status === 'in_progress' ? 'badge-gold' :
+                    'badge-indigo'
                   }`}>
                     {task.status === 'todo' ? 'to do' : task.status === 'in_progress' ? 'in progress' : 'done'}
                   </span>
