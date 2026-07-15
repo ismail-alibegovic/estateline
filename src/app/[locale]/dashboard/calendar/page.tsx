@@ -149,10 +149,10 @@ export default function CalendarPage() {
         backgroundColor = 'rgba(239, 68, 68, 0.9)' // red
         break
       case 'email':
-        backgroundColor = 'rgba(59, 130, 246, 0.9)' // blue
+        backgroundColor = 'rgba(201, 150, 59, 0.9)' // gold
         break
       case 'viewing':
-        backgroundColor = 'rgba(139, 92, 246, 0.9)' // purple
+        backgroundColor = 'rgba(18, 83, 63, 0.9)' // forest green
         break
     }
 
@@ -229,7 +229,7 @@ export default function CalendarPage() {
           <button
             onClick={() => setFilters(prev => ({ ...prev, emails: !prev.emails }))}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-              filters.emails ? 'bg-blue-500/10 text-blue-700 border-blue-500/20' : 'bg-background border-border text-muted-foreground hover:bg-muted'
+              filters.emails ? 'bg-amber-500/10 text-[#C9963B] border-amber-500/20' : 'bg-background border-border text-muted-foreground hover:bg-muted'
             }`}
           >
             <Mail size={14} /> Emails
@@ -303,14 +303,18 @@ export default function CalendarPage() {
               {selectedEvent.type === 'task' && (
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Priority</p>
-                    <span className="inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 capitalize">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Priority</p>
+                    <span className={`badge ${
+                      selectedEvent.priority === 'high' ? 'badge-rose' :
+                      selectedEvent.priority === 'medium' ? 'badge-gold' :
+                      'badge-sage'
+                    }`}>
                       {selectedEvent.priority || 'normal'}
                     </span>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Status</p>
-                    <span className="inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700 capitalize">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Status</p>
+                    <span className={`badge ${selectedEvent.status === 'completed' ? 'badge-sage opacity-75' : 'badge-gold'}`}>
                       {selectedEvent.status || 'pending'}
                     </span>
                   </div>

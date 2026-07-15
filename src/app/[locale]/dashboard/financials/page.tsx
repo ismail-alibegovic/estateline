@@ -138,6 +138,45 @@ export default function FinancialsDashboard() {
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference - (paidPercentage / 100) * circumference
 
+  const cards = [
+    {
+      label: 'Total Quoted',
+      value: formatPrice(metrics.totalQuoted),
+      hint: 'Deal values sent in quotes',
+      icon: TrendingUp,
+      gradient: 'linear-gradient(135deg, #101c2b 0%, #070e17 100%)',
+      accentColor: '#5fa1e0',
+      lightBg: 'rgba(95, 161, 224, 0.15)',
+    },
+    {
+      label: 'Collected Revenue',
+      value: formatPrice(metrics.collectedRevenue),
+      hint: 'Fully paid invoice amounts',
+      icon: CheckCircle2,
+      gradient: 'linear-gradient(135deg, #091a14 0%, #030a07 100%)',
+      accentColor: '#10b981',
+      lightBg: 'rgba(16, 185, 129, 0.15)',
+    },
+    {
+      label: 'Pending Balance',
+      value: formatPrice(metrics.pendingRevenue),
+      hint: 'Unpaid invoices in pipeline',
+      icon: Clock,
+      gradient: 'linear-gradient(135deg, #1e160a 0%, #0c0803 100%)',
+      accentColor: '#eab308',
+      lightBg: 'rgba(234, 179, 8, 0.15)',
+    },
+    {
+      label: 'VAT Tax (17%)',
+      value: formatPrice(metrics.taxCollected),
+      hint: 'Tax component on paid deals',
+      icon: Percent,
+      gradient: 'linear-gradient(135deg, #18112b 0%, #090612 100%)',
+      accentColor: '#a855f7',
+      lightBg: 'rgba(168, 85, 247, 0.15)',
+    },
+  ]
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-16">
       {/* Header */}
@@ -167,45 +206,58 @@ export default function FinancialsDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Total Quoted */}
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs uppercase font-bold tracking-wider">Total Quoted</span>
-            <div className="p-1.5 rounded-lg bg-sky-50 text-sky-600"><TrendingUp size={14} /></div>
-          </div>
-          <p className="text-2xl font-bold font-display text-foreground">{formatPrice(metrics.totalQuoted)}</p>
-          <p className="text-[11px] text-muted-foreground">Deal values sent in quotes</p>
-        </div>
+        {cards.map((card) => {
+          const Icon = card.icon
+          return (
+            <div
+              key={card.label}
+              className="rounded-2xl overflow-hidden shadow-sm"
+              style={{
+                background: card.gradient,
+                boxShadow: `0 4px 24px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.06) inset`,
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-3px)'
+                e.currentTarget.style.boxShadow = `0 8px 36px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.06) inset`
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.06) inset`
+              }}
+            >
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: card.lightBg }}
+                  >
+                    <Icon size={16} style={{ color: card.accentColor }} />
+                  </div>
+                </div>
 
-        {/* Collected Revenue */}
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs uppercase font-bold tracking-wider">Collected Revenue</span>
-            <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600"><CheckCircle2 size={14} /></div>
-          </div>
-          <p className="text-2xl font-bold font-display text-emerald-600">{formatPrice(metrics.collectedRevenue)}</p>
-          <p className="text-[11px] text-muted-foreground">Fully paid invoice amounts</p>
-        </div>
-
-        {/* Pending Revenue */}
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs uppercase font-bold tracking-wider">Pending Balance</span>
-            <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600"><Clock size={14} /></div>
-          </div>
-          <p className="text-2xl font-bold font-display text-amber-600">{formatPrice(metrics.pendingRevenue)}</p>
-          <p className="text-[11px] text-muted-foreground">Unpaid invoices in pipeline</p>
-        </div>
-
-        {/* VAT Tax Collected */}
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-muted-foreground mb-2">
-            <span className="text-xs uppercase font-bold tracking-wider">VAT Tax (17%)</span>
-            <div className="p-1.5 rounded-lg bg-purple-50 text-purple-600"><Percent size={14} /></div>
-          </div>
-          <p className="text-2xl font-bold font-display text-purple-600">{formatPrice(metrics.taxCollected)}</p>
-          <p className="text-[11px] text-muted-foreground">Tax component on paid deals</p>
-        </div>
+                <p
+                  className="leading-none mb-1.5"
+                  style={{
+                    fontFamily: 'var(--font-display), Georgia, serif',
+                    fontSize: 26,
+                    fontWeight: 600,
+                    color: '#f5f0e8',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {card.value}
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'rgba(245,240,232,0.5)' }}>
+                  {card.label}
+                </p>
+                <p className="text-[10px] mt-1 font-medium leading-none" style={{ color: card.accentColor, opacity: 0.85 }}>
+                  {card.hint}
+                </p>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Row 2: Charts and Ratios */}
