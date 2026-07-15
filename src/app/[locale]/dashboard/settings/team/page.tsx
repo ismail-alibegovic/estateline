@@ -125,7 +125,7 @@ export default function TeamSettingsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 capitalize">
+                    <span className={`badge ${m.role === 'admin' ? 'badge-gold' : 'badge-indigo'}`}>
                       <Shield size={10} /> {m.role}
                     </span>
                     {m.is_primary && (
@@ -145,8 +145,16 @@ export default function TeamSettingsPage() {
             <h2 className="font-semibold text-sm">Invite Member</h2>
           </div>
 
-          {error && <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs">{error}</div>}
-          {success && <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-lg text-xs">{success}</div>}
+          {error && (
+            <div className="badge badge-rose w-full p-3 block rounded-lg leading-relaxed normal-case font-semibold text-center shadow-sm">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="badge badge-sage w-full p-3 block rounded-lg leading-relaxed normal-case font-semibold text-center shadow-sm">
+              {success}
+            </div>
+          )}
 
           <form onSubmit={handleInvite} className="space-y-3.5">
             <div>

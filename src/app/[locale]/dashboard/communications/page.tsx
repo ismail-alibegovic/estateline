@@ -149,15 +149,15 @@ export default function CommunicationsPage() {
   const totalEmails = comms.filter(c => c.type === 'email').length
 
   const typeIcon = {
-    call: <Phone size={16} className="text-primary" />,
-    meeting: <Users size={16} className="text-amber-500" />,
-    email: <Mail size={16} className="text-emerald-500" />,
+    call: <Phone size={16} className="text-[#5fa1e0]" />,
+    meeting: <Users size={16} className="text-[#C9963B]" />,
+    email: <Mail size={16} className="text-[#10b981]" />,
   }
 
   const typeBg = {
-    call: 'bg-primary/10 border-primary/20',
-    meeting: 'bg-amber-500/10 border-amber-500/20',
-    email: 'bg-emerald-500/10 border-emerald-500/20',
+    call: 'bg-[#5fa1e0]/10 border-[#5fa1e0]/20',
+    meeting: 'bg-[#C9963B]/10 border-[#C9963B]/20',
+    email: 'bg-[#10b981]/10 border-[#10b981]/20',
   }
 
   const inputClass = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors'
@@ -169,6 +169,33 @@ export default function CommunicationsPage() {
       </div>
     )
   }
+
+  const metricsCards = [
+    {
+      label: 'Calls',
+      value: totalCalls,
+      icon: Phone,
+      gradient: 'linear-gradient(135deg, #101c2b 0%, #070e17 100%)',
+      accentColor: '#5fa1e0',
+      lightBg: 'rgba(95, 161, 224, 0.15)',
+    },
+    {
+      label: 'Meetings',
+      value: totalMeetings,
+      icon: Users,
+      gradient: 'linear-gradient(135deg, #1e160a 0%, #0c0803 100%)',
+      accentColor: '#C9963B',
+      lightBg: 'rgba(201, 150, 59, 0.15)',
+    },
+    {
+      label: 'Emails',
+      value: totalEmails,
+      icon: Mail,
+      gradient: 'linear-gradient(135deg, #091a14 0%, #030a07 100%)',
+      accentColor: '#10b981',
+      lightBg: 'rgba(16, 185, 129, 0.15)',
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -198,27 +225,52 @@ export default function CommunicationsPage() {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><Phone size={18} /></div>
-          <div>
-            <p className="text-xs text-muted-foreground font-medium">Calls</p>
-            <p className="text-2xl font-bold font-display text-foreground">{totalCalls}</p>
-          </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500"><Users size={18} /></div>
-          <div>
-            <p className="text-xs text-muted-foreground font-medium">Meetings</p>
-            <p className="text-2xl font-bold font-display text-foreground">{totalMeetings}</p>
-          </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-500"><Mail size={18} /></div>
-          <div>
-            <p className="text-xs text-muted-foreground font-medium">Emails</p>
-            <p className="text-2xl font-bold font-display text-foreground">{totalEmails}</p>
-          </div>
-        </div>
+        {metricsCards.map((card) => {
+          const Icon = card.icon
+          return (
+            <div
+              key={card.label}
+              className="rounded-2xl overflow-hidden shadow-sm"
+              style={{
+                background: card.gradient,
+                boxShadow: `0 4px 24px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.06) inset`,
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-3px)'
+                e.currentTarget.style.boxShadow = `0 8px 36px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.06) inset`
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.06) inset`
+              }}
+            >
+              <div className="p-4 flex items-center gap-4">
+                <div
+                  className="p-2.5 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: card.lightBg }}
+                >
+                  <Icon size={18} style={{ color: card.accentColor }} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider leading-none" style={{ color: 'rgba(245,240,232,0.5)' }}>{card.label}</p>
+                  <p
+                    className="leading-none mt-1.5"
+                    style={{
+                      fontFamily: 'var(--font-display), Georgia, serif',
+                      fontSize: 24,
+                      fontWeight: 600,
+                      color: '#f5f0e8',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    {card.value}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Filters */}
@@ -274,9 +326,13 @@ export default function CommunicationsPage() {
                 <div className="space-y-1.5 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold text-foreground text-sm leading-tight">{log.title}</h3>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${typeBg[log.type]} ${
-                      log.type === 'call' ? 'text-primary' : log.type === 'meeting' ? 'text-amber-600' : 'text-emerald-600'
-                    }`}>{log.type}</span>
+                    <span className={`badge ${
+                      log.type === 'call' ? 'badge-indigo' :
+                      log.type === 'meeting' ? 'badge-gold' :
+                      'badge-sage'
+                    }`}>
+                      {log.type}
+                    </span>
                   </div>
 
                   {log.summary && <p className="text-muted-foreground text-xs leading-relaxed">{log.summary}</p>}
@@ -302,7 +358,7 @@ export default function CommunicationsPage() {
                     
                     {/* Related entity for calls and emails */}
                     {log.type !== 'meeting' && (log.contacts || log.leads) && (
-                      <span className="flex items-center gap-1 font-medium bg-neutral-100 px-2 py-0.5 rounded text-neutral-700">
+                      <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider badge badge-indigo">
                         <User size={10} />
                         {log.contacts ? `Contact: ${log.contacts.first_name} ${log.contacts.last_name || ''}` : `Lead: ${log.leads?.first_name} ${log.leads?.last_name || ''}`}
                       </span>
@@ -310,7 +366,7 @@ export default function CommunicationsPage() {
 
                     {/* Attendees count for meetings */}
                     {log.type === 'meeting' && (
-                      <span className="flex items-center gap-1 font-medium bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-amber-700">
+                      <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider badge badge-gold">
                         <Users size={10} />
                         Attendees: {(log.attendee_contact_ids?.length || 0) + (log.attendee_lead_ids?.length || 0)} people
                       </span>

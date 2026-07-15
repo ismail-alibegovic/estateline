@@ -7,6 +7,13 @@ export default function IntegrationsPage() {
   const [org, setOrg] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [copiedFeed, setCopiedFeed] = useState<string | null>(null)
+  const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' }[]>([])
+
+  const toast = (message: string, type: 'success' | 'error' = 'success') => {
+    const id = Math.random().toString(36).slice(2)
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+  }
   
   // OLX States
   const [olxUrl, setOlxUrl] = useState('')
@@ -61,9 +68,9 @@ export default function IntegrationsPage() {
       
       // Update local state
       setOrg((prev: any) => ({ ...prev, olx_profile_url: olxUrl }))
-      alert('OLX Profile Link saved successfully!')
+      toast('OLX Profile Link saved successfully!')
     } catch (err: any) {
-      alert('Failed to save link: ' + err.message)
+      toast('Failed to save link: ' + err.message, 'error')
     } finally {
       setSaving(false)
     }
@@ -283,6 +290,15 @@ export default function IntegrationsPage() {
             </div>
           </div>
         </section>
+      </div>
+
+      {/* Floating Toasts */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
+        {toasts.map(t => (
+          <div key={t.id} className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${t.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+            {t.type === 'success' ? '✓' : '✗'} {t.message}
+          </div>
+        ))}
       </div>
     </div>
   )
