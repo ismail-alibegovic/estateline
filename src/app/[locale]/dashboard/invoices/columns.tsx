@@ -74,14 +74,14 @@ export const getColumns = ({ locale, onDelete, onMarkPaid }: ColumnsProps): Colu
     cell: ({ row }) => {
       const status = row.getValue("status") as Invoice['status']
       const badges: Record<string, string> = {
-        draft: 'bg-neutral-100 text-neutral-600 border-neutral-200',
-        sent: 'bg-blue-50 text-blue-600 border-blue-200',
-        paid: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-        overdue: 'bg-red-50 text-red-600 border-red-200',
-        cancelled: 'bg-neutral-50 text-neutral-400 border-neutral-200',
+        draft: 'badge-gold',
+        sent: 'badge-indigo',
+        paid: 'badge-sage',
+        overdue: 'badge-rose',
+        cancelled: 'badge-rose opacity-60',
       }
       return (
-        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wide ${badges[status]}`}>
+        <span className={`badge ${badges[status]}`}>
           {status}
         </span>
       )

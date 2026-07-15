@@ -31,11 +31,11 @@ interface Lead {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  draft: 'bg-amber-100 text-amber-700 border-amber-200',
-  sold: 'bg-purple-100 text-purple-700 border-purple-200',
-  rented: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-  inactive: 'bg-gray-100 text-gray-600 border-gray-200',
+  active: 'badge-sage',
+  draft: 'badge-gold',
+  sold: 'badge-gold',
+  rented: 'badge-indigo',
+  inactive: 'badge-rose opacity-75',
 }
 
 const PORTAL_LABELS: Record<string, string> = {
@@ -403,10 +403,10 @@ export default function PropertyDetailPage() {
           {/* Spec grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { icon: <BedDouble size={16} className="text-[#3520D5]" />, label: 'Bedrooms', value: property.bedrooms ?? '—', editKey: 'bedrooms', type: 'number', iconBg: 'bg-indigo-50 border border-indigo-100/50' },
-              { icon: <Bath size={16} className="text-[#3520D5]" />, label: 'Bathrooms', value: property.bathrooms ?? '—', editKey: 'bathrooms', type: 'number', iconBg: 'bg-indigo-50 border border-indigo-100/50' },
-              { icon: <Ruler size={16} className="text-[#3520D5]" />, label: 'Area', value: property.area_size ? `${property.area_size} m²` : '—', editKey: 'area_size', type: 'number', iconBg: 'bg-indigo-50 border border-indigo-100/50' },
-              { icon: <Calendar size={16} className="text-[#3520D5]" />, label: 'Year Built', value: property.year_built ?? '—', editKey: 'year_built', type: 'number', iconBg: 'bg-indigo-50 border border-indigo-100/50' },
+              { icon: <BedDouble size={16} className="text-[#C9963B]" />, label: 'Bedrooms', value: property.bedrooms ?? '—', editKey: 'bedrooms', type: 'number', iconBg: 'bg-amber-500/10 border border-amber-500/20' },
+              { icon: <Bath size={16} className="text-[#C9963B]" />, label: 'Bathrooms', value: property.bathrooms ?? '—', editKey: 'bathrooms', type: 'number', iconBg: 'bg-amber-500/10 border border-amber-500/20' },
+              { icon: <Ruler size={16} className="text-[#C9963B]" />, label: 'Area', value: property.area_size ? `${property.area_size} m²` : '—', editKey: 'area_size', type: 'number', iconBg: 'bg-amber-500/10 border border-amber-500/20' },
+              { icon: <Calendar size={16} className="text-[#C9963B]" />, label: 'Year Built', value: property.year_built ?? '—', editKey: 'year_built', type: 'number', iconBg: 'bg-amber-500/10 border border-amber-500/20' },
             ].map(({ icon, label, value, editKey, type, iconBg }) => (
               <div key={label} className="bg-gradient-to-b from-white to-muted/20 rounded-xl p-4 border border-border/80 shadow-sm transition-all duration-200 hover:shadow-md">
                 <div className="flex items-center gap-2 text-muted-foreground mb-2">
@@ -496,7 +496,7 @@ export default function PropertyDetailPage() {
                 {viewings.map(v => (
                   <div key={v.id} className="flex items-center justify-between py-3.5 hover:bg-muted/10 transition-colors px-1 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-indigo-50 border border-indigo-100 text-[#3520D5] flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                      <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/20 text-[#C9963B] flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
                         {getInitials(v.contacts?.first_name || 'Guest', v.contacts?.last_name)}
                       </div>
                       <div>
@@ -508,9 +508,9 @@ export default function PropertyDetailPage() {
                         </p>
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full capitalize border shadow-sm ${v.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        v.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' :
-                          'bg-indigo-50 text-[#3520D5] border-indigo-200'
+                    <span className={`badge ${v.status === 'completed' ? 'badge-sage' :
+                        v.status === 'cancelled' ? 'badge-rose' :
+                          'badge-indigo'
                       }`}>
                       {v.status}
                     </span>

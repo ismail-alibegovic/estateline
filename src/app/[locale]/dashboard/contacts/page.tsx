@@ -263,7 +263,7 @@ export default function ContactsPage() {
                           <a
                             href={`mailto:${c.email}`}
                             title="Send email"
-                            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/10 text-[#C9963B] hover:bg-amber-500/20 transition-colors"
                           >
                             <Mail size={12} />
                           </a>
