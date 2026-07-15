@@ -25,21 +25,21 @@ type Lead = {
 const STAGES = ['new', 'contacted', 'qualified', 'unqualified', 'converted', 'lost']
 
 const STAGE_COLORS: Record<string, string> = {
-  new: 'bg-sky-50 border-sky-200 text-sky-700',
-  contacted: 'bg-violet-50 border-violet-200 text-violet-700',
-  qualified: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  unqualified: 'bg-gray-50 border-gray-200 text-gray-600',
-  converted: 'bg-green-50 border-green-200 text-green-700',
-  lost: 'bg-red-50 border-red-200 text-red-700',
+  new: 'badge-gold',
+  contacted: 'badge-indigo',
+  qualified: 'badge-sage',
+  unqualified: 'badge-rose opacity-60',
+  converted: 'badge-sage',
+  lost: 'badge-rose',
 }
 
 const STAGE_HEADER_COLORS: Record<string, string> = {
-  new: 'bg-sky-500',
-  contacted: 'bg-violet-500',
-  qualified: 'bg-emerald-500',
-  unqualified: 'bg-gray-400',
-  converted: 'bg-green-600',
-  lost: 'bg-red-500',
+  new: 'bg-[#5fa1e0]',
+  contacted: 'bg-[#8b5cf6]',
+  qualified: 'bg-[#10b981]',
+  unqualified: 'bg-neutral-400',
+  converted: 'bg-[#12533F]',
+  lost: 'bg-rose-500',
 }
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
@@ -244,15 +244,17 @@ export default function LeadsPage() {
                     return (
                       <article
                         key={lead.id}
-                        className={`bg-card border rounded-xl px-4 py-3 hover:shadow-sm transition-all ${STAGE_COLORS[stage]}`}
+                        className="bg-card border border-border/80 rounded-xl px-4 py-3.5 hover:border-primary/20 hover:shadow-sm transition-all"
                       >
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${STAGE_HEADER_COLORS[stage]}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 bg-amber-500/10 border border-amber-500/20 text-[#C9963B] shadow-sm">
                             {initials}
                           </div>
-                          <p className="font-semibold text-sm text-foreground leading-tight">
-                            {lead.first_name} {lead.last_name || ''}
-                          </p>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-xs text-neutral-800 leading-tight truncate">
+                              {lead.first_name} {lead.last_name || ''}
+                            </p>
+                          </div>
                         </div>
                         {lead.email && <p className="text-xs text-muted-foreground mt-0.5 truncate">{lead.email}</p>}
                         {lead.phone && (
