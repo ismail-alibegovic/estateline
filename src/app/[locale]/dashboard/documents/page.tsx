@@ -338,10 +338,10 @@ export default function DocumentsPage() {
           {/* Folders Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { key: 'contracts', label: 'Contracts & Agreements', count: (documents || []).filter(d => d.category === 'contracts').length, color: 'text-primary bg-primary/10 border-primary/20' },
-              { key: 'leases', label: 'Lease Agreements', count: (documents || []).filter(d => d.category === 'leases').length, color: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
-              { key: 'templates', label: 'Legal Templates', count: (documents || []).filter(d => d.category === 'templates').length, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
-              { key: 'brochures', label: 'Brochures & Media', count: (documents || []).filter(d => d.category === 'brochures').length, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20' }
+              { key: 'contracts', label: 'Contracts & Agreements', count: (documents || []).filter(d => d.category === 'contracts').length, color: 'text-[#C9963B] bg-[#C9963B]/10 border-[#C9963B]/20' },
+              { key: 'leases', label: 'Lease Agreements', count: (documents || []).filter(d => d.category === 'leases').length, color: 'text-[#5fa1e0] bg-[#5fa1e0]/10 border-[#5fa1e0]/20' },
+              { key: 'templates', label: 'Legal Templates', count: (documents || []).filter(d => d.category === 'templates').length, color: 'text-[#10b981] bg-[#10b981]/10 border-[#10b981]/20' },
+              { key: 'brochures', label: 'Brochures & Media', count: (documents || []).filter(d => d.category === 'brochures').length, color: 'text-[#8b5cf6] bg-[#8b5cf6]/10 border-[#8b5cf6]/20' }
             ].map((folder) => (
               <div
                 key={folder.key}
@@ -461,7 +461,7 @@ export default function DocumentsPage() {
                   Select Associated Deal *
                 </label>
                 {deals.length === 0 ? (
-                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                  <p className="text-xs badge badge-gold p-3 w-full block rounded-lg leading-relaxed normal-case font-medium">
                     No deals found in CRM. Generate a deal under the Pipeline page first.
                   </p>
                 ) : (
