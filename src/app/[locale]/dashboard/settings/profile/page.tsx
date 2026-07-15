@@ -76,8 +76,16 @@ export default function ProfileSettingsPage() {
           <h2 className="font-semibold text-sm">Personal Details</h2>
         </div>
 
-        {error && <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs">{error}</div>}
-        {success && <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-lg text-xs">{success}</div>}
+        {error && (
+          <div className="badge badge-rose w-full p-3 block rounded-lg leading-relaxed normal-case font-semibold text-center shadow-sm">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="badge badge-sage w-full p-3 block rounded-lg leading-relaxed normal-case font-semibold text-center shadow-sm">
+            {success}
+          </div>
+        )}
 
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
