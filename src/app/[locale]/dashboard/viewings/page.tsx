@@ -41,6 +41,14 @@ const STATUS_COLORS: Record<string, string> = {
   'no-show': 'bg-gray-400',
 }
 
+const STATUS_CHIP: Record<string, string> = {
+  scheduled: 'bg-blue-50 text-blue-700 border-blue-200',
+  confirmed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  completed: 'bg-purple-50 text-purple-700 border-purple-200',
+  cancelled: 'bg-red-50 text-red-600 border-red-200',
+  'no-show': 'bg-gray-50 text-gray-600 border-gray-200',
+}
+
 export default function ViewingsPage() {
   const t = useTranslations('viewings')
   const [viewings, setViewings] = useState<Viewing[]>([])
@@ -152,6 +160,12 @@ export default function ViewingsPage() {
 
   // Upcoming viewings (next 7 days)
   const now = new Date()
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
+  const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999)
+  const todayViewings = viewings.filter(v => {
+    const d = new Date(v.scheduled_at)
+    return d >= todayStart && d <= todayEnd
+  })
   const upcoming = viewings.filter(v => {
     const d = new Date(v.scheduled_at)
     return d >= now && v.status !== 'cancelled'
@@ -169,8 +183,12 @@ export default function ViewingsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-32">
-        <div className="animate-spin h-8 w-8 border-2 border-primary/20 border-t-primary rounded-full" />
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 w-48 bg-muted rounded-xl" />
+        <div className="grid grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 h-32" />)}
+        </div>
+        <div className="bg-card border border-border rounded-2xl h-96" />
       </div>
     )
   }
@@ -202,6 +220,32 @@ export default function ViewingsPage() {
           <Plus size={16} /> Schedule Viewing
         </button>
       </div>
+
+      {/* Today's Viewings Summary */}
+      {todayViewings.length > 0 && (
+        <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-transparent border border-primary/20 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <h3 className="text-sm font-bold text-primary">
+              {todayViewings.length} Viewing{todayViewings.length !== 1 ? 's' : ''} Today
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {todayViewings.map(v => (
+              <div key={v.id} className="flex items-center gap-2 bg-white border border-border rounded-lg px-3 py-2 text-xs shadow-sm">
+                <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[v.status] || 'bg-gray-400'}`} />
+                <span className="font-semibold text-foreground">{v.properties?.title || 'Property'}</span>
+                <span className="text-muted-foreground">
+                  {new Date(v.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold capitalize ${STATUS_CHIP[v.status] || STATUS_CHIP.scheduled}`}>
+                  {v.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Upcoming Strip */}
       {upcoming.length > 0 && (

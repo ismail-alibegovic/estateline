@@ -38,4 +38,4 @@ CREATE POLICY "Users can delete syndications in their org"
 -- Trigger for updated_at
 CREATE TRIGGER update_property_syndications_modtime
     BEFORE UPDATE ON public.property_syndications
-    FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

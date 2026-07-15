@@ -1,19 +1,22 @@
 import type { Metadata } from 'next'
-import { DM_Sans } from 'next/font/google'
+import { Cormorant_Garamond, Outfit } from 'next/font/google'
 import './globals.css'
 
-const dmSansDisplay = DM_Sans({
+// Luxury editorial serif — headlines
+const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700'],
+  style: ['normal', 'italic'],
 })
 
-const dmSansBody = DM_Sans({
+// Clean modern geometric — body
+const outfit = Outfit({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  weight: ['300', '400', '500', '600', '700'],
 })
 
 export const metadata: Metadata = {
@@ -23,8 +26,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${dmSansDisplay.variable} ${dmSansBody.variable} font-body`}>
+    <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${outfit.variable} h-full overflow-hidden`}>
+      <body className="font-body h-full overflow-hidden">
         {children}
       </body>
     </html>

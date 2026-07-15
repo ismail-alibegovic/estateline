@@ -45,8 +45,8 @@ const config: Config = {
         ring: 'hsl(var(--ring))',
       },
       fontFamily: {
-        display: ['var(--font-display)', 'DM Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        body: ['var(--font-body)', 'DM Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Cormorant Garamond', 'Georgia', 'ui-serif', 'serif'],
+        body: ['var(--font-body)', 'Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',

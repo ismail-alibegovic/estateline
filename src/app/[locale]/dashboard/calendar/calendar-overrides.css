@@ -1,0 +1,76 @@
+/* Custom CSS to make react-big-calendar look more modern and fit Estateline branding */
+
+.rbc-calendar {
+  font-family: inherit;
+  border: none;
+}
+
+.rbc-month-view, .rbc-time-view, .rbc-agenda-view {
+  border: none;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.rbc-header {
+  padding: 12px 0;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+.rbc-month-row, .rbc-time-header {
+  border-top: none !important;
+}
+
+.rbc-day-bg, .rbc-header, .rbc-time-header-content {
+  border-left: 1px solid hsl(var(--border)) !important;
+}
+
+.rbc-day-bg:first-child, .rbc-header:first-child {
+  border-left: none !important;
+}
+
+.rbc-date-cell {
+  padding: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.rbc-off-range-bg {
+  background: hsl(var(--muted) / 0.3);
+}
+
+.rbc-today {
+  background: hsl(var(--primary) / 0.05);
+}
+
+.rbc-event {
+  background-color: hsl(var(--primary));
+  border-radius: 4px;
+}
+
+.rbc-toolbar {
+  margin-bottom: 1rem;
+}
+
+.rbc-toolbar button {
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  border-radius: 6px;
+  padding: 6px 12px;
+}
+
+.rbc-toolbar button:active, .rbc-toolbar button.rbc-active {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+  box-shadow: none;
+}
+
+.rbc-toolbar button:focus {
+  outline: none;
+}

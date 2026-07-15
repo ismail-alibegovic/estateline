@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createBrowserClient } from '@/lib/supabase'
+import { createRouteClient } from '@/lib/auth'
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createBrowserClient()
+    const supabase = createRouteClient()
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

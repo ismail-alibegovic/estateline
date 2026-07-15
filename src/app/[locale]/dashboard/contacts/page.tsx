@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import { WhatsAppButton } from '@/components/WhatsAppButton'
-import { Plus, X, Search, Users } from 'lucide-react'
+import { Plus, X, Search, Users, Mail, Trash2 } from 'lucide-react'
 
 interface ContactRow {
   id: string
@@ -24,6 +24,17 @@ const TYPE_COLORS: Record<string, string> = {
   tenant: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   vendor: 'bg-amber-50 text-amber-700 border-amber-200',
   other: 'bg-gray-50 text-gray-600 border-gray-200',
+}
+
+const AVATAR_COLORS = [
+  'bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500',
+  'bg-rose-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-pink-500',
+]
+
+function getAvatarColor(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
@@ -108,6 +119,18 @@ export default function ContactsPage() {
     }
   }
 
+  const deleteContact = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this contact?')) return
+    const supabase = createBrowserClient()
+    const { error } = await supabase.from('contacts').delete().eq('id', id)
+    if (error) {
+      toast(error.message, 'error')
+    } else {
+      toast('Contact deleted!')
+      setContacts(prev => prev.filter(c => c.id !== id))
+    }
+  }
+
   const filtered = contacts.filter(c => {
     const matchSearch = search === '' || `${c.first_name} ${c.last_name} ${c.email} ${c.phone} ${c.company}`.toLowerCase().includes(search.toLowerCase())
     const matchType = typeFilter === 'all' || c.type === typeFilter
@@ -131,11 +154,10 @@ export default function ContactsPage() {
         {toasts.map(t => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${
-              t.type === 'success'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-red-50 text-red-700 border-red-200'
-            }`}
+            className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${t.type === 'success'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-red-50 text-red-700 border-red-200'
+              }`}
           >
             {t.type === 'success' ? '✓' : '✗'} {t.message}
           </div>
@@ -173,12 +195,11 @@ export default function ContactsPage() {
           {['all', 'client', 'owner', 'tenant', 'vendor', 'other'].map(type => (
             <button
               key={type}
-              onClick={() => setTypeFilter(type)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all capitalize ${
-                typeFilter === type
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background border-border text-muted-foreground hover:bg-muted'
-              }`}
+              onClick={() => setTypeFilter(type as any)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all capitalize ${typeFilter === type
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background border-border text-muted-foreground hover:bg-muted'
+                }`}
             >
               {type === 'all' ? 'All' : type}
             </button>
@@ -216,30 +237,58 @@ export default function ContactsPage() {
                 <th className="px-5 py-3.5 font-semibold">Type</th>
                 <th className="px-5 py-3.5 font-semibold hidden lg:table-cell">City</th>
                 <th className="px-5 py-3.5 font-semibold hidden lg:table-cell">Company</th>
+                <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((c) => (
-                <tr key={c.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-5 py-4 font-semibold text-foreground">
-                    {c.first_name} {c.last_name || ''}
-                  </td>
-                  <td className="px-5 py-4 text-muted-foreground hidden md:table-cell">{c.email || '—'}</td>
-                  <td className="px-5 py-4 text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <span>{c.phone || '—'}</span>
-                      {c.phone && <WhatsAppButton phone={c.phone} entityType="contact" entityId={c.id} />}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${TYPE_COLORS[c.type] || TYPE_COLORS.other}`}>
-                      {c.type}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">{c.city || '—'}</td>
-                  <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">{c.company || '—'}</td>
-                </tr>
-              ))}
+              {filtered.map((c) => {
+                const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase() || '?'
+                const avatarColor = getAvatarColor(`${c.first_name}${c.last_name}`)
+                return (
+                  <tr key={c.id} className="hover:bg-muted/30 transition-colors group">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 ${avatarColor}`}>
+                          {initials}
+                        </div>
+                        <span className="font-semibold text-foreground">{c.first_name} {c.last_name || ''}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground hidden md:table-cell">{c.email || '—'}</td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <span>{c.phone || '—'}</span>
+                        {c.phone && <WhatsAppButton phone={c.phone} entityType="contact" entityId={c.id} />}
+                        {c.email && (
+                          <a
+                            href={`mailto:${c.email}`}
+                            title="Send email"
+                            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                          >
+                            <Mail size={12} />
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${TYPE_COLORS[c.type] || TYPE_COLORS.other}`}>
+                        {c.type}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">{c.city || '—'}</td>
+                    <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">{c.company || '—'}</td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        onClick={() => deleteContact(c.id)}
+                        className="p-1 rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors border border-transparent hover:border-red-100"
+                        title="Delete Contact"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

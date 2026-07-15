@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey =
@@ -12,7 +13,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 // inserts/updates without fighting the strict Database generic at compile
 // time; RLS + CHECK constraints still enforce validity at the DB layer.
 export function createBrowserClient(): SupabaseClient {
-  return createClient(supabaseUrl, supabaseAnonKey)
+  return createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
 // Server client with service role (bypasses RLS — server-only!)

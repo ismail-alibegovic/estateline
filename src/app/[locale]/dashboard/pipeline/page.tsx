@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import type { Database } from '@/lib/supabase'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
-import { Plus, X, TrendingUp, DollarSign, FileText } from 'lucide-react'
+import { Plus, X, TrendingUp, DollarSign, FileText, Trash2 } from 'lucide-react'
+import { useCurrency } from '@/components/CurrencyContext'
 
 type Deal = Database['public']['Tables']['deals']['Row']
 type Property = { title: string }
@@ -38,6 +39,7 @@ const STYLE: Record<string, { dot: string; label: string; bg: string }> = {
 }
 
 export default function KanbanPage() {
+  const { formatPrice } = useCurrency()
   const [deals, setDeals] = useState<DealWithRelations[]>([])
   const [properties, setProperties] = useState<PropertyOption[]>([])
   const [contacts, setContacts] = useState<ContactOption[]>([])
@@ -45,6 +47,7 @@ export default function KanbanPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [generating, setGenerating] = useState<string | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -121,6 +124,11 @@ export default function KanbanPage() {
 
     const supabase = createBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
+    let userId = null
+    if (user) {
+      const { data: u } = await supabase.from('users').select('id').eq('auth_id', user.id).single()
+      if (u) userId = u.id
+    }
 
     const commission = newDeal.commission_pct && newDeal.price
       ? (parseFloat(newDeal.price) * parseFloat(newDeal.commission_pct)) / 100
@@ -138,7 +146,7 @@ export default function KanbanPage() {
       commission_pct: newDeal.commission_pct ? parseFloat(newDeal.commission_pct) : null,
       commission_amount: commission,
       expected_close_date: newDeal.expected_close_date || null,
-      assigned_to: user?.id || null,
+      assigned_to: userId,
     } as any)
 
     setSaving(false)
@@ -177,6 +185,20 @@ export default function KanbanPage() {
       toast('Error generating contract.', 'error')
     } finally {
       setGenerating(null)
+    }
+  }
+
+  const deleteDeal = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this deal?')) return
+    setDeleting(id)
+    const supabase = createBrowserClient()
+    const { error } = await supabase.from('deals').delete().eq('id', id)
+    setDeleting(null)
+    if (error) {
+      toast(error.message, 'error')
+    } else {
+      toast('Deal deleted!')
+      loadData()
     }
   }
 
@@ -229,21 +251,21 @@ export default function KanbanPage() {
             <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><DollarSign size={18} /></div>
             <div>
               <p className="text-xs text-muted-foreground">Total Pipeline</p>
-              <p className="text-xl font-bold font-display">€{totalPipeline.toLocaleString()}</p>
+              <p className="text-xl font-bold font-display">{formatPrice(totalPipeline)}</p>
             </div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-500"><TrendingUp size={18} /></div>
             <div>
               <p className="text-xs text-muted-foreground">Closed Won</p>
-              <p className="text-xl font-bold font-display text-emerald-600">€{closedWon.toLocaleString()}</p>
+              <p className="text-xl font-bold font-display text-emerald-600">{formatPrice(closedWon)}</p>
             </div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
             <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500"><TrendingUp size={18} /></div>
             <div>
               <p className="text-xs text-muted-foreground">Weighted Value</p>
-              <p className="text-xl font-bold font-display text-amber-600">€{Math.round(weightedPipeline).toLocaleString()}</p>
+              <p className="text-xl font-bold font-display text-amber-600">{formatPrice(Math.round(weightedPipeline))}</p>
             </div>
           </div>
         </div>
@@ -266,7 +288,7 @@ export default function KanbanPage() {
                     </h3>
                     <span className="ml-auto text-xs font-bold text-muted-foreground bg-background px-1.5 py-0.5 rounded-full border border-border">{stageDeals.length}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground font-medium">€{totalValue.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground font-medium">{formatPrice(totalValue)}</p>
                 </div>
 
                 <Droppable droppableId={stage}>
@@ -294,7 +316,7 @@ export default function KanbanPage() {
 
                                 {Number(deal.price) > 0 && (
                                   <p className="text-sm font-bold text-primary mb-2">
-                                    €{Number(deal.price).toLocaleString()}
+                                    {formatPrice(Number(deal.price))}
                                   </p>
                                 )}
 
@@ -324,24 +346,34 @@ export default function KanbanPage() {
                                   </div>
                                 )}
 
-                                <div className="flex items-center justify-between mt-2">
+                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                                   <p className="text-[10px] text-muted-foreground/60">
                                     {new Date(deal.created_at).toLocaleDateString()}
                                   </p>
-                                  {deal.property_id && deal.contact_id && (
+                                  <div className="flex items-center gap-1.5">
                                     <button
-                                      onClick={() => generateContract(deal)}
-                                      disabled={generating === deal.id}
-                                      className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:text-primary/80 bg-primary/10 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+                                      onClick={() => deleteDeal(deal.id)}
+                                      disabled={deleting === deal.id}
+                                      className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                                      title="Delete Deal"
                                     >
-                                      {generating === deal.id ? (
-                                        <span className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
-                                      ) : (
-                                        <FileText size={10} />
-                                      )}
-                                      Contract
+                                      <Trash2 size={11} />
                                     </button>
-                                  )}
+                                    {deal.property_id && deal.contact_id && (
+                                      <button
+                                        onClick={() => generateContract(deal)}
+                                        disabled={generating === deal.id}
+                                        className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:text-primary/80 bg-primary/10 px-2 py-1 rounded-md transition-colors disabled:opacity-50"
+                                      >
+                                        {generating === deal.id ? (
+                                          <span className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                          <FileText size={10} />
+                                        )}
+                                        Contract
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )}

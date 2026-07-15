@@ -11,7 +11,8 @@
     "search": "Search",
     "signOut": "Sign out",
     "back": "Back",
-    "messageOnWhatsApp": "Message on WhatsApp"
+    "messageOnWhatsApp": "Message on WhatsApp",
+    "naUpit": "On Request"
   },
   "nav": {
     "overview": "Overview",
@@ -24,7 +25,10 @@
     "billing": "Billing",
     "tasks": "Tasks",
     "communications": "Communications",
-    "documents": "Documents"
+    "documents": "Documents",
+    "calendar": "Calendar",
+    "quotes": "Quotes",
+    "invoices": "Invoices"
   },
   "auth": {
     "signIn": "Sign in",
