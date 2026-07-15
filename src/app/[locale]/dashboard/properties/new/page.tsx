@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase'
 import { ArrowLeft, CheckCircle2 } from 'lucide-react'
@@ -13,6 +13,8 @@ export default function NewPropertyPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [customFields, setCustomFields] = useState<any[]>([])
+  const [customValues, setCustomValues] = useState<Record<string, any>>({})
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -28,6 +30,34 @@ export default function NewPropertyPage() {
     area_size: '',
     year_built: '',
   })
+
+  useEffect(() => {
+    const loadDefs = async () => {
+      const supabase = createBrowserClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      const { data: u } = await supabase.from('users').select('id').eq('auth_id', user.id).single()
+      if (!u) return
+
+      const { data: member } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', u.id)
+        .eq('is_primary', true)
+        .single()
+
+      if (member) {
+        const { data: defs } = await supabase
+          .from('custom_field_definitions')
+          .select('*')
+          .eq('organization_id', member.organization_id)
+          .eq('entity', 'property')
+        if (defs) setCustomFields(defs)
+      }
+    }
+    loadDefs()
+  }, [])
 
   const field = (key: keyof typeof formData) => ({
     value: formData[key],
@@ -85,6 +115,7 @@ export default function NewPropertyPage() {
       features: [],
       images: [],
       country: 'BA',
+      custom_fields: customValues,
     })
 
     setLoading(false)
@@ -224,6 +255,55 @@ export default function NewPropertyPage() {
             </div>
           </div>
         </div>
+
+        {/* Custom Fields Section */}
+        {customFields.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-6 space-y-5 shadow-sm">
+            <h2 className="text-base font-display font-bold">Custom Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {customFields.map(field => {
+                const labelText = field.required ? `${field.label} *` : field.label
+                return (
+                  <div key={field.id}>
+                    <label className={labelClass}>{labelText}</label>
+                    {field.field_type === 'select' ? (
+                      <select
+                        required={field.required}
+                        value={customValues[field.name] || ''}
+                        onChange={e => setCustomValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        className={inputClass}
+                      >
+                        <option value="">Select option...</option>
+                        {Array.isArray(field.options) && field.options.map((opt: string) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : field.field_type === 'boolean' ? (
+                      <select
+                        required={field.required}
+                        value={customValues[field.name] !== undefined ? String(customValues[field.name]) : ''}
+                        onChange={e => setCustomValues(prev => ({ ...prev, [field.name]: e.target.value === 'true' }))}
+                        className={inputClass}
+                      >
+                        <option value="">Select...</option>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                      </select>
+                    ) : (
+                      <input
+                        type={field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : field.field_type === 'url' ? 'url' : 'text'}
+                        required={field.required}
+                        value={customValues[field.name] || ''}
+                        onChange={e => setCustomValues(prev => ({ ...prev, [field.name]: field.field_type === 'number' ? parseFloat(e.target.value) || '' : e.target.value }))}
+                        className={inputClass}
+                      />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-2">

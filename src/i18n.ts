@@ -1,5 +1,4 @@
 import { getRequestConfig } from 'next-intl/server'
-import { SetRequestLocale } from 'next-intl'
 
 export const locales = ['en', 'bs'] as const
 export type Locale = (typeof locales)[number]
@@ -12,6 +11,6 @@ export default getRequestConfig(async ({ locale }) => {
   }
 })
 
-export const setRequestLocale: SetRequestLocale<Locale> = (locale) => {
+export function setRequestLocale(locale: string) {
   return locale
 }

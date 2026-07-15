@@ -28,8 +28,9 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
         price,
         currency,
         type,
-        location,
-        custom_fields,
+        city,
+        address,
+        cover_image_url,
         images
       )
     `)
@@ -57,12 +58,25 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     xml += `    <valuta>${prop.currency}</valuta>\n`
     xml += `    <vrsta_nekretnine>${prop.type}</vrsta_nekretnine>\n`
     
-    const location = prop.location as any
-    if (location && location.address) {
-      xml += `    <lokacija><![CDATA[${location.address}]]></lokacija>\n`
+    if (prop.address) {
+      xml += `    <lokacija><![CDATA[${prop.address}]]></lokacija>\n`
     }
     
-    const images = prop.images as string[]
+    const getImages = (): string[] => {
+      const imgs = prop.images
+      if (Array.isArray(imgs)) {
+        return imgs.map((item: any) => {
+          if (typeof item === 'string') return item
+          if (item && typeof item === 'object' && item.url) return item.url
+          return ''
+        }).filter(Boolean)
+      }
+      if (prop.cover_image_url) {
+        return [prop.cover_image_url]
+      }
+      return []
+    }
+    const images = getImages()
     if (images && images.length > 0) {
       xml += `    <slike>\n`
       images.forEach(img => {

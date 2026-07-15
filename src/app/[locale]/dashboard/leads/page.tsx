@@ -103,6 +103,17 @@ export default function LeadsPage() {
     const supabase = createBrowserClient()
     await supabase.from('leads').update({ stage, status: stage }).eq('id', id)
     setLeads(prev => prev.map(l => l.id === id ? { ...l, stage, status: stage } : l))
+    
+    // Trigger WhatsApp outbound templates via transition webhook
+    try {
+      await fetch('/api/leads/stage-transition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: id, newStage: stage })
+      })
+    } catch (err) {
+      console.error('Failed to trigger stage transition actions:', err)
+    }
   }
 
   const deleteLead = async (id: string) => {

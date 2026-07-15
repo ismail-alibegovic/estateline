@@ -60,6 +60,8 @@ export default function PropertyDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editData, setEditData] = useState<Partial<Property>>({})
+  const [customFields, setCustomFields] = useState<any[]>([])
+  const [customValues, setCustomValues] = useState<Record<string, any>>({})
   const { formatPrice, currency } = useCurrency()
   const [activeImgIdx, setActiveImgIdx] = useState(0)
 
@@ -101,6 +103,15 @@ export default function PropertyDetailPage() {
       if (prop) {
         setProperty(prop as Property)
         setEditData(prop as Property)
+        setCustomValues((prop as any).custom_fields || {})
+
+        // Load custom field definitions for the org
+        const { data: defs } = await supabase
+          .from('custom_field_definitions')
+          .select('*')
+          .eq('organization_id', (prop as any).organization_id)
+          .eq('entity', 'property')
+        if (defs) setCustomFields(defs)
       }
       if (syns) setSyndications(syns as Syndication[])
       if (vws) setViewings(vws as any)
@@ -124,11 +135,12 @@ export default function PropertyDetailPage() {
       bedrooms: editData.bedrooms,
       bathrooms: editData.bathrooms,
       area_size: editData.area_size,
+      custom_fields: customValues,
     }).eq('id', id)
 
     setSaving(false)
     if (!error) {
-      setProperty(prev => prev ? { ...prev, ...editData } : prev)
+      setProperty(prev => prev ? { ...prev, ...editData, custom_fields: customValues } as any : prev)
       setEditMode(false)
     }
   }
@@ -449,6 +461,82 @@ export default function PropertyDetailPage() {
               </p>
             )}
           </div>
+
+          {/* Custom Fields Section */}
+          {customFields.length > 0 && (
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+              <h2 className="font-display font-bold text-lg mb-3">Custom Details</h2>
+              {editMode ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {customFields.map(field => {
+                    const labelText = field.required ? `${field.label} *` : field.label
+                    return (
+                      <div key={field.id}>
+                        <label className="block text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1.5">{labelText}</label>
+                        {field.field_type === 'select' ? (
+                          <select
+                            required={field.required}
+                            value={customValues[field.name] || ''}
+                            onChange={e => setCustomValues(prev => ({ ...prev, [field.name]: e.target.value }))}
+                            className={inputClass}
+                          >
+                            <option value="">Select option...</option>
+                            {Array.isArray(field.options) && field.options.map((opt: string) => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : field.field_type === 'boolean' ? (
+                          <select
+                            required={field.required}
+                            value={customValues[field.name] !== undefined ? String(customValues[field.name]) : ''}
+                            onChange={e => setCustomValues(prev => ({ ...prev, [field.name]: e.target.value === 'true' }))}
+                            className={inputClass}
+                          >
+                            <option value="">Select...</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                          </select>
+                        ) : (
+                          <input
+                            type={field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : field.field_type === 'url' ? 'url' : 'text'}
+                            required={field.required}
+                            value={customValues[field.name] || ''}
+                            onChange={e => setCustomValues(prev => ({ ...prev, [field.name]: field.field_type === 'number' ? parseFloat(e.target.value) || '' : e.target.value }))}
+                            className={inputClass}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                  {customFields.map(field => {
+                    const rawVal = customValues[field.name]
+                    let displayVal = rawVal
+                    if (rawVal === undefined || rawVal === null || rawVal === '') {
+                      displayVal = '—'
+                    } else if (field.field_type === 'boolean') {
+                      displayVal = rawVal ? 'Yes' : 'No'
+                    } else if (field.field_type === 'url') {
+                      displayVal = (
+                        <a href={rawVal} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                          {rawVal} <ExternalLink size={10} />
+                        </a>
+                      )
+                    }
+
+                    return (
+                      <div key={field.id} className="border-b border-border/40 pb-2">
+                        <span className="block text-[10px] uppercase tracking-wider font-bold text-muted-foreground">{field.label}</span>
+                        <div className="text-sm font-semibold text-foreground mt-0.5">{displayVal}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Real Google Maps */}
           {(property.latitude || property.longitude) && (

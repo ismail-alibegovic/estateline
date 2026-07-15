@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "test:migrations": "node scripts/migration-smoke-test.js",
+    "test:rls": "node scripts/test-rls.js",
     "db:generate": "npx drizzle-kit generate",
     "db:push": "npx drizzle-kit push"
   },

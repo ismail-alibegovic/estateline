@@ -15,8 +15,6 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  console.log('Middleware intercepting:', url.pathname, 'Host:', hostname)
-
   // Clean the host name by removing ports
   const cleanHost = hostname.split(':')[0]
 

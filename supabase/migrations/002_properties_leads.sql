@@ -253,15 +253,7 @@ USING (is_org_member(organization_id));
 
 CREATE POLICY "Admins can manage lead stages"
 ON lead_stages FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM organization_members om
-    JOIN users u ON u.id = om.user_id
-    WHERE om.organization_id = organization_id
-      AND u.auth_id = auth.uid()
-      AND om.role IN ('owner', 'admin')
-  )
-);
+USING (is_admin(organization_id));
 
 -- Contacts policies
 CREATE POLICY "Users can view contacts in their org"

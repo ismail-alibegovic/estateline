@@ -46,6 +46,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       .single()
 
     if (error) throw error
+
+    // Trigger WhatsApp outbound templates via the service directly (since we're already on the server)
+    if (body.stage && data) {
+      const { handleLeadStageTransition } = await import('@/lib/whatsapp-service')
+      try {
+        await handleLeadStageTransition(ctx.org.id, data.id, body.stage)
+      } catch (err) {
+        console.error('Failed to trigger WhatsApp stage transition template:', err)
+      }
+    }
+
     return NextResponse.json({ data })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })

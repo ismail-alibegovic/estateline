@@ -44,8 +44,9 @@ export default function IntegrationsPage() {
       .single()
 
     if (member?.organizations) {
-      setOrg(member.organizations)
-      setOlxUrl(member.organizations.olx_profile_url || '')
+      const orgObj = member.organizations as any
+      setOrg(orgObj)
+      setOlxUrl(orgObj.olx_profile_url || '')
     }
     setLoading(false)
   }
