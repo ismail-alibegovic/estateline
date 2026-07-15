@@ -11,7 +11,8 @@
     "search": "Pretraga",
     "signOut": "Odjava",
     "back": "Nazad",
-    "messageOnWhatsApp": "Pošalji poruku"
+    "messageOnWhatsApp": "Pošalji poruku",
+    "naUpit": "Na upit"
   },
   "nav": {
     "overview": "Pregled",
@@ -24,7 +25,10 @@
     "billing": "Naplata",
     "tasks": "Zadaci",
     "communications": "Komunikacije",
-    "documents": "Dokumenti"
+    "documents": "Dokumenti",
+    "calendar": "Kalendar",
+    "quotes": "Ponude",
+    "invoices": "Fakture"
   },
   "auth": {
     "signIn": "Prijava",

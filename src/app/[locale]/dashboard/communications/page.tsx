@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import {
   Phone, Users, Mail, Plus, Search,
-  Calendar, Clock, MessageSquare, Trash2, X
+  Calendar, Clock, MessageSquare, Trash2, X, MapPin, User, Building2
 } from 'lucide-react'
 
 interface Communication {
@@ -15,12 +15,24 @@ interface Communication {
   duration_minutes: number | null
   scheduled_at: string
   created_at: string
+  location: string | null
+  contact_id: string | null
+  lead_id: string | null
+  attendee_contact_ids: string[] | null
+  attendee_lead_ids: string[] | null
+  contacts?: { first_name: string; last_name: string | null } | null
+  leads?: { first_name: string; last_name: string | null } | null
 }
+
+interface ContactOption { id: string; first_name: string; last_name: string | null }
+interface LeadOption { id: string; first_name: string; last_name: string | null }
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function CommunicationsPage() {
   const [comms, setComms] = useState<Communication[]>([])
+  const [contacts, setContacts] = useState<ContactOption[]>([])
+  const [leads, setLeads] = useState<LeadOption[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -35,6 +47,11 @@ export default function CommunicationsPage() {
   const [newSummary, setNewSummary] = useState('')
   const [newDuration, setNewDuration] = useState(10)
   const [newDate, setNewDate] = useState('')
+  const [newLocation, setNewLocation] = useState('')
+  const [newContactId, setNewContactId] = useState('')
+  const [newLeadId, setNewLeadId] = useState('')
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([])
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([])
 
   const toast = (message: string, type: 'success' | 'error' = 'success') => {
     const id = Math.random().toString(36).slice(2)
@@ -42,7 +59,7 @@ export default function CommunicationsPage() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
   }
 
-  const loadComms = useCallback(async () => {
+  const loadData = useCallback(async () => {
     const supabase = createBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
@@ -58,18 +75,27 @@ export default function CommunicationsPage() {
       .single()
 
     if (member) {
-      setOrgId((member as any).organization_id)
-      const { data } = await supabase
-        .from('communications')
-        .select('id, type, title, summary, duration_minutes, scheduled_at, created_at')
-        .eq('organization_id', (member as any).organization_id)
-        .order('created_at', { ascending: false })
-      if (data) setComms(data as Communication[])
+      const oid = (member as any).organization_id
+      setOrgId(oid)
+
+      const [commsResp, contactsResp, leadsResp] = await Promise.all([
+        supabase
+          .from('communications')
+          .select('*, contacts(first_name, last_name), leads(first_name, last_name)')
+          .eq('organization_id', oid)
+          .order('created_at', { ascending: false }),
+        supabase.from('contacts').select('id, first_name, last_name').eq('organization_id', oid).order('first_name'),
+        supabase.from('leads').select('id, first_name, last_name').eq('organization_id', oid).order('first_name'),
+      ])
+
+      if (commsResp.data) setComms(commsResp.data as Communication[])
+      if (contactsResp.data) setContacts(contactsResp.data as ContactOption[])
+      if (leadsResp.data) setLeads(leadsResp.data as LeadOption[])
     }
     setLoading(false)
   }, [])
 
-  useEffect(() => { loadComms() }, [loadComms])
+  useEffect(() => { loadData() }, [loadData])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,6 +110,11 @@ export default function CommunicationsPage() {
       summary: newSummary || null,
       duration_minutes: Number(newDuration) || null,
       scheduled_at: newDate ? new Date(newDate).toISOString() : new Date().toISOString(),
+      location: newType === 'meeting' ? (newLocation || null) : null,
+      contact_id: newType !== 'meeting' ? (newContactId || null) : null,
+      lead_id: newType !== 'meeting' ? (newLeadId || null) : null,
+      attendee_contact_ids: newType === 'meeting' ? selectedContacts : [],
+      attendee_lead_ids: newType === 'meeting' ? selectedLeads : [],
     })
 
     setSaving(false)
@@ -92,8 +123,10 @@ export default function CommunicationsPage() {
     } else {
       toast('Communication logged!')
       setNewTitle(''); setNewType('call'); setNewSummary(''); setNewDuration(10); setNewDate('')
+      setNewLocation(''); setNewContactId(''); setNewLeadId('')
+      setSelectedContacts([]); setSelectedLeads([])
       setIsOpen(false)
-      loadComms()
+      loadData()
     }
   }
 
@@ -245,8 +278,11 @@ export default function CommunicationsPage() {
                       log.type === 'call' ? 'text-primary' : log.type === 'meeting' ? 'text-amber-600' : 'text-emerald-600'
                     }`}>{log.type}</span>
                   </div>
+
                   {log.summary && <p className="text-muted-foreground text-xs leading-relaxed">{log.summary}</p>}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+
+                  {/* Relations and Details */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 items-center text-xs text-muted-foreground mt-2">
                     <span className="flex items-center gap-1">
                       <Calendar size={11} />
                       {new Date(log.scheduled_at).toLocaleDateString()}
@@ -255,6 +291,28 @@ export default function CommunicationsPage() {
                       <span className="flex items-center gap-1">
                         <Clock size={11} />
                         {log.duration_minutes} min
+                      </span>
+                    )}
+                    {log.location && (
+                      <span className="flex items-center gap-1 text-amber-700">
+                        <MapPin size={11} />
+                        {log.location}
+                      </span>
+                    )}
+                    
+                    {/* Related entity for calls and emails */}
+                    {log.type !== 'meeting' && (log.contacts || log.leads) && (
+                      <span className="flex items-center gap-1 font-medium bg-neutral-100 px-2 py-0.5 rounded text-neutral-700">
+                        <User size={10} />
+                        {log.contacts ? `Contact: ${log.contacts.first_name} ${log.contacts.last_name || ''}` : `Lead: ${log.leads?.first_name} ${log.leads?.last_name || ''}`}
+                      </span>
+                    )}
+
+                    {/* Attendees count for meetings */}
+                    {log.type === 'meeting' && (
+                      <span className="flex items-center gap-1 font-medium bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-amber-700">
+                        <Users size={10} />
+                        Attendees: {(log.attendee_contact_ids?.length || 0) + (log.attendee_lead_ids?.length || 0)} people
                       </span>
                     )}
                   </div>
@@ -274,7 +332,7 @@ export default function CommunicationsPage() {
       {/* Log Comm Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl">
+          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold font-display">Log Communication</h2>
               <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -302,14 +360,91 @@ export default function CommunicationsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Title *</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Title / Agenda *</label>
                 <input type="text" required placeholder="e.g. Intro call about penthouse listing" className={inputClass} value={newTitle} onChange={e => setNewTitle(e.target.value)} />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Summary & Notes</label>
-                <textarea rows={3} placeholder="What was discussed? Client's response?" className={inputClass} value={newSummary} onChange={e => setNewSummary(e.target.value)} />
-              </div>
+              {/* Location Input for Meetings */}
+              {newType === 'meeting' && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Location / Meeting URL</label>
+                  <div className="relative">
+                    <MapPin size={14} className="absolute left-3 top-3 text-muted-foreground" />
+                    <input type="text" placeholder="e.g. Meeting Room A, Zoom link, or Cafe" className={`${inputClass} pl-9`} value={newLocation} onChange={e => setNewLocation(e.target.value)} />
+                  </div>
+                </div>
+              )}
+
+              {/* Single contact/lead dropdown for calls & emails */}
+              {newType !== 'meeting' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Related Contact</label>
+                    <select className={inputClass} value={newContactId} onChange={e => { setNewContactId(e.target.value); if (e.target.value) setNewLeadId('') }}>
+                      <option value="">— Select contact —</option>
+                      {contacts.map(c => (
+                        <option key={c.id} value={c.id}>{c.first_name} {c.last_name || ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Related Lead</label>
+                    <select className={inputClass} value={newLeadId} onChange={e => { setNewLeadId(e.target.value); if (e.target.value) setNewContactId('') }}>
+                      <option value="">— Select lead —</option>
+                      {leads.map(l => (
+                        <option key={l.id} value={l.id}>{l.first_name} {l.last_name || ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Multiple attendees selectors for Meetings */}
+              {newType === 'meeting' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Contact Attendees</label>
+                    <div className="border rounded-lg p-2 max-h-32 overflow-y-auto space-y-1 bg-neutral-50/50">
+                      {contacts.map(c => (
+                        <label key={c.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedContacts.includes(c.id)}
+                            onChange={e => {
+                              if (e.target.checked) setSelectedContacts(prev => [...prev, c.id])
+                              else setSelectedContacts(prev => prev.filter(id => id !== c.id))
+                            }}
+                            className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                          />
+                          {c.first_name} {c.last_name || ''}
+                        </label>
+                      ))}
+                      {contacts.length === 0 && <span className="text-muted-foreground text-xs p-1 block">No contacts found</span>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Lead Attendees</label>
+                    <div className="border rounded-lg p-2 max-h-32 overflow-y-auto space-y-1 bg-neutral-50/50">
+                      {leads.map(l => (
+                        <label key={l.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedLeads.includes(l.id)}
+                            onChange={e => {
+                              if (e.target.checked) setSelectedLeads(prev => [...prev, l.id])
+                              else setSelectedLeads(prev => prev.filter(id => id !== l.id))
+                            }}
+                            className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                          />
+                          {l.first_name} {l.last_name || ''}
+                        </label>
+                      ))}
+                      {leads.length === 0 && <span className="text-muted-foreground text-xs p-1 block">No leads found</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -317,8 +452,8 @@ export default function CommunicationsPage() {
                   <input type="number" min={1} className={inputClass} value={newDuration} onChange={e => setNewDuration(Number(e.target.value))} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Date</label>
-                  <input type="date" className={inputClass} value={newDate} onChange={e => setNewDate(e.target.value)} />
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Date & Time</label>
+                  <input type="datetime-local" className={inputClass} value={newDate} onChange={e => setNewDate(e.target.value)} />
                 </div>
               </div>
 
@@ -332,3 +467,4 @@ export default function CommunicationsPage() {
     </div>
   )
 }
+

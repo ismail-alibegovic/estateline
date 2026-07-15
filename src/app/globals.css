@@ -3,122 +3,373 @@
 @tailwind utilities;
 
 /*
- * Estateline — RealEstateCRM look
- * Transplant of the prolinkinfo/RealEstateCRM design language:
- *  - Single typeface (DM Sans) for display + body
- *  - Brand indigo #3520D5 as primary
- *  - Soft cool-gray surfaces (secondaryGray), white cards
- *  - 16px control radius, soft drop shadow on actions
- *  - Light-tinted status badges (pending / onHold / completed / toDo / inProgress)
+ * Estateline — Luxury Real Estate CRM
+ * Design System: "Modern Noir Prestige"
+ * Sidebar: Obsidian #0d1117 with champagne gold accents
+ * Canvas: Alabaster warm white #FAF8F5
+ * Typography: Cormorant Garamond (display) + Outfit (body)
+ * Palette: Deep noir, champagne gold, sage, warm ivory
  */
 
 @layer base {
   :root {
-    /* Surfaces — cool light gray app background, white cards */
-    --background: 210 20% 98%;          /* #f8fafc */
-    --foreground: 221 26% 14%;          /* #1b2027 deep slate ink */
+    /* ─── Canvas ─────────────────────────── */
+    --background: 38 33% 97%;           /* Alabaster #FAF8F5 */
+    --foreground: 220 18% 12%;          /* Obsidian ink #171c26 */
 
-    --card: 0 0% 100%;                  /* #ffffff */
-    --card-foreground: 221 26% 14%;
+    /* Cards */
+    --card: 0 0% 100%;                  /* Pure white */
+    --card-foreground: 220 18% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 221 26% 14%;
+    --popover-foreground: 220 18% 12%;
 
-    /* Primary — RealEstateCRM brand indigo #3520D5 */
-    --primary: 248 68% 48%;
+    /* ─── Brand ──────────────────────────── */
+    /* Primary: Champagne Gold */
+    --primary: 42 72% 48%;              /* #C9963B */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 16% 94%;           /* #ecedf1 */
-    --secondary-foreground: 221 26% 14%;
+    /* Secondary surface */
+    --secondary: 38 20% 94%;
+    --secondary-foreground: 220 18% 12%;
 
-    --muted: 220 16% 94%;
-    --muted-foreground: 216 15% 52%;    /* #718096 */
+    /* Muted */
+    --muted: 38 18% 91%;
+    --muted-foreground: 220 10% 52%;
 
-    --accent: 251 60% 97%;              /* #F2EFFF light indigo */
-    --accent-foreground: 248 68% 30%;
+    /* Accent: Sage green */
+    --accent: 156 28% 42%;              /* #4A8C6F */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 5 89% 60%;           /* #f44d3e */
+    /* Destructive */
+    --destructive: 4 72% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;              /* #e2e8f0 */
-    --input: 214 32% 91%;
-    --ring: 248 68% 48%;
+    /* Borders */
+    --border: 38 16% 88%;
+    --input: 38 16% 88%;
+    --ring: 42 72% 48%;
 
-    --radius: 1rem;                     /* 16px — matches RealEstateCRM buttons */
-  }
+    /* Radius */
+    --radius: 0.75rem;
 
-  .dark {
-    --background: 221 26% 14%;          /* #1a202c */
-    --foreground: 214 30% 92%;         /* #e2e8f0 */
-
-    --card: 230 21% 11%;                /* #171923 */
-    --card-foreground: 214 30% 92%;
-
-    --popover: 230 21% 11%;
-    --popover-foreground: 214 30% 92%;
-
-    --primary: 247 74% 58%;             /* brand.400 #5745e3 */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 218 23% 23%;           /* #2d3748 */
-    --secondary-foreground: 214 30% 92%;
-
-    --muted: 218 23% 23%;
-    --muted-foreground: 214 20% 69%;    /* #a0aec0 */
-
-    --accent: 248 40% 22%;
-    --accent-foreground: 248 80% 85%;
-
-    --destructive: 5 70% 55%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 218 18% 22%;
-    --input: 218 18% 22%;
-    --ring: 247 74% 58%;
+    /* ─── Sidebar ─────────────────────────── */
+    --sidebar: #0d1117;                 /* Near-black obsidian */
+    --sidebar-border: rgba(201,150,59,0.15);
+    --sidebar-active: rgba(201,150,59,0.18);
+    --sidebar-active-text: #C9963B;
+    --sidebar-muted: rgba(255,255,255,0.38);
+    --sidebar-label: rgba(201,150,59,0.4);
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border box-border;
   }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-body), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-    letter-spacing: 0.3px;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    letter-spacing: 0.005em;
   }
-  /* DM Sans for headings (no serif) — tighter tracking like RealEstateCRM */
+
   h1, h2, h3, h4, h5 {
-    font-family: var(--font-display), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-display), 'Georgia', ui-serif, serif;
     letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  /* ─── Luxury scrollbar ─── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(38 16% 80%);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(42 72% 60%);
   }
 }
 
 @layer components {
-  /* Soft action shadow from RealEstateCRM button base style */
-  .shadow-soft {
-    box-shadow: 45px 76px 113px 7px rgba(112, 144, 176, 0.08);
+
+  /* ═══════════════════════════════════════
+     SIDEBAR
+  ═══════════════════════════════════════ */
+  .sidebar {
+    background: #0d1117;
+    border-right: 1px solid rgba(201,150,59,0.12);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: width 0.28s cubic-bezier(0.4,0,0.2,1);
+    overflow: hidden;
   }
 
-  /* RealEstateCRM status badge tints */
+  /* ═══════════════════════════════════════
+     CARDS
+  ═══════════════════════════════════════ */
+  .card-luxury {
+    background: #ffffff;
+    border: 1px solid hsl(38 16% 90%);
+    border-radius: var(--radius);
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.03),
+      0 4px 20px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s ease, transform 0.18s ease;
+  }
+  .card-luxury:hover {
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.05),
+      0 12px 36px rgba(201,150,59,0.07);
+    transform: translateY(-2px);
+  }
+
+  /* ═══════════════════════════════════════
+     STAT CARDS
+  ═══════════════════════════════════════ */
+  .stat-card {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid hsl(38 16% 90%);
+    border-radius: var(--radius);
+    box-shadow:
+      0 1px 2px rgba(0,0,0,0.03),
+      0 4px 20px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s ease, transform 0.18s ease;
+    overflow: hidden;
+  }
+  .stat-card:hover {
+    box-shadow:
+      0 4px 16px rgba(0,0,0,0.06),
+      0 16px 48px rgba(201,150,59,0.09);
+    transform: translateY(-2px);
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  /* ═══════════════════════════════════════
+     BUTTONS
+  ═══════════════════════════════════════ */
+  .btn-gold {
+    background: linear-gradient(135deg, #C9963B 0%, #e8b05a 100%);
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 16px rgba(201,150,59,0.25);
+    transition: all 0.2s ease;
+    border-radius: 8px;
+  }
+  .btn-gold:hover {
+    box-shadow: 0 6px 24px rgba(201,150,59,0.38);
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #d4a248 0%, #f0bc65 100%);
+  }
+  .btn-gold:active {
+    transform: translateY(0);
+  }
+
+  .btn-ghost-gold {
+    border: 1px solid rgba(201,150,59,0.3);
+    color: #C9963B;
+    background: rgba(201,150,59,0.06);
+    font-weight: 500;
+    transition: all 0.18s ease;
+    border-radius: 8px;
+  }
+  .btn-ghost-gold:hover {
+    background: rgba(201,150,59,0.12);
+    border-color: rgba(201,150,59,0.5);
+  }
+
+  /* ═══════════════════════════════════════
+     BADGES
+  ═══════════════════════════════════════ */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .badge-gold {
+    background: rgba(201,150,59,0.12);
+    color: #9a6c1a;
+    border: 1px solid rgba(201,150,59,0.25);
+  }
+  .badge-sage {
+    background: rgba(74,140,111,0.1);
+    color: #2d6b4f;
+    border: 1px solid rgba(74,140,111,0.22);
+  }
+  .badge-rose {
+    background: rgba(220,38,38,0.08);
+    color: #b91c1c;
+    border: 1px solid rgba(220,38,38,0.18);
+  }
+  .badge-indigo {
+    background: rgba(99,102,241,0.1);
+    color: #4338ca;
+    border: 1px solid rgba(99,102,241,0.2);
+  }
   .badge-pending {
-    background-color: #fbf4dd;
-    color: #a37f08;
+    background: rgba(245,158,11,0.1);
+    color: #b45309;
+    border: 1px solid rgba(245,158,11,0.22);
   }
   .badge-onhold {
-    background-color: #ffeeeb;
-    color: #db5436;
+    background: rgba(239,68,68,0.08);
+    color: #b91c1c;
+    border: 1px solid rgba(239,68,68,0.18);
   }
   .badge-completed {
-    background-color: #eaf9e6;
-    color: #4d8f3a;
+    background: rgba(16,185,129,0.08);
+    color: #065f46;
+    border: 1px solid rgba(16,185,129,0.2);
   }
   .badge-todo {
-    background-color: #ebf5ff;
-    color: #1f7eeb;
+    background: rgba(59,130,246,0.08);
+    color: #1d4ed8;
+    border: 1px solid rgba(59,130,246,0.18);
   }
   .badge-inprogress {
-    background-color: #eee7fc;
-    color: #7038db;
+    background: rgba(139,92,246,0.08);
+    color: #5b21b6;
+    border: 1px solid rgba(139,92,246,0.18);
+  }
+
+  /* ═══════════════════════════════════════
+     SECTION LABELS (sidebar group headers)
+  ═══════════════════════════════════════ */
+  .section-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(201,150,59,0.45);
+    padding: 0 10px;
+    margin-bottom: 2px;
+    font-family: var(--font-body), sans-serif;
+  }
+
+  /* ═══════════════════════════════════════
+     TABLE
+  ═══════════════════════════════════════ */
+  .table-luxury {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table-luxury thead tr {
+    border-bottom: 1px solid hsl(38 16% 88%);
+  }
+  .table-luxury thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: hsl(220 10% 52%);
+  }
+  .table-luxury tbody tr {
+    border-bottom: 1px solid hsl(38 16% 93%);
+    transition: background 0.12s ease;
+  }
+  .table-luxury tbody tr:hover {
+    background: hsl(38 20% 97%);
+  }
+  .table-luxury tbody td {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  /* ═══════════════════════════════════════
+     PAGE HEADER
+  ═══════════════════════════════════════ */
+  .page-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #C9963B;
+  }
+  .page-title {
+    font-family: var(--font-display), serif;
+    font-size: 2.25rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: hsl(220 18% 12%);
+  }
+
+  /* ═══════════════════════════════════════
+     FORM INPUTS
+  ═══════════════════════════════════════ */
+  .input-luxury {
+    background: white;
+    border: 1px solid hsl(38 16% 86%);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-family: var(--font-body), sans-serif;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+    width: 100%;
+  }
+  .input-luxury:focus {
+    border-color: #C9963B;
+    box-shadow: 0 0 0 3px rgba(201,150,59,0.12);
+  }
+
+  /* ═══════════════════════════════════════
+     DIVIDER
+  ═══════════════════════════════════════ */
+  .divider-gold {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,150,59,0.25), transparent);
+  }
+
+  /* ═══════════════════════════════════════
+     SHIMMER SKELETON
+  ═══════════════════════════════════════ */
+  .skeleton {
+    background: linear-gradient(90deg, hsl(38 20% 92%) 25%, hsl(38 20% 96%) 50%, hsl(38 20% 92%) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Focus ring */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary;
+  }
+
+  /* Soft shadow */
+  .shadow-luxury {
+    box-shadow:
+      0 1px 3px rgba(0,0,0,0.04),
+      0 8px 32px rgba(0,0,0,0.06),
+      0 2px 8px rgba(201,150,59,0.04);
   }
 }

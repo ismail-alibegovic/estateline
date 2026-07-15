@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import {
   CheckSquare, Square, Plus, Search, Calendar,
-  AlertCircle, Clock, Trash2, Filter, X, CheckCheck
+  AlertCircle, Clock, Trash2, Filter, X, CheckCheck, User, Building2
 } from 'lucide-react'
 
 interface Task {
@@ -15,12 +15,25 @@ interface Task {
   priority: 'low' | 'medium' | 'high'
   due_date: string | null
   created_at: string
+  contact_id: string | null
+  lead_id: string | null
+  property_id: string | null
+  contacts?: { first_name: string; last_name: string | null } | null
+  leads?: { first_name: string; last_name: string | null } | null
+  properties?: { title: string } | null
 }
+
+interface ContactOption { id: string; first_name: string; last_name: string | null }
+interface LeadOption { id: string; first_name: string; last_name: string | null }
+interface PropertyOption { id: string; title: string }
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
+  const [contacts, setContacts] = useState<ContactOption[]>([])
+  const [leads, setLeads] = useState<LeadOption[]>([])
+  const [properties, setProperties] = useState<PropertyOption[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -35,6 +48,9 @@ export default function TasksPage() {
   const [newDesc, setNewDesc] = useState('')
   const [newPriority, setNewPriority] = useState<'low' | 'medium' | 'high'>('medium')
   const [newDueDate, setNewDueDate] = useState('')
+  const [newContactId, setNewContactId] = useState('')
+  const [newLeadId, setNewLeadId] = useState('')
+  const [newPropertyId, setNewPropertyId] = useState('')
 
   const toast = (message: string, type: 'success' | 'error' = 'success') => {
     const id = Math.random().toString(36).slice(2)
@@ -42,7 +58,7 @@ export default function TasksPage() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
   }
 
-  const loadTasks = useCallback(async () => {
+  const loadData = useCallback(async () => {
     const supabase = createBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
@@ -58,18 +74,29 @@ export default function TasksPage() {
       .single()
 
     if (member) {
-      setOrgId((member as any).organization_id)
-      const { data } = await supabase
-        .from('tasks')
-        .select('id, title, description, status, priority, due_date, created_at')
-        .eq('organization_id', (member as any).organization_id)
-        .order('created_at', { ascending: false })
-      if (data) setTasks(data as Task[])
+      const oid = (member as any).organization_id
+      setOrgId(oid)
+
+      const [tasksResp, contactsResp, leadsResp, propertiesResp] = await Promise.all([
+        supabase
+          .from('tasks')
+          .select('*, contacts(first_name, last_name), leads(first_name, last_name), properties(title)')
+          .eq('organization_id', oid)
+          .order('created_at', { ascending: false }),
+        supabase.from('contacts').select('id, first_name, last_name').eq('organization_id', oid).order('first_name'),
+        supabase.from('leads').select('id, first_name, last_name').eq('organization_id', oid).order('first_name'),
+        supabase.from('properties').select('id, title').eq('organization_id', oid).order('title')
+      ])
+
+      if (tasksResp.data) setTasks(tasksResp.data as Task[])
+      if (contactsResp.data) setContacts(contactsResp.data as ContactOption[])
+      if (leadsResp.data) setLeads(leadsResp.data as LeadOption[])
+      if (propertiesResp.data) setProperties(propertiesResp.data as PropertyOption[])
     }
     setLoading(false)
   }, [])
 
-  useEffect(() => { loadTasks() }, [loadTasks])
+  useEffect(() => { loadData() }, [loadData])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,6 +111,9 @@ export default function TasksPage() {
       status: 'todo',
       priority: newPriority,
       due_date: newDueDate || null,
+      contact_id: newContactId || null,
+      lead_id: newLeadId || null,
+      property_id: newPropertyId || null,
     })
 
     setSaving(false)
@@ -92,8 +122,9 @@ export default function TasksPage() {
     } else {
       toast('Task created!')
       setNewTitle(''); setNewDesc(''); setNewPriority('medium'); setNewDueDate('')
+      setNewContactId(''); setNewLeadId(''); setNewPropertyId('')
       setIsOpen(false)
-      loadTasks()
+      loadData()
     }
   }
 
@@ -116,7 +147,7 @@ export default function TasksPage() {
 
   const filteredTasks = tasks.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
-                         (t.description || '').toLowerCase().includes(search.toLowerCase())
+                          (t.description || '').toLowerCase().includes(search.toLowerCase())
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter
     const matchesPriority = priorityFilter === 'all' || t.priority === priorityFilter
     return matchesSearch && matchesStatus && matchesPriority
@@ -258,12 +289,34 @@ export default function TasksPage() {
                 {task.description && (
                   <p className="text-muted-foreground text-xs leading-relaxed mb-2">{task.description}</p>
                 )}
-                {task.due_date && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar size={11} />
-                    Due: {new Date(task.due_date).toLocaleDateString()}
-                  </div>
-                )}
+                
+                {/* Related entities displays */}
+                <div className="flex flex-wrap gap-x-3 gap-y-1 items-center text-xs text-muted-foreground">
+                  {task.due_date && (
+                    <span className="flex items-center gap-1">
+                      <Calendar size={11} />
+                      Due: {new Date(task.due_date).toLocaleDateString()}
+                    </span>
+                  )}
+                  {task.contacts && (
+                    <span className="flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded font-medium">
+                      <User size={10} />
+                      {task.contacts.first_name} {task.contacts.last_name || ''}
+                    </span>
+                  )}
+                  {task.leads && (
+                    <span className="flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded font-medium">
+                      <User size={10} />
+                      Lead: {task.leads.first_name} {task.leads.last_name || ''}
+                    </span>
+                  )}
+                  {task.properties && (
+                    <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded font-medium max-w-xs truncate">
+                      <Building2 size={10} />
+                      {task.properties.title}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <button
@@ -280,7 +333,7 @@ export default function TasksPage() {
       {/* Create Task Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl">
+          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold font-display">New Task</h2>
               <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -297,6 +350,39 @@ export default function TasksPage() {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Description</label>
                 <textarea placeholder="Additional details..." rows={3} className={inputClass} value={newDesc} onChange={e => setNewDesc(e.target.value)} />
               </div>
+              
+              {/* Assignments / Links fields */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Assign to Contact</label>
+                  <select className={inputClass} value={newContactId} onChange={e => { setNewContactId(e.target.value); if (e.target.value) setNewLeadId('') }}>
+                    <option value="">— Select contact —</option>
+                    {contacts.map(c => (
+                      <option key={c.id} value={c.id}>{c.first_name} {c.last_name || ''}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Assign to Lead</label>
+                  <select className={inputClass} value={newLeadId} onChange={e => { setNewLeadId(e.target.value); if (e.target.value) setNewContactId('') }}>
+                    <option value="">— Select lead —</option>
+                    {leads.map(l => (
+                      <option key={l.id} value={l.id}>{l.first_name} {l.last_name || ''}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Related Property</label>
+                <select className={inputClass} value={newPropertyId} onChange={e => setNewPropertyId(e.target.value)}>
+                  <option value="">— Select property —</option>
+                  {properties.map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Priority</label>
@@ -311,6 +397,7 @@ export default function TasksPage() {
                   <input type="date" className={inputClass} value={newDueDate} onChange={e => setNewDueDate(e.target.value)} />
                 </div>
               </div>
+              
               <button type="submit" disabled={saving} className="w-full py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all text-sm">
                 {saving ? 'Creating…' : 'Create Task'}
               </button>

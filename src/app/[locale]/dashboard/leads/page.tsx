@@ -5,7 +5,8 @@ import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
 import { WhatsAppButton } from '@/components/WhatsAppButton'
-import { Plus, X, Search, Filter } from 'lucide-react'
+import { useCurrency } from '@/components/CurrencyContext'
+import { Plus, X, Search, Filter, Mail, Trash2 } from 'lucide-react'
 
 type Lead = {
   id: string
@@ -47,6 +48,7 @@ export default function LeadsPage() {
   const t = useTranslations('leads')
   const params = useParams()
   const locale = (params?.locale as string) || 'en'
+  const { formatPrice } = useCurrency()
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
@@ -103,6 +105,18 @@ export default function LeadsPage() {
     setLeads(prev => prev.map(l => l.id === id ? { ...l, stage, status: stage } : l))
   }
 
+  const deleteLead = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this lead?')) return
+    const supabase = createBrowserClient()
+    const { error } = await supabase.from('leads').delete().eq('id', id)
+    if (error) {
+      toast(error.message, 'error')
+    } else {
+      toast('Lead deleted!')
+      setLeads(prev => prev.filter(l => l.id !== id))
+    }
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!orgId || !form.first_name.trim()) return
@@ -135,8 +149,8 @@ export default function LeadsPage() {
 
   const filteredLeads = search
     ? leads.filter(l =>
-        `${l.first_name} ${l.last_name} ${l.email} ${l.phone}`.toLowerCase().includes(search.toLowerCase())
-      )
+      `${l.first_name} ${l.last_name} ${l.email} ${l.phone}`.toLowerCase().includes(search.toLowerCase())
+    )
     : leads
 
   const leadsByStage = Object.fromEntries(
@@ -160,11 +174,10 @@ export default function LeadsPage() {
         {toasts.map(t => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border animate-in slide-in-from-bottom-2 ${
-              t.type === 'success'
+            className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border animate-in slide-in-from-bottom-2 ${t.type === 'success'
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : 'bg-red-50 text-red-700 border-red-200'
-            }`}
+              }`}
           >
             {t.type === 'success' ? '✓' : '✗'} {t.message}
           </div>
@@ -221,42 +234,64 @@ export default function LeadsPage() {
             return (
               <section key={stage} className="min-w-[240px] flex-shrink-0 flex flex-col">
                 <div className="flex items-center gap-2 mb-3 px-1">
-                  <div className={`w-2 h-2 rounded-full ${STAGE_HEADER_COLORS[stage]}`} />
-                  <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground capitalize">{stage}</h2>
-                  <span className="ml-auto text-xs font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{items.length}</span>
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${STAGE_HEADER_COLORS[stage]}`} />
+                  <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-foreground/70 capitalize">{stage}</h2>
+                  <span className={`ml-auto text-[10px] font-extrabold px-2 py-0.5 rounded-full text-white ${STAGE_HEADER_COLORS[stage]}`}>{items.length}</span>
                 </div>
                 <div className="flex-1 space-y-2 min-h-[80px]">
-                  {items.map((lead) => (
-                    <article
-                      key={lead.id}
-                      className={`bg-card border rounded-xl px-4 py-3 hover:shadow-sm transition-all ${STAGE_COLORS[stage]}`}
-                    >
-                      <p className="font-semibold text-sm text-foreground">
-                        {lead.first_name} {lead.last_name || ''}
-                      </p>
-                      {lead.email && <p className="text-xs text-muted-foreground mt-0.5 truncate">{lead.email}</p>}
-                      {lead.phone && (
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs text-muted-foreground">{lead.phone}</p>
-                          <WhatsAppButton phone={lead.phone} entityType="lead" entityId={lead.id} />
-                        </div>
-                      )}
-                      {(lead.budget_min || lead.budget_max) && (
-                        <p className="text-xs text-muted-foreground mt-1 font-medium">
-                          Budget: {lead.budget_min ? `€${lead.budget_min.toLocaleString()}` : '?'} — {lead.budget_max ? `€${lead.budget_max.toLocaleString()}` : '?'}
-                        </p>
-                      )}
-                      <select
-                        value={lead.stage || lead.status}
-                        onChange={(e) => updateStage(lead.id, e.target.value)}
-                        className="mt-2 w-full text-xs border border-border/50 bg-background/80 rounded-lg px-2 py-1 text-muted-foreground focus:ring-1 focus:ring-primary/20 outline-none"
+                  {items.map((lead) => {
+                    const initials = `${lead.first_name?.[0] ?? ''}${lead.last_name?.[0] ?? ''}`.toUpperCase() || '?'
+                    return (
+                      <article
+                        key={lead.id}
+                        className={`bg-card border rounded-xl px-4 py-3 hover:shadow-sm transition-all ${STAGE_COLORS[stage]}`}
                       >
-                        {STAGES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </article>
-                  ))}
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${STAGE_HEADER_COLORS[stage]}`}>
+                            {initials}
+                          </div>
+                          <p className="font-semibold text-sm text-foreground leading-tight">
+                            {lead.first_name} {lead.last_name || ''}
+                          </p>
+                        </div>
+                        {lead.email && <p className="text-xs text-muted-foreground mt-0.5 truncate">{lead.email}</p>}
+                        {lead.phone && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-xs text-muted-foreground">{lead.phone}</p>
+                            <WhatsAppButton phone={lead.phone} entityType="lead" entityId={lead.id} />
+                          </div>
+                        )}
+                        {(lead.budget_min || lead.budget_max) && (
+                          <div className="mt-2 px-2 py-1 rounded-md bg-background/60 border border-border/60">
+                            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Budget</p>
+                            <p className="text-xs font-bold text-foreground">
+                              {lead.budget_min ? formatPrice(lead.budget_min) : '?'}
+                              {' — '}
+                              {lead.budget_max ? formatPrice(lead.budget_max) : '?'}
+                            </p>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <select
+                            value={lead.stage || lead.status}
+                            onChange={(e) => updateStage(lead.id, e.target.value)}
+                            className="flex-1 text-xs border border-border/50 bg-background/80 rounded-lg px-2 py-1 text-muted-foreground focus:ring-1 focus:ring-primary/20 outline-none"
+                          >
+                            {STAGES.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => deleteLead(lead.id)}
+                            className="p-1 rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors border border-transparent hover:border-red-100"
+                            title="Delete Lead"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </article>
+                    )
+                  })}
                   {items.length === 0 && (
                     <div className="text-xs text-muted-foreground/40 text-center py-8 border border-dashed border-border rounded-xl">
                       Drop leads here

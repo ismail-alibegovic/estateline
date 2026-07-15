@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createAdminClient, createBrowserClient } from '@/lib/supabase'
+import { createAdminClient } from '@/lib/supabase'
+import { createRouteClient } from '@/lib/auth'
 
 export async function POST(request: Request) {
   try {
@@ -82,8 +83,8 @@ export async function POST(request: Request) {
     }
 
     // Step 4: Create session for the user
-    const supabaseBrowser = createBrowserClient()
-    const { data: sessionData, error: sessionError } = await supabaseBrowser.auth.signInWithPassword({
+    const supabaseRoute = createRouteClient()
+    const { data: sessionData, error: sessionError } = await supabaseRoute.auth.signInWithPassword({
       email,
       password,
     })

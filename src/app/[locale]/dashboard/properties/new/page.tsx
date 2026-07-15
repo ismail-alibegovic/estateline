@@ -17,6 +17,7 @@ export default function NewPropertyPage() {
     title: '',
     description: '',
     price: '',
+    price_period: 'one_time',
     currency: 'EUR',
     type: 'apartment',
     status: 'draft',
@@ -43,10 +44,18 @@ export default function NewPropertyPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('Not authenticated'); setLoading(false); return }
 
+    // Look up internal user first (Fixes Auth ID Bug)
+    const { data: u } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_id', user.id)
+      .single()
+    if (!u) { setError('User profile not found'); setLoading(false); return }
+
     const { data: member } = await supabase
       .from('organization_members')
       .select('organization_id')
-      .eq('user_id', user.id)
+      .eq('user_id', u.id)
       .eq('is_primary', true)
       .single()
     if (!member) { setError('No organization found'); setLoading(false); return }
@@ -63,6 +72,7 @@ export default function NewPropertyPage() {
       description: formData.description || null,
       slug,
       price: parseFloat(formData.price),
+      price_period: formData.price_period,
       currency: formData.currency,
       type: formData.type,
       status: formData.status,
@@ -138,10 +148,18 @@ export default function NewPropertyPage() {
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
             />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="col-span-2">
               <label className={labelClass}>Price *</label>
               <input type="number" required placeholder="250000" min="0" className={inputClass} {...field('price')} />
+            </div>
+            <div className="col-span-2">
+              <label className={labelClass}>Price Period</label>
+              <select className={inputClass} {...field('price_period')}>
+                <option value="one_time">One-time</option>
+                <option value="monthly">Per Month</option>
+                <option value="yearly">Per Year</option>
+              </select>
             </div>
             <div>
               <label className={labelClass}>Currency</label>
