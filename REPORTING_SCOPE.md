@@ -1,6 +1,6 @@
 # Advanced Reporting & Analytics Specification (`REPORTING_SCOPE.md`)
 
-This document outlines the proposed design, metrics extensions, and data requirements for Estateline's Advanced Reporting module.
+This document outlines the proposed design, metrics extensions, and data requirements for Estateline's Advanced Reporting module, verified directly against the production Postgres schema migrations (`001` through `015`).
 
 ---
 
@@ -24,7 +24,7 @@ Currently, `GET /api/dashboard/metrics` calls the RPC function `get_dashboard_me
 
 ## 2. Proposed Advanced Report Specifications
 
-To turn the static dashboard into an actionable business intelligence engine, we propose extending `/api/dashboard/metrics` (or providing `/api/reports/...` sub-endpoints) with time-range parameters (`start_date`, `end_date`, `agent_id`):
+To turn the static dashboard into an actionable business intelligence engine, we propose extending `/api/dashboard/metrics` (or providing `/api/reports/...` sub-endpoints) with time-range parameters (`start_date`, `end_date`, `assigned_to`):
 
 ### Report 1: Agent Performance & Closed Sales Volume
 * **Purpose**: Evaluate revenue and deal throughput per real estate agent.
@@ -33,37 +33,41 @@ To turn the static dashboard into an actionable business intelligence engine, we
   * Total closed revenue per agent (`SUM(price)`)
   * Total commission earned (`SUM(commission_amount)`)
   * Total viewings conducted per agent (`COUNT(viewings)`)
-* **Data Availability**: Fully supported by current schema (`deals.user_id`, `deals.price`, `deals.commission_amount`, `viewings.agent_id`).
+* **Data Availability**: Fully supported by current schema (`deals.assigned_to`, `deals.price`, `deals.commission_amount`, `viewings.assigned_agent`).
 
 ### Report 2: Pipeline Stage & Lead Conversion Funnel
 * **Purpose**: Identify bottlenecks in agency lead qualification and conversion.
 * **Metrics**:
+  * Inbound lead attribution breakdown by source (`leads.source`: `website`, `portal`, `whatsapp`, `referral`, `phone`, `walk_in`, `other`)
   * Conversion rate: Inbound leads $\rightarrow$ Qualified $\rightarrow$ Viewing $\rightarrow$ Closed Won
-  * Stage duration average (how many days a deal spends in `negotiation` or `under_contract`)
-  * Lost reason distribution (`closed_lost` deals grouped by metadata/reason)
-* **Data Availability**: Supported by current schema (`leads.stage_id`, `deals.stage`, `activity_log`).
+  * Lost reason distribution (`deals.lost_reason` and `leads.lost_reason` grouped by category)
+* **Data Availability**: Fully supported by current schema (`leads.source`, `leads.stage`, `deals.stage`, `deals.lost_reason`, `leads.lost_reason`).
 
 ### Report 3: Average Time-to-Close by Property & Deal Type
 * **Purpose**: Benchmark transaction velocity across property types (e.g. Apartment vs. House) and deal types (Sale vs. Rental).
 * **Metrics**:
-  * Average days from lead creation (`created_at`) to deal `closed_won` timestamp
-  * Average days on market per property type
-* **Data Availability**: Supported by current schema (`deals.created_at`, `deals.updated_at`, `properties.type`, `deals.type`).
+  * Average days from deal creation (`created_at`) to closed timestamp (`closed_at`)
+  * Average days on market per property type (`properties.type`, `deals.type`)
+* **Data Availability**: Fully supported by current schema (`deals.created_at`, `deals.closed_at`, `properties.type`, `deals.type`).
 
 ### Report 4: Financial & Commission Forecasting vs. Actuals
 * **Purpose**: Provide revenue projection for management based on weighted pipeline probability.
 * **Metrics**:
-  * Expected Revenue (Sum of `price * stage_probability` for active deals)
+  * Expected Revenue (Sum of `price * (probability / 100.0)` for active deals)
   * Paid vs. Unpaid Commissions (`SUM(commission_amount)` grouped by `commission_paid`)
-* **Data Availability**: Fully supported by current schema (`deals.price`, `deals.commission_pct`, `deals.commission_paid`, `deals.stage`).
+* **Data Availability**: Fully supported by current schema (`deals.price`, `deals.probability`, `deals.commission_pct`, `deals.commission_paid`, `deals.stage`).
 
 ---
 
-## 3. Schema Audit & Identified Gaps
+## 3. Verified Schema Audit
 
-| Report | Required Field | Schema Status | Action Required |
+All required columns for the 4 report types are already natively supported in the production PostgreSQL database:
+
+| Feature / Metric | Target Column & Type | Source Migration | Schema Status |
 |---|---|---|---|
-| Lead Attribution | `lead_source` (e.g. Web, WhatsApp, OLX, Referral) | ⚠️ Missing | Add `source` column to `leads` table in next migration pass |
-| Lost Reason Tracking | `lost_reason` (e.g. Price too high, Competitor) | ⚠️ Missing | Add `lost_reason` column to `deals` table in next migration pass |
-| Agent Commissions | `commission_amount` & `commission_paid` | ✅ Present | Native support in `deals` table |
-| Viewing History | `viewings.status` & `viewings.scheduled_at` | ✅ Present | Native support in `viewings` table |
+| Lead Source Attribution | `leads.source` (`lead_source` enum) | `002_properties_leads.sql` | ✅ Native Support |
+| Lost Reason Tracking | `deals.lost_reason` (`TEXT`), `leads.lost_reason` (`TEXT`) | `002` & `004_deals_and_activity.sql` | ✅ Native Support |
+| Agent Deal Assignment | `deals.assigned_to` (`UUID` $\rightarrow$ `users.id`) | `004_deals_and_activity.sql` | ✅ Native Support |
+| Agent Viewing Assignment | `viewings.assigned_agent` (`UUID` $\rightarrow$ `users.id`) | `002_properties_leads.sql` | ✅ Native Support |
+| Agent Commissions | `deals.commission_amount` & `deals.commission_paid` | `004_deals_and_activity.sql` | ✅ Native Support |
+| Viewing History & Status | `viewings.status` & `viewings.scheduled_at` | `002_properties_leads.sql` | ✅ Native Support |
