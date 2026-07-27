@@ -122,6 +122,13 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 STRIPE_SECRET_KEY=sk_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
+# Email & SMS (server-only)
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@yourdomain.com
+TWILIO_ACCOUNT_SID=AC...
+TWILIO_AUTH_TOKEN=your-token
+TWILIO_FROM_NUMBER=+1234567890
+
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
