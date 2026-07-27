@@ -4,9 +4,10 @@ const path = require('path')
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') })
 
 async function run() {
-  const connectionString =
-    process.env.DATABASE_URL ||
-    'postgresql://postgres.vlkasfskndcmbrbbdvzd:REDACTED_DB_PASSWORD@aws-0-eu-central-1.pooler.supabase.com:6543/postgres'
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is required — refusing to run without it.')
+  }
 
   const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } })
   await client.connect()
