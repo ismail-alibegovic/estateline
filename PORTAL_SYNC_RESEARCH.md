@@ -1,6 +1,10 @@
 # Phase 3 — Item 4: Portal Sync Research Summary
 
-> **Purpose:** Comparative research to decide the next Estateline build — **WhatsApp** leads integration vs. **Portal sync** (syndicating listings to BA real-estate portals). No code yet. Recommendation at the end.
+> **Purpose:** Comparative research to decide the next Estateline build — **WhatsApp** leads integration vs. **Portal sync** (syndicating listings to BA real-estate portals).
+> 
+> **Status (Updated):** Both integrations have been successfully built and deployed into production:
+> 1. **WhatsApp Cloud API Integration**: Direct click-to-chat messaging and `messaged` activity logging.
+> 2. **Multi-Portal Feed Syndication**: Active XML and JSON endpoints for OLX (`/api/feeds/olx/[org_id]`), Njuškalo (`/api/feeds/njuskalo/[org_id]`), Nekretnine.rs (`/api/feeds/nekretnine_rs/[org_id]`), and generic JSON (`/api/feeds/json/[org_id]`).
 
 ---
 

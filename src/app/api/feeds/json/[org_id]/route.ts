@@ -10,10 +10,18 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     return NextResponse.json({ error: 'Missing Organization ID' }, { status: 400 })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing required Supabase environment variables in JSON feed route')
+    return NextResponse.json(
+      { error: 'Server Configuration Error: Missing required Supabase credentials' },
+      { status: 500 }
+    )
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   // Fetch all active syndicated properties for the organization
   const { data: syndications, error } = await supabase
@@ -70,7 +78,7 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     }
 
     const imagesMapped = getImages().map(img => 
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'}/storage/v1/object/public/${img}`
+      `${supabaseUrl}/storage/v1/object/public/${img}`
     )
 
     return {

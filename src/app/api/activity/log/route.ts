@@ -11,19 +11,6 @@ import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
  *
  * body: { entity_type: 'lead'|'contact', entity_id: string,
  *         action: string, metadata?: object }
- *
- * ACTIVITY ENUM GAP (intentional, not a bug to "fix"):
- * The activity_type enum currently has: call, email, meeting, viewing, note,
- * task, document_sent, document_signed, stage_change, system. There is no
- * 'messaged' value — WhatsApp click-to-chat buckets under 'note' on purpose,
- * with the real action ('messaged') + channel ('whatsapp') + phone preserved
- * in metadata. DO NOT later "promote" this to a separate type or relocate
- * the channel into the enum without a coordinated migration that backfills
- * existing rows — otherwise historical messaging rows split across two
- * representations and queries will silently miss records.
- * TODO(follow-up migration): alter type activity_type add value 'messaged'
- *   and backfill { type='note', metadata->>'action'='messaged' } rows when
- *   the WhatsApp Cloud API work lands.
  */
 const ENTITY_TO_COLUMN: Record<'lead' | 'contact', 'lead_id' | 'contact_id'> = {
   lead: 'lead_id',
@@ -55,22 +42,10 @@ export async function POST(req: NextRequest) {
   }
 
   const column = ENTITY_TO_COLUMN[entity_type as 'lead' | 'contact']
-  // 'messaged' isn't in the activity_type enum yet (no Meta Cloud API), so we
-  // store it as a 'note' and keep the real action + channel in metadata.
   const meta = (metadata && typeof metadata === 'object' ? metadata : {}) as Record<string, unknown>
 
-  // ACTIVITY ENUM GAP (intentional, not a bug to "fix"): the `activity_type`
-  // enum currently has call / email / meeting / viewing / note / task /
-  // document_sent / document_signed / stage_change / system — there is no
-  // 'messaged' value. WhatsApp click-to-chat buckets under 'note' on purpose,
-  // with the real action ('messaged') + channel ('whatsapp') + phone preserved
-  // in metadata. Do NOT later "promote" this to its own type or move the
-  // channel into the enum without a coordinated migration that backfills
-  // existing rows — otherwise history splits across two representations and
-  // queries silently miss records.
-  // TODO(follow-up migration): `alter type activity_type add value 'messaged'`
-  //   and backfill { type='note', metadata->>'action'='messaged' } rows when
-  //   the WhatsApp Cloud API work lands.
+  // Map action directly to activity_type enum ('messaged', 'call', 'email', 'meeting', 'note')
+  const typeToStore = action as string
 
   const supabase = createRouteClient()
   const { data, error } = await supabase
@@ -78,8 +53,10 @@ export async function POST(req: NextRequest) {
     .insert({
       organization_id: ctx.org.id,
       user_id: ctx.user.id,
-      type: 'note',
-      description: `WhatsApp message via ${meta.channel ?? 'whatsapp'}`,
+      type: typeToStore,
+      description: action === 'messaged'
+        ? `WhatsApp message via ${meta.channel ?? 'whatsapp'}`
+        : `${action.charAt(0).toUpperCase() + action.slice(1)} logged`,
       metadata: { action, ...meta },
       [column]: entity_id,
     })

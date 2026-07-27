@@ -10,10 +10,15 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     return new NextResponse('Missing Organization ID', { status: 400 })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing required Supabase environment variables in nekretnine_rs feed route')
+    return new NextResponse('Server Configuration Error: Missing required Supabase credentials', { status: 500 })
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   // Fetch properties marked for nekretnine_rs syndication
   const { data: syndications, error } = await supabase
@@ -80,7 +85,7 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     if (images && images.length > 0) {
       xml += `    <slike>\n`
       images.forEach(img => {
-        const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'}/storage/v1/object/public/${img}`
+        const publicUrl = `${supabaseUrl}/storage/v1/object/public/${img}`
         xml += `      <slika><![CDATA[${publicUrl}]]></slika>\n`
       })
       xml += `    </slike>\n`

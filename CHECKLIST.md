@@ -1,104 +1,43 @@
-# Estateline Setup Checklist
+# Estateline SaaS CRM — Feature & Architecture Checklist
 
-## ✅ Completed
-
-- [x] **Project scaffold created** — Next.js 14 + TypeScript + Tailwind
-- [x] **Authentication system** — Supabase SSR with middleware
-- [x] **Multi-tenant database schema** — organizations, users, organization_members
-- [x] **Row Level Security (RLS)** — Tenant isolation policies
-- [x] **Atomic signup function** — `create_organization()` RPC
-- [x] **Partial unique index** — One primary org per user
-- [x] **Environment variables** — Supabase URL and anon key configured
-- [x] **Middleware protection** — Dashboard routes require auth
-- [x] **Landing page** — Hero section with CTA
-- [x] **Login page** — Email/password authentication
-- [x] **Dashboard page** — User and org data display
-- [x] **Build verified** — `npm run build` passes
-
-## 🔄 Next Steps (Do These Now)
-
-### 1. Apply Database Schema
-- [ ] Open Supabase dashboard: https://vlkasfskndcmbrbbdvzd.supabase.co
-- [ ] Go to **SQL Editor** → **New query**
-- [ ] Copy `supabase/migrations/001_initial_schema.sql` and run it
-- [ ] Verify RLS is enabled for all three tables
-
-### 2. Test Signup Flow
-- [ ] Run `npm run dev`
-- [ ] Visit http://localhost:3000
-- [ ] Click **Get Started** and fill the signup form
-- [ ] Confirm user is created in Supabase **Authentication** panel
-- [ ] Confirm organization appears in **Table Editor**
-
-### 3. Add Service Role Key (Optional but Recommended)
-- [ ] In Supabase: **Settings** → **API** → copy `service_role` key
-- [ ] In Zo: [Settings → Advanced](/?t=settings&s=advanced) → add `SUPABASE_SERVICE_ROLE_KEY`
-
-### 4. Deploy to Production (When Ready)
-- [ ] Push to GitHub
-- [ ] Deploy to Vercel/Railway
-- [ ] Add environment variables to hosting platform
-- [ ] Set up custom domain
-
-## 📋 Project Structure
-
-```
-estateline/
-├── src/
-│   ├── app/
-│   │   ├── api/auth/          # Auth API routes
-│   │   ├── dashboard/         # Protected dashboard
-│   │   ├── login/             # Login page
-│   │   ├── globals.css        # Tailwind + custom styles
-│   │   ├── layout.tsx         # Root layout
-│   │   └── page.tsx           # Landing page
-│   ├── lib/
-│   │   └── supabase.ts        # Supabase client + types
-│   └── middleware.ts          # Auth middleware
-├── supabase/
-│   └── migrations/
-│       └── 001_initial_schema.sql  # Complete DB schema
-├── .env.local                 # Supabase credentials
-├── ARCHITECTURE.md            # Technical deep dive
-├── SECURITY.md               # Security design
-├── SETUP.md                  # Quick start guide
-├── DEPLOYMENT.md             # Database deployment
-└── README.md                 # Project overview
-```
-
-## 🔧 Key Files to Know
-
-- **`src/lib/supabase.ts`** — Supabase client, Database types, helper functions
-- **`src/middleware.ts`** — Route protection, session handling
-- **`src/app/api/auth/signup/route.ts`** — Atomic signup endpoint
-- **`supabase/migrations/001_initial_schema.sql`** — Complete database schema
-- **`.env.local`** — Environment variables (never commit this!)
-
-## 🚀 Quick Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linting
-npm run lint
-```
-
-## 📞 Need Help?
-
-- **Supabase Docs**: https://supabase.com/docs
-- **Next.js Docs**: https://nextjs.org/docs
-- **Zo Computer**: https://support.zocomputer.com
+This document reflects the current production architecture and completed feature set of **Estateline**.
 
 ---
 
-**You're all set!** Apply the SQL migration and start testing the signup flow. 🎉
+## ✅ Core Infrastructure & Security
+- [x] **Next.js 14 App Router** — TypeScript, Server/Client components, dynamic locale routing (`[locale]`).
+- [x] **Supabase RLS & Multi-Tenancy** — Strict tenant isolation by `organization_id` across all database tables.
+- [x] **Postgres Schema & Migrations** — 13 migrations covering properties, leads, contacts, deals, tasks, communications, custom fields, viewings, syndications, and activity logging.
+- [x] **RPC Security** — Hardened RPC functions (`create_organization`, `get_public_microsite_data`) with `SECURITY DEFINER` and search path constraints.
+- [x] **Authentication** — Supabase Auth SSR middleware supporting multi-tenant user profile linking.
+
+---
+
+## ✅ CRM Modules & Dashboards
+- [x] **Properties Module** — Listing management, cover images, image gallery arrays, location coordinates, currency switching (BAM / EUR), and custom fields.
+- [x] **Leads & Contacts** — Lead stage pipeline tracking, contact relationships, and activity attribution.
+- [x] **Deals & KanBan Pipeline** — Stage movement tracking, deal value calculations, and activity logs.
+- [x] **Tasks & Communications** — Task scheduling, call/email logs, and activity timeline tracking.
+- [x] **Custom Fields Engine** — Dynamic custom fields per organization with JSON schema enforcement.
+- [x] **Invoices & Quotes** — Financial document generation and state tracking.
+- [x] **Viewings & Calendar** — Viewing appointment scheduling and agent calendar integration.
+- [x] **WhatsApp Cloud API** — Direct WhatsApp click-to-chat messaging integration with `messaged` activity logging.
+
+---
+
+## ✅ Portal Syndication & Microsites
+- [x] **Multi-Portal Feeds** — Dynamic XML and JSON feed endpoints for regional Balkan portals:
+  - OLX (`/api/feeds/olx/[org_id]`)
+  - Njuškalo (`/api/feeds/njuskalo/[org_id]`)
+  - Nekretnine.rs (`/api/feeds/nekretnine_rs/[org_id]`)
+  - Generic JSON (`/api/feeds/json/[org_id]`)
+- [x] **Public Agency Microsite** — Dynamic white-labeled agency portal (`/site/[subdomain]`) with dynamic SVG image placeholders.
+- [x] **Lead Capture Widget** — Public embeddable lead capture form (`/embed`) with token validation.
+
+---
+
+## 🧪 Testing & Verification Commands
+- **Run Type Check**: `npm run type-check`
+- **Run Migration Smoke Test**: `npm run test:migrations`
+- **Run RLS Security Test**: `npm run test:rls`
+- **Deploy Remote Migrations**: `node scripts/deploy-remote-migrations.js`
