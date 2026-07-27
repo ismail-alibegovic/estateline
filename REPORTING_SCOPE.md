@@ -38,7 +38,7 @@ To turn the static dashboard into an actionable business intelligence engine, we
 ### Report 2: Pipeline Stage & Lead Conversion Funnel
 * **Purpose**: Identify bottlenecks in agency lead qualification and conversion.
 * **Metrics**:
-  * Inbound lead attribution breakdown by source (`leads.source`: `website`, `portal`, `whatsapp`, `referral`, `phone`, `walk_in`, `other`)
+  * Inbound lead attribution breakdown by source (`leads.source`: `website`, `referral`, `portal`, `social`, `email`, `phone`, `walk-in`, `other`)
   * Conversion rate: Inbound leads $\rightarrow$ Qualified $\rightarrow$ Viewing $\rightarrow$ Closed Won
   * Lost reason distribution (`deals.lost_reason` and `leads.lost_reason` grouped by category)
 * **Data Availability**: Fully supported by current schema (`leads.source`, `leads.stage`, `deals.stage`, `deals.lost_reason`, `leads.lost_reason`).
