@@ -40,7 +40,7 @@ export interface RouteContext {
   /** The authenticated user's profile row in `users`. */
   user: { id: string; auth_id: string; email: string; full_name: string | null }
   /** The user's primary organization. */
-  org: { id: string; name: string; slug: string }
+  org: { id: string; name: string; slug: string; stripe_customer_id?: string | null }
   /** The user's role in this org (owner | admin | agent | viewer). */
   role: 'owner' | 'admin' | 'agent' | 'viewer'
 }
@@ -82,7 +82,7 @@ export async function getRouteContext(): Promise<RouteContext | Response> {
 
   const { data: membership } = await supabase
     .from('organization_members')
-    .select('role, organization_id, organizations(id, name, slug)')
+    .select('role, organization_id, organizations(id, name, slug, stripe_customer_id)')
     .eq('user_id', profile.id)
     .eq('is_primary', true)
     .single()

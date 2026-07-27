@@ -104,6 +104,17 @@ async function run() {
       }
     }
 
+    // Post-migration assertion: Verify migration 014 backfill worked
+    const unmigrated = await client.query(`
+      SELECT count(*) FROM activity_log
+      WHERE type = 'note' AND (metadata->>'action' = 'messaged' OR description LIKE 'WhatsApp message%');
+    `);
+    const count = parseInt(unmigrated.rows[0].count, 10);
+    if (count > 0) {
+      throw new Error(`Migration 014 assertion failed: ${count} un-backfilled activity rows remain.`);
+    }
+    console.log('✅ Migration 014 assertion passed: 0 un-backfilled rows remain.');
+
     console.log('Migration smoke test passed successfully.');
   } catch (err) {
     console.error('Migration smoke test failed:', err);

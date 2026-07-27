@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -14,18 +15,39 @@ export async function POST(request: Request) {
 
   try {
     const origin = request.headers.get('origin') || 'http://localhost:3000'
+    let customerId = ctx.org.stripe_customer_id
 
-    // In a real environment, we'd store stripe_customer_id in organizations table
-    // For now we mock/create a new customer or use a mock redirect
+    // If no stripe customer ID is attached to the organization, create one now
+    if (!customerId && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('mock')) {
+      const customer = await stripe.customers.create({
+        email: ctx.user.email,
+        name: ctx.org.name,
+        metadata: {
+          organization_id: ctx.org.id,
+        },
+      })
+      customerId = customer.id
+
+      const supabase = createAdminClient()
+      await supabase
+        .from('organizations')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', ctx.org.id)
+    }
+
+    if (!customerId) {
+      // In mock/test environments without live Stripe credentials, redirect back to billing UI
+      return NextResponse.json({ url: `${origin}/dashboard/settings/billing` })
+    }
+
     const session = await stripe.billingPortal.sessions.create({
-      customer: 'cus_mock_id', // Needs valid customer ID in live
+      customer: customerId,
       return_url: `${origin}/dashboard/settings/billing`,
     })
 
     return NextResponse.json({ url: session.url })
   } catch (err: any) {
     console.error('Stripe Portal Error:', err)
-    // Fallback for mock environments
     const origin = request.headers.get('origin') || 'http://localhost:3000'
     return NextResponse.json({ url: `${origin}/dashboard/settings/billing` })
   }
