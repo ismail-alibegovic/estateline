@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request, { params }: { params: { org_id: string } }) {
+  const rl = await checkRateLimit(request as any, 60, 60 * 1000)
+  if (!rl.success) {
+    return rateLimitResponse()
+  }
+
   const { org_id } = params
 
   if (!org_id) {

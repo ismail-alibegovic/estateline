@@ -44,6 +44,15 @@ jobs:
       - name: Check typescript types
         run: npm run type-check
 
+      - name: Check i18n translation key parity
+        run: npm run check:i18n
+
+      - name: Check environment variables completeness
+        run: npm run check:env
+
+      - name: Run unit tests
+        run: npm run test:unit
+
       - name: Run migration smoke tests
         run: npm run test:migrations
         env:

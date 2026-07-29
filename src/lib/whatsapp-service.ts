@@ -58,7 +58,7 @@ export async function sendWhatsAppTemplate(
 
     // Enforce opt-in consent before sending template
     if (contact && !contact.whatsapp_opted_in) {
-      console.warn(`Attempted to send WhatsApp template to opted-out phone: ${to}`)
+      console.warn('Attempted to send WhatsApp template to opted-out recipient')
       return { success: false, error: 'Recipient has not opted-in to receive WhatsApp messages.' }
     }
 

@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     let targetOrg = org
 
     if (!targetOrg) {
-      console.warn(`WhatsApp message received for unmapped phone_number_id: ${phone_number_id}`)
+      console.warn(`WhatsApp message received for unmapped phone_number_id`)
       return NextResponse.json({ error: 'Tenant organization not found' }, { status: 404 })
     }
 
