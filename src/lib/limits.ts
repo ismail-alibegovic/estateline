@@ -1,21 +1,20 @@
 /**
- * Plan limit checks — billing groundwork.
- *
- * Today every plan is unlimited: both functions always return { allowed: true }.
- * They exist so that, when Stripe tiers land, the ONLY place that needs to
- * change is inside these functions — every call site (invite-agent flow,
- * create-property flow) already calls them and already handles a denied result.
- *
- * The `org` argument deliberately only needs `subscription_tier` so call sites
- * can pass the org row they already have without extra lookups.
+ * Plan limit checks and quota enforcement.
  */
 
 export interface PlanLimitResult {
   allowed: boolean
-  /** Human-readable reason when denied (for later UI surfacing). */
+  /** Human-readable reason when denied (for UI surfacing). */
   reason?: string
   /** The cap that was hit, when denied. */
   limit?: number
+}
+
+export interface PlanUsageStats {
+  tier: string
+  agents: { current: number; limit: number | null; allowed: boolean }
+  properties: { current: number; limit: number | null; allowed: boolean }
+  whatsappMonthly: { current: number; limit: number | null; allowed: boolean }
 }
 
 export function canAddAgent(
@@ -52,6 +51,26 @@ export function canAddProperty(
     return {
       allowed: false,
       reason: `Your organization has reached the property listing limit of ${limit} for the ${tier} plan. Please upgrade your subscription to add more properties.`,
+      limit,
+    }
+  }
+  return { allowed: true }
+}
+
+export function canSendWhatsApp(
+  org: { subscription_tier?: string | null },
+  currentMonthlySends: number,
+): PlanLimitResult {
+  const tier = (org?.subscription_tier || 'beta').toLowerCase()
+  let limit = 50
+  if (tier === 'starter') limit = 200
+  else if (tier === 'pro') limit = 1000
+  else if (tier === 'agency') return { allowed: true }
+
+  if (currentMonthlySends >= limit) {
+    return {
+      allowed: false,
+      reason: `Your organization has reached the monthly WhatsApp limit of ${limit} messages for the ${tier} plan. Upgrade to increase messaging capacity.`,
       limit,
     }
   }

@@ -291,6 +291,43 @@ export default function IntegrationsPage() {
             </div>
           </div>
         </section>
+
+        {/* WhatsApp Cloud API Section */}
+        <section className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            WhatsApp Cloud API <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded">Meta API</span>
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure your Meta WhatsApp Business API credentials to enable automated lead capture and stage-transition messaging.
+          </p>
+
+          <div className="mt-6 space-y-4 border-t border-border pt-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">
+                Phone Number ID
+              </label>
+              <input
+                type="text"
+                readOnly
+                value={org?.whatsapp_config?.phone_number_id || 'Not configured'}
+                className="w-full rounded-lg border border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground font-mono outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">
+                Webhook Verification URL
+              </label>
+              <div className="flex justify-between items-center mb-1">
+                <input
+                  type="text"
+                  readOnly
+                  value={`${origin}/api/whatsapp/webhook`}
+                  className="w-full rounded-lg border border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground font-mono outline-none"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       {/* Floating Toasts */}

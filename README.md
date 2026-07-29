@@ -1,186 +1,70 @@
-# Estateline
+# Estateline — Premier Real Estate CRM for the Balkan Market
 
-Multi-tenant SaaS CRM for real estate agencies in the Balkans (Bosnia & Herzegovina, Croatia, Serbia).
-
-## Quick Start
-
-```bash
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your Supabase and Stripe credentials
-
-# Run database migrations (via Supabase CLI)
-npx supabase migration up
-
-# Start development server
-npm run dev
-```
-
-## Tech Stack
-
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Next.js API Routes + Supabase (PostgreSQL, Auth, Storage)
-- **Database**: PostgreSQL with Row Level Security (RLS) for tenant isolation
-- **Payments**: Stripe Checkout + Customer Portal
-- **PDF Generation**: `pdfkit`
-
-## Key Features
-
-### Phase 1 (MVP — This Repository)
-- [x] Multi-tenant architecture with RLS
-- [x] User authentication (email/password, OAuth ready)
-- [x] Organization signup with atomic transaction
-- [x] Property management (CRUD, images)
-- [x] Contact management (buyers, sellers, landlords, tenants)
-- [x] Deal pipeline (customizable stages, drag-and-drop)
-- [x] Activity logging (calls, emails, tasks, meetings)
-- [x] PDF generation (contracts, quotes from templates)
-- [x] Basic calendar (contacts + viewings)
-- [x] Lead capture forms (embeddable on any website)
-
-### Phase 2 (Planned)
-- [ ] Stripe subscription billing (Starter/Pro/Agency tiers)
-- [ ] Custom fields per organization
-- [ ] Email integration (send/receive from CRM)
-- [ ] SMS integration
-- [ ] Advanced reporting & analytics
-- [ ] Mobile app (React Native)
-- [ ] White-label subdomain support
-- [ ] API for third-party integrations
-
-## Project Structure
-
-```
-estateline/
-├── src/
-│   ├── app/
-│   │   ├── api/           # API routes
-│   │   │   ├── auth/      # Authentication endpoints
-│   │   │   ├── properties/
-│   │   │   ├── contacts/
-│   │   │   ├── deals/
-│   │   │   └── documents/
-│   │   ├── dashboard/     # Main app (authenticated)
-│   │   ├── login/         # Login page
-│   │   ├── onboarding/    # First-time setup
-│   │   ├── layout.tsx     # Root layout
-│   │   └── page.tsx       # Landing page
-│   ├── lib/
-│   │   └── supabase.ts    # Supabase client + types
-│   └── middleware.ts      # Auth middleware
-├── supabase/
-│   └── migrations/
-│       └── 001_initial_schema.sql  # Complete database schema
-├── public/                # Static assets
-├── ARCHITECTURE.md        # Technical architecture details
-├── SECURITY.md            # Security model (RLS, audit logging)
-└── package.json
-```
-
-## Database Schema
-
-### Core Tables
-- `users` — User profiles (linked to auth.users)
-- `organizations` — Tenant entities
-- `organization_members` — User-org membership + role
-- `properties` — Real estate listings
-- `contacts` — People/companies
-- `deals` — Transactions with pipeline stages
-- `deal_activities` — Calls, emails, tasks, meetings, notes
-- `documents` — Generated PDFs
-- `audit_logs` — Immutable change history
-
-### Key Design Decisions
-1. **RLS for tenant isolation** — Every business table has an `organization_id` and RLS policies
-2. **Atomic signup** — User + org + membership created in a single Postgres function
-3. **Audit logging via triggers** — Cannot be bypassed by application bugs
-4. **Custom fields via JSONB** — Flexible schema without dynamic columns
-
-## Security
-
-See [SECURITY.md](./SECURITY.md) for the complete security model.
-
-### Key Points
-- Row Level Security enforced on all business tables
-- Service role key never exposed to client
-- Atomic signup prevents orphaned users
-- Audit trail for all data changes
-- Stripe webhook signature verification
-
-## Environment Variables
-
-```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# Stripe (server-only)
-STRIPE_SECRET_KEY=sk_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# Email & SMS (server-only)
-RESEND_API_KEY=re_...
-EMAIL_FROM=noreply@yourdomain.com
-TWILIO_ACCOUNT_SID=AC...
-TWILIO_AUTH_TOKEN=your-token
-TWILIO_FROM_NUMBER=+1234567890
-
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-## Development
-
-```bash
-# Install
-npm install
-
-# Run dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Run production server
-npm start
-
-# Type check
-npm run type-check
-
-# Lint
-npm run lint
-```
-
-## Deployment
-
-### Vercel (Recommended)
-1. Connect your GitHub repository
-2. Add environment variables
-3. Deploy
-
-### Supabase Migration
-```bash
-# Apply migrations
-npx supabase migration up
-
-# Or via Supabase dashboard: SQL Editor → Run migration file
-```
-
-## Contributing
-
-1. Create a feature branch
-2. Make changes
-3. Write tests (if applicable)
-4. Submit a pull request
-
-## License
-
-Proprietary — All rights reserved.
+Multi-tenant SaaS CRM built specifically for real-estate agencies across Bosnia & Herzegovina, Croatia, Serbia, and Montenegro (BA/HR/RS/ME).
 
 ---
 
-**Built by Ismail Alibegović** — [LinkedIn](https://linkedin.com/in/ismail-alibegovic-5b89b438a) | [GitHub](https://github.com/ismail-alibegovic)
+## 1. Production Architecture Overview
+
+- **Frontend & App Surface**: Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui components, `next-intl` (Bosnian `bs` & English `en` parity).
+- **Database & Data Isolation**: Supabase (Postgres 15 with 18+ strictly additive SQL migrations). Multi-tenancy is enforced at the database layer via **Postgres Row Level Security (RLS)** — every business table requires an `organization_id` check.
+- **Security & Privileged Operations**: All privileged RPCs use `SECURITY DEFINER` with explicit `is_org_member(org_id)` or `is_admin(org_id)` guards.
+- **Integrations**: Stripe (Checkout, Customer Portal, Webhook), Resend Email, Twilio SMS, WhatsApp Cloud API (inbound webhooks + outbound stage transitions), and XML/JSON Outbound Feed Syndication (Njuškalo, Nekretnine.rs, OLX import).
+- **Observability & Rate Limiting**: In-memory token bucket & Upstash Redis rate limiting on public endpoints (`/api/leads/public`, `/api/feeds/*`), with explicit CI env and i18n parity validation.
+
+---
+
+## 2. Core Modules & Production Features
+
+### A. Business Intelligence & Reporting
+- **Agent Performance & Leaderboard**: Deal volume, sales revenue, viewings conducted, and commissions earned per agent (`get_agent_performance_report` RPC).
+- **Lead Funnel & Source Attribution**: Inbound lead breakdown by channel, stage status, and lost reasons (`get_lead_conversion_report` RPC).
+- **Transaction Velocity (Time-to-Close)**: Average, minimum, and maximum days to close deals grouped by property/deal type (`get_time_to_close_report` RPC).
+- **Financial & Commission Forecasting**: Probability-weighted pipeline revenue, total closed-won revenue, and earned vs paid commission tracking (`get_financial_forecasting_report` RPC).
+
+### B. Communications & WhatsApp Loop
+- Inbound WhatsApp webhook (`/api/whatsapp/webhook`) creates leads and contact records with explicit opt-in tracking (`whatsapp_opted_in`, `whatsapp_consent_at`).
+- Stage-transition trigger sends automated WhatsApp template messages on lead stage changes.
+- Unified Chronological Activity & Communications timeline for leads and contacts.
+
+### C. Plan Limits & Billing Enforcement
+- Enforced tier caps (`beta`, `starter`, `pro`, `agency`) for active agents, property listings, and monthly WhatsApp messages via `src/lib/limits.ts`.
+- Real-time "Plan Usage & Tier Caps" widget rendered in Settings → Billing.
+
+### D. Testing & QA Infrastructure
+- **CI Workflows**: GitHub Actions (`.github/workflows/ci.yml`) runs linting, TypeScript type checks, migration smoke tests, RLS tenant isolation tests, i18n key parity checks, and env variable completeness checks.
+- **Unit & E2E Testing**: Vitest for helper logic (`npm run test:unit`) and Playwright for E2E tenant isolation (`npm run test:e2e`).
+
+---
+
+## 3. Quick Start & Commands
+
+```bash
+# Install dependencies
+npm install --legacy-peer-deps
+
+# Run environment and translation parity checks
+npm run check:env
+npm run check:i18n
+
+# Run unit tests
+npm run test:unit
+
+# Run database migration & RLS integration tests
+npm run test:migrations
+npm run test:rls
+npm run test:rpcs
+
+# Start local development server
+npm run dev
+```
+
+---
+
+## 4. Environment Variables
+
+Documented in [.env.example](file://./.env.example):
+- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`
+- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_AGENCY`
+- Email & Communications: `RESEND_API_KEY`, `EMAIL_FROM`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `WHATSAPP_VERIFY_TOKEN`
+- Rate Limiting: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`

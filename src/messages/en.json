@@ -28,7 +28,8 @@
     "documents": "Documents",
     "calendar": "Calendar",
     "quotes": "Quotes",
-    "invoices": "Invoices"
+    "invoices": "Invoices",
+    "reports": "Reports"
   },
   "auth": {
     "signIn": "Sign in",

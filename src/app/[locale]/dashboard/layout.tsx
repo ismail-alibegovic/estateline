@@ -28,6 +28,7 @@ import {
   ChevronRight,
   DollarSign,
   Sliders,
+  BarChart3,
 } from 'lucide-react'
 
 interface Session {
@@ -148,6 +149,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       group: 'Financials',
       items: [
         { href: `/${locale}/dashboard/financials`, label: t('overview'), icon: <LayoutGrid size={14} /> },
+        { href: `/${locale}/dashboard/reports`, label: t('reports'), icon: <BarChart3 size={14} /> },
         { href: `/${locale}/dashboard/quotes`, label: t('quotes'), icon: <FileText size={14} /> },
         { href: `/${locale}/dashboard/invoices`, label: t('invoices'), icon: <Receipt size={14} /> },
       ],

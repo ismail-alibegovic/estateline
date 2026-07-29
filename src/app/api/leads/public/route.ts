@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const rl = await checkRateLimit(req, 10, 60 * 1000)
+  if (!rl.success) {
+    return rateLimitResponse()
+  }
+
   try {
     const { organization_slug, first_name, last_name, email, phone, message, property_id } = await req.json()
 

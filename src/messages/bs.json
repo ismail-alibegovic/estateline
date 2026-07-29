@@ -28,7 +28,8 @@
     "documents": "Dokumenti",
     "calendar": "Kalendar",
     "quotes": "Ponude",
-    "invoices": "Fakture"
+    "invoices": "Fakture",
+    "reports": "Izvještaji"
   },
   "auth": {
     "signIn": "Prijava",

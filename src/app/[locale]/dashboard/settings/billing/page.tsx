@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { createBrowserClient } from '@/lib/supabase'
 import { useSearchParams } from 'next/navigation'
+import PlanUsageWidget from '@/components/billing/PlanUsageWidget'
 
 export default function BillingPage() {
   const t = useTranslations('billing')
@@ -140,6 +141,9 @@ export default function BillingPage() {
           )}
         </div>
       </section>
+
+      {/* Plan Usage Widget */}
+      <PlanUsageWidget />
 
       {/* Tiers Pricing Grid */}
       <section>
