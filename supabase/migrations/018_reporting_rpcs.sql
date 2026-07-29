@@ -23,7 +23,7 @@ BEGIN
 
   RETURN QUERY
   SELECT
-    COALESCE(d.type, 'unknown') AS deal_type,
+    COALESCE(d.type::text, 'other') AS deal_type,
     COUNT(*) AS total_closed,
     ROUND(AVG(EXTRACT(EPOCH FROM (d.closed_at - d.created_at)) / 86400)::numeric, 1) AS avg_days_to_close,
     ROUND(MIN(EXTRACT(EPOCH FROM (d.closed_at - d.created_at)) / 86400)::numeric, 1) AS min_days_to_close,
@@ -34,7 +34,7 @@ BEGIN
     AND d.closed_at IS NOT NULL
     AND (p_start_date IS NULL OR d.closed_at >= p_start_date)
     AND (p_end_date IS NULL OR d.closed_at <= p_end_date)
-  GROUP BY COALESCE(d.type, 'unknown')
+  GROUP BY COALESCE(d.type::text, 'other')
   ORDER BY total_closed DESC;
 END;
 $$;
