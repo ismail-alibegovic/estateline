@@ -1,7 +1,47 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
+import { cleanOlxUrl, mapOlxCategoryToPropertyType, cleanOlxDescription } from '@/lib/olx-helpers'
 
 export const dynamic = 'force-dynamic'
+
+export async function GET() {
+  const ctx = await getRouteContext()
+  if (isAuthError(ctx)) return ctx
+
+  const { org, supabase } = ctx
+
+  try {
+    const { data: syndications, error } = await supabase
+      .from('property_syndications')
+      .select('id, property_id, status, external_id, last_synced_at, error_message')
+      .eq('organization_id', org.id)
+      .eq('portal_name', 'olx')
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const activeCount = (syndications || []).filter(s => s.status === 'active').length
+    const errorCount = (syndications || []).filter(s => s.status === 'error').length
+    const lastSynced = (syndications || []).reduce((latest: string | null, s: any) => {
+      if (!s.last_synced_at) return latest
+      if (!latest || new Date(s.last_synced_at) > new Date(latest)) return s.last_synced_at
+      return latest
+    }, null)
+
+    return NextResponse.json({
+      organization_id: org.id,
+      olx_profile_url: (org as any).olx_profile_url || null,
+      total_syndicated: (syndications || []).length,
+      active_count: activeCount,
+      error_count: errorCount,
+      last_synced_at: lastSynced,
+      syndications: syndications || []
+    })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
+  }
+}
 
 export async function POST(request: Request) {
   const ctx = await getRouteContext()
@@ -19,21 +59,7 @@ export async function POST(request: Request) {
       }
 
       // Clean URL to point to main shop/profile page
-      let cleanUrl = olx_url
-      try {
-        const parsed = new URL(olx_url)
-        const parts = parsed.pathname.split('/').filter(Boolean)
-        const shopsIdx = parts.indexOf('shops')
-        const profilIdx = parts.indexOf('profil')
-        
-        if (shopsIdx !== -1 && parts[shopsIdx + 1]) {
-          cleanUrl = `${parsed.origin}/shops/${parts[shopsIdx + 1]}`
-        } else if (profilIdx !== -1 && parts[profilIdx + 1]) {
-          cleanUrl = `${parsed.origin}/profil/${parts[profilIdx + 1]}`
-        }
-      } catch (e: any) {
-        console.error('URL cleanup failed:', e.message)
-      }
+      const cleanUrl = cleanOlxUrl(olx_url)
 
       console.log('Fetching HTML from main page:', cleanUrl)
       
@@ -123,19 +149,8 @@ export async function POST(request: Request) {
           console.error(`Failed to fetch details for listing ${item.id}:`, detailErr)
         }
 
-        // Map Category ID & Title to valid property_type enum:
-        // 'apartment', 'house', 'land', 'commercial', 'office', 'warehouse', 'garage', 'other'
-        let type = 'apartment'
-        const lowerTitle = item.title.toLowerCase()
-        if (item.category_id === 24 || lowerTitle.includes('kuća') || lowerTitle.includes('vila') || lowerTitle.includes('kuca')) {
-          type = 'house'
-        } else if (item.category_id === 29 || lowerTitle.includes('zemljište') || lowerTitle.includes('plac') || lowerTitle.includes('zemljiste')) {
-          type = 'land'
-        } else if (item.category_id === 26 || item.category_id === 27 || lowerTitle.includes('poslovni') || lowerTitle.includes('poslovni prostor')) {
-          type = 'office'
-        } else if (lowerTitle.includes('garaža') || lowerTitle.includes('garaza')) {
-          type = 'garage'
-        }
+        // Map Category ID & Title to valid property_type enum
+        const type = mapOlxCategoryToPropertyType(item.category_id, item.title)
 
         // Parse area size
         let areaSize = 0
@@ -218,6 +233,7 @@ export async function POST(request: Request) {
 
         // Map city
         let city = 'Sarajevo'
+        const lowerTitle = (item.title || '').toLowerCase()
         if (item.city_id === 39 || lowerTitle.includes('visoko')) {
           city = 'Visoko'
         } else if (lowerTitle.includes('mostar')) {
