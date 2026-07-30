@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 import { NextRequest } from 'next/server'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { resolveHostIdentifier } from '@/lib/domain-helpers'
 import type { Database } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -62,7 +63,9 @@ export default async function OrgMicrosite({ params }: { params: { subdomain: st
     return rateLimitResponse() as any
   }
 
-  const slug = params.subdomain
+  const host = reqHeaders.get('host')
+  const { identifier, isCustomDomain } = resolveHostIdentifier(host, params.subdomain)
+  const slug = identifier
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,8 +73,27 @@ export default async function OrgMicrosite({ params }: { params: { subdomain: st
     { cookies: { get: () => '', set: () => {}, remove: () => {} } }
   )
 
-  const { data: orgRaw, error: orgErr } = await supabase
-    .rpc('get_public_org_by_slug', { p_slug: slug })
+  let orgRaw: any[] | null = null
+  let orgErr: any = null
+
+  if (isCustomDomain) {
+    const { data: cdOrg, error: cdErr } = await supabase
+      .from('organizations')
+      .select('id, name, slug, logo_url, locale_default, currency_default')
+      .eq('custom_domain', slug)
+      .limit(1)
+
+    if (cdOrg && cdOrg.length > 0) {
+      orgRaw = cdOrg
+    }
+  }
+
+  if (!orgRaw || orgRaw.length === 0) {
+    const { data: slugOrg, error: err } = await supabase
+      .rpc('get_public_org_by_slug', { p_slug: slug })
+    orgRaw = slugOrg as any[]
+    orgErr = err
+  }
 
   const org = orgRaw as any[]
 
