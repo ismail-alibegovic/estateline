@@ -11,8 +11,11 @@ import {
   Download,
   Calendar,
   Award,
-  ArrowUpRight
+  ArrowUpRight,
+  PieChart,
+  XCircle
 } from 'lucide-react'
+import { calculateFunnelMetrics } from '@/lib/report-helpers'
 
 export default function ReportsDashboardPage() {
   const [activeTab, setActiveTab] = useState<'agent' | 'conversion' | 'velocity' | 'financial'>('agent')
@@ -237,37 +240,79 @@ export default function ReportsDashboardPage() {
             </div>
           )}
 
-          {/* TAB 2: LEAD FUNNEL */}
+          {/* TAB 2: LEAD FUNNEL & CONVERSION */}
           {activeTab === 'conversion' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-                <h3 className="text-sm font-semibold text-[#111827] mb-4">Lead Source Attribution</h3>
-                <div className="space-y-3">
-                  {(conversionData.by_source || []).map((item: any) => (
-                    <div key={item.source} className="flex items-center justify-between text-xs">
-                      <span className="capitalize font-medium text-[#374151]">{item.source || 'Direct / Unknown'}</span>
-                      <span className="font-bold text-[#111827]">{item.count} leads</span>
-                    </div>
-                  ))}
-                  {(!conversionData.by_source || conversionData.by_source.length === 0) && (
-                    <p className="text-xs text-[#9CA3AF]">No lead source data available.</p>
-                  )}
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Lead Source Attribution */}
+                <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
+                  <h3 className="text-sm font-semibold text-[#111827] mb-4 flex items-center gap-2">
+                    <PieChart size={16} className="text-[#059669]" /> Lead Source Attribution
+                  </h3>
+                  <div className="space-y-3">
+                    {(conversionData.by_source || []).map((item: any) => (
+                      <div key={item.source} className="space-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="capitalize font-medium text-[#374151]">{item.source || 'Direct / Unknown'}</span>
+                          <span className="font-bold text-[#111827]">{item.count} leads</span>
+                        </div>
+                        <div className="w-full bg-[#F3F4F6] h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-[#059669] h-full rounded-full"
+                            style={{ width: `${Math.min(100, Math.max(5, (item.count / Math.max(1, (conversionData.by_source || []).reduce((a: number, b: any) => a + Number(b.count || 0), 0))) * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {(!conversionData.by_source || conversionData.by_source.length === 0) && (
+                      <p className="text-xs text-[#9CA3AF]">No lead source data available.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pipeline Stage & Visual Conversion Funnel */}
+                <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
+                  <h3 className="text-sm font-semibold text-[#111827] mb-4 flex items-center gap-2">
+                    <TrendingUp size={16} className="text-[#3B82F6]" /> Conversion Funnel Velocity
+                  </h3>
+                  <div className="space-y-4">
+                    {calculateFunnelMetrics(conversionData.by_stage || []).map((fm) => (
+                      <div key={fm.stage} className="space-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-[#374151]">{fm.stage}</span>
+                          <span className="font-bold text-[#111827]">
+                            {fm.count} <span className="text-[10px] text-[#6B7280]">({fm.conversionRate}%)</span>
+                          </span>
+                        </div>
+                        <div className="w-full bg-[#F3F4F6] h-2.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-[#3B82F6] h-full rounded-full transition-all"
+                            style={{ width: `${fm.conversionRate}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
+              {/* Lost Reason Analytics */}
               <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-                <h3 className="text-sm font-semibold text-[#111827] mb-4">Pipeline Stage Breakdown</h3>
-                <div className="space-y-3">
-                  {(conversionData.by_stage || []).map((item: any) => (
-                    <div key={item.stage} className="flex items-center justify-between text-xs">
-                      <span className="capitalize font-medium text-[#374151]">{item.stage}</span>
-                      <span className="font-bold text-[#111827]">{item.count}</span>
-                    </div>
-                  ))}
-                  {(!conversionData.by_stage || conversionData.by_stage.length === 0) && (
-                    <p className="text-xs text-[#9CA3AF]">No stage breakdown available.</p>
-                  )}
-                </div>
+                <h3 className="text-sm font-semibold text-[#111827] mb-4 flex items-center gap-2">
+                  <XCircle size={16} className="text-[#EF4444]" /> Lost Reason Analysis
+                </h3>
+                {(!conversionData.lost_reasons || conversionData.lost_reasons.length === 0) ? (
+                  <p className="text-xs text-[#9CA3AF]">No lost deal/lead reasons recorded for this period.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {conversionData.lost_reasons.map((lr: any) => (
+                      <div key={lr.reason} className="p-3 bg-[#FEF2F2] border border-[#FEE2E2] rounded-lg">
+                        <p className="text-xs font-semibold text-[#991B1B] capitalize">{lr.reason || 'Unspecified'}</p>
+                        <p className="text-lg font-bold text-[#7F1D1D] mt-1">{lr.count} lost</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
