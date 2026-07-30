@@ -147,7 +147,7 @@ export default function SearchSpotlight() {
 
           {!loading && query && flatItems.length === 0 && (
             <div className="py-12 text-center text-sm text-muted-foreground">
-              No results found for "<span className="font-bold text-foreground">{query}</span>"
+              No results found for &quot;<span className="font-bold text-foreground">{query}</span>&quot;
             </div>
           )}
 

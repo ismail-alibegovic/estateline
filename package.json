@@ -12,6 +12,7 @@
     "test:rls": "node scripts/test-rls.js",
     "test:rpcs": "node scripts/test-reporting-rpcs.js",
     "test:unit": "vitest run",
+    "test:e2e": "playwright test",
     "check:i18n": "node scripts/check-i18n-parity.js",
     "check:env": "node scripts/check-env-parity.js",
     "db:generate": "npx drizzle-kit generate",
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "@sentry/nextjs": "^10.69.0",
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.39.0",
     "@tanstack/react-table": "^8.21.3",

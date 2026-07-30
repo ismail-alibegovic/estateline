@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
+import { maskPhone } from '@/lib/redact'
 import twilio from 'twilio'
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Failed to send SMS: ${err.message}` }, { status: 500 })
     }
   } else {
-    console.log(`[Mock SMS Send] To: ${to} | Message: ${messageText}`)
+    console.log(`[Mock SMS Send] To: ${maskPhone(to)}`)
   }
 
   // Insert activity log into activity_log with type = 'sms'
