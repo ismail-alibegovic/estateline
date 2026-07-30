@@ -6,10 +6,8 @@ import { createBrowserClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import { useCurrency } from '@/components/CurrencyContext'
 import {
-  Building2, Users, TrendingUp, UserCheck,
-  ArrowUpRight, Clock, CheckSquare, Phone,
-  FileText, DollarSign, BarChart3, CheckCircle2,
-  Sparkles, Activity
+  Users, ArrowUpRight, DollarSign, BarChart3,
+  ArrowRight, MessageCircle, Briefcase, CheckCircle
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -28,37 +26,6 @@ interface ActivityItem {
   users?: { full_name: string | null } | { full_name: string | null }[] | null
 }
 
-interface LeadStageStat { stage: string; count: number; percentage: number }
-interface PropertyTypeStat { type: string; count: number; percentage: number }
-
-// ─── Color palette for stat cards ───
-const CARD_CONFIGS = [
-  {
-    key: 'properties',
-    gradient: 'linear-gradient(135deg, #1a1f3a 0%, #2d3561 100%)',
-    accentColor: '#7c8dff',
-    lightBg: 'rgba(124,141,255,0.12)',
-  },
-  {
-    key: 'leads',
-    gradient: 'linear-gradient(135deg, #1a2e1f 0%, #1f4a2c 100%)',
-    accentColor: '#52c97f',
-    lightBg: 'rgba(82,201,127,0.12)',
-  },
-  {
-    key: 'active_deals',
-    gradient: 'linear-gradient(135deg, #2e1a0e 0%, #4a2d13 100%)',
-    accentColor: '#C9963B',
-    lightBg: 'rgba(201,150,59,0.14)',
-  },
-  {
-    key: 'team_members',
-    gradient: 'linear-gradient(135deg, #1f1428 0%, #361f4a 100%)',
-    accentColor: '#c47cff',
-    lightBg: 'rgba(196,124,255,0.12)',
-  },
-]
-
 export default function DashboardHome() {
   const t = useTranslations('dashboard')
   const params = useParams()
@@ -69,9 +36,9 @@ export default function DashboardHome() {
   const [org, setOrg] = useState<any>(null)
   const [counts, setCounts] = useState<Counts>({ properties: 0, leads: 0, active_deals: 0, team_members: 1 })
   const [activities, setActivities] = useState<ActivityItem[]>([])
-  const [leadStats, setLeadStats] = useState<LeadStageStat[]>([])
-  const [propStats, setPropStats] = useState<PropertyTypeStat[]>([])
-  const [taskMetrics, setTaskMetrics] = useState({ completed: 0, total: 0, percentage: 0 })
+  
+  const [leadCounts, setLeadCounts] = useState({ new: 0, contacted: 0, negotiation: 0, converted: 0 })
+  const [recentLeads, setRecentLeads] = useState<any[]>([])
   const [financials, setFinancials] = useState({ totalQuotes: 0, avgQuote: 0 })
   const [loading, setLoading] = useState(true)
 
@@ -101,7 +68,7 @@ export default function DashboardHome() {
 
         const [
           { count: pc }, { count: lc }, { count: dc }, { count: mc },
-          actResp, rawLeads, rawProps, rawTasks, rawQuotes
+          actResp, rawLeads, rawQuotes, recentLeadsResp
         ] = await Promise.all([
           supabase.from('properties').select('*', { count: 'exact', head: true }).eq('organization_id', orgData.id),
           supabase.from('leads').select('*', { count: 'exact', head: true }).eq('organization_id', orgData.id),
@@ -109,30 +76,27 @@ export default function DashboardHome() {
           supabase.from('organization_members').select('*', { count: 'exact', head: true }).eq('organization_id', orgData.id),
           supabase.from('activity_log').select('id, type, description, created_at, users(full_name)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(6),
           supabase.from('leads').select('stage').eq('organization_id', orgData.id),
-          supabase.from('properties').select('type').eq('organization_id', orgData.id),
-          supabase.from('tasks').select('status').eq('organization_id', orgData.id),
           supabase.from('quotes').select('amount').eq('organization_id', orgData.id),
+          supabase.from('leads').select('id, first_name, last_name, stage, budget, updated_at, created_at, properties(title)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(5),
         ])
 
         setCounts({ properties: pc || 0, leads: lc || 0, active_deals: dc || 0, team_members: mc || 1 })
         if (actResp.data) setActivities(actResp.data as ActivityItem[])
 
         if (rawLeads.data?.length) {
-          const stageCounts: Record<string, number> = {}
-          rawLeads.data.forEach((l: any) => { const s = l.stage || 'new'; stageCounts[s] = (stageCounts[s] || 0) + 1 })
-          setLeadStats(Object.entries(stageCounts).map(([stage, count]) => ({ stage, count, percentage: Math.round((count / rawLeads.data!.length) * 100) })).sort((a, b) => b.count - a.count))
+          const lCounts = { new: 0, contacted: 0, negotiation: 0, converted: 0 }
+          rawLeads.data.forEach((l: any) => { 
+            const s = l.stage || 'new'
+            if (s === 'new') lCounts.new++
+            else if (s === 'contacted') lCounts.contacted++
+            else if (s === 'negotiation' || s === 'qualified' || s === 'proposal') lCounts.negotiation++
+            else if (s === 'converted') lCounts.converted++
+          })
+          setLeadCounts(lCounts)
         }
 
-        if (rawProps.data?.length) {
-          const typeCounts: Record<string, number> = {}
-          rawProps.data.forEach((p: any) => { const tp = p.type || 'apartment'; typeCounts[tp] = (typeCounts[tp] || 0) + 1 })
-          setPropStats(Object.entries(typeCounts).map(([type, count]) => ({ type, count, percentage: Math.round((count / rawProps.data!.length) * 100) })).sort((a, b) => b.count - a.count))
-        }
-
-        if (rawTasks.data?.length) {
-          const total = rawTasks.data.length
-          const completed = rawTasks.data.filter((t: any) => t.status === 'completed').length
-          setTaskMetrics({ completed, total, percentage: Math.round((completed / total) * 100) })
+        if (recentLeadsResp.data) {
+          setRecentLeads(recentLeadsResp.data)
         }
 
         if (rawQuotes.data?.length) {
@@ -146,520 +110,244 @@ export default function DashboardHome() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // Loading skeleton
   if (loading) {
     return (
       <div className="w-full h-full space-y-6 pb-8">
         <div className="skeleton h-9 w-64 rounded-xl" />
-        <div className="skeleton h-4 w-36 rounded-lg" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
+          {[...Array(5)].map((_, i) => (
             <div key={i} className="rounded-2xl p-5 space-y-4 skeleton h-28" />
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="skeleton h-52 rounded-2xl" />
-          <div className="skeleton h-52 rounded-2xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 skeleton h-[300px] rounded-2xl" />
+          <div className="skeleton h-[300px] rounded-2xl" />
         </div>
       </div>
     )
   }
 
-  const statsCards = [
-    { label: t('properties'), value: counts.properties, hint: 'Active listings', icon: Building2, href: `/${locale}/dashboard/properties`, cfg: CARD_CONFIGS[0] },
-    { label: t('leads'), value: counts.leads, hint: 'Across all stages', icon: Users, href: `/${locale}/dashboard/leads`, cfg: CARD_CONFIGS[1] },
-    { label: t('activeDeals'), value: counts.active_deals, hint: 'In pipeline', icon: TrendingUp, href: `/${locale}/dashboard/pipeline`, cfg: CARD_CONFIGS[2] },
-    { label: t('teamMembers'), value: counts.team_members, hint: 'Organisation', icon: UserCheck, href: `/${locale}/dashboard/settings/billing`, cfg: CARD_CONFIGS[3] },
+  // Activity Colors
+  const avatarColors = [
+    { bg: '#fef3c7', text: '#d97706' }, // Gold
+    { bg: '#dcfce7', text: '#15803d' }, // Green
+    { bg: '#dbeafe', text: '#1d4ed8' }, // Blue
+    { bg: '#f3e8ff', text: '#7e22ce' }, // Purple
   ]
-
-  const quickActions = [
-    { label: 'Add Property', icon: Building2, href: `/${locale}/dashboard/properties/new` },
-    { label: 'Add Lead', icon: Users, href: `/${locale}/dashboard/leads` },
-    { label: 'Log Call', icon: Phone, href: `/${locale}/dashboard/communications` },
-    { label: 'Create Task', icon: CheckSquare, href: `/${locale}/dashboard/tasks` },
-  ]
-
-  const typeEmoji: Record<string, string> = {
-    property: '🏛', lead: '👤', contact: '📋', viewing: '📅',
-    deal: '💼', call: '📞', meeting: '🤝', email: '✉️',
-    quote: '📄', invoice: '🧾',
-  }
-
-  const radius = 34
-  const circumference = 2 * Math.PI * radius
-  const strokeDashoffset = circumference - (taskMetrics.percentage / 100) * circumference
-
-  // Stage colors
-  const stageColors = ['#C9963B', '#7c8dff', '#52c97f', '#c47cff', '#ff8c6b', '#52c9c9']
 
   return (
-    <div className="w-full space-y-6 pb-10">
-
+    <div className="w-full space-y-8 pb-10">
       {/* ─── Page Header ─── */}
-      <header className="flex items-start justify-between">
-        <div>
-          <p className="page-eyebrow mb-2">Overview</p>
-          <h1
-            className="leading-none"
-            style={{
-              fontFamily: 'var(--font-display), Georgia, serif',
-              fontSize: 'clamp(2rem, 3vw, 2.75rem)',
-              fontWeight: 600,
-              color: '#171c26',
-              letterSpacing: '-0.025em',
-            }}
-          >
-            {t('welcome')}{user?.full_name ? `, ${user.full_name.split(' ')[0]}` : ''}.
-          </h1>
-          {org && (
-            <div className="flex items-center gap-3 mt-3">
-              <p className="text-sm font-medium" style={{ color: 'rgba(23,28,38,0.5)' }}>{org.name}</p>
-              <span
-                className="badge badge-gold"
-                style={{ textTransform: 'capitalize' }}
-              >
-                {org.subscription_tier}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Date / greeting badge */}
-        <div
-          className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl"
-          style={{
-            background: 'white',
-            border: '1px solid rgba(201,150,59,0.18)',
-            boxShadow: '0 2px 12px rgba(201,150,59,0.06)',
-          }}
-        >
-          <Sparkles size={13} style={{ color: '#C9963B' }} />
-          <p className="text-xs font-semibold" style={{ color: '#C9963B' }}>
-            {new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })}
-          </p>
-        </div>
+      <header className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
+        {/* Add New Lead button removed as per instructions, it's in top layout */}
       </header>
 
-      {/* ─── KPI Stat Cards ─── */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((card) => {
-          const Icon = card.icon
-          return (
-            <Link
-              key={card.label}
-              href={card.href}
-              className="group block rounded-2xl overflow-hidden"
-              style={{
-                background: card.cfg.gradient,
-                boxShadow: `0 4px 24px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.06) inset`,
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-3px)'
-                e.currentTarget.style.boxShadow = `0 8px 36px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.06) inset`
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.06) inset`
-              }}
-            >
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-4">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: card.cfg.lightBg }}
-                  >
-                    <Icon size={16} style={{ color: card.cfg.accentColor }} />
-                  </div>
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: card.cfg.lightBg }}
-                  >
-                    <ArrowUpRight size={12} style={{ color: card.cfg.accentColor }} />
-                  </div>
-                </div>
-
-                <p
-                  className="leading-none mb-1"
-                  style={{
-                    fontFamily: 'var(--font-display), Georgia, serif',
-                    fontSize: 36,
-                    fontWeight: 600,
-                    color: '#f5f0e8',
-                    letterSpacing: '-0.03em',
-                  }}
-                >
-                  {card.value}
-                </p>
-                <p className="text-[12px] font-semibold" style={{ color: 'rgba(245,240,232,0.7)' }}>
-                  {card.label}
-                </p>
-                <p className="text-[10px] mt-0.5 font-medium" style={{ color: card.cfg.accentColor, opacity: 0.8 }}>
-                  {card.hint}
-                </p>
-              </div>
-
-              {/* bottom accent bar */}
-              <div
-                className="h-[3px] w-full"
-                style={{ background: `linear-gradient(90deg, ${card.cfg.accentColor}60, ${card.cfg.accentColor})` }}
-              />
-            </Link>
-          )
-        })}
-      </section>
-
-      {/* ─── Analytics Row ─── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-        {/* Leads Pipeline */}
-        <div
-          className="rounded-2xl p-5"
-          style={{
-            background: 'white',
-            border: '1px solid hsl(38 16% 90%)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-          }}
-        >
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(201,150,59,0.1)' }}>
-              <BarChart3 size={14} style={{ color: '#C9963B' }} />
+      {/* ─── 5 Stat Cards ─── */}
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Card 1: Total Revenue */}
+        <div className="stat-card bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-2">
+            <div className="stat-card-icon w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+              <DollarSign size={20} className="text-[#C9963B]" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold" style={{ color: '#171c26', fontFamily: 'var(--font-body), sans-serif' }}>
-                Leads Pipeline
-              </h3>
-              <p className="text-[10px] font-medium" style={{ color: 'rgba(23,28,38,0.4)' }}>Stage distribution</p>
+            <div className="stat-card-trend flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-medium">
+              <ArrowUpRight size={14} className="mr-1" />
+              +12%
             </div>
           </div>
-
-          {leadStats.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-xs font-medium" style={{ color: 'rgba(23,28,38,0.35)' }}>No leads data yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {leadStats.map((stat, i) => (
-                <div key={stat.stage}>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[12px] font-semibold capitalize" style={{ color: '#171c26' }}>{stat.stage}</span>
-                    <span className="text-[11px] font-medium" style={{ color: 'rgba(23,28,38,0.45)' }}>{stat.count} · {stat.percentage}%</span>
-                  </div>
-                  <div className="w-full rounded-full overflow-hidden" style={{ height: 6, background: 'rgba(23,28,38,0.06)' }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${stat.percentage}%`,
-                        background: stageColors[i % stageColors.length],
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Property Types */}
-        <div
-          className="rounded-2xl p-5"
-          style={{
-            background: 'white',
-            border: '1px solid hsl(38 16% 90%)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-          }}
-        >
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(82,201,127,0.1)' }}>
-              <Building2 size={14} style={{ color: '#52c97f' }} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold" style={{ color: '#171c26', fontFamily: 'var(--font-body), sans-serif' }}>
-                Inventory Breakdown
-              </h3>
-              <p className="text-[10px] font-medium" style={{ color: 'rgba(23,28,38,0.4)' }}>By property category</p>
-            </div>
-          </div>
-
-          {propStats.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-xs font-medium" style={{ color: 'rgba(23,28,38,0.35)' }}>No listings yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {propStats.map((stat, i) => (
-                <div key={stat.type} className="flex items-center gap-3">
-                  <div
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ background: stageColors[i % stageColors.length] }}
-                  />
-                  <div className="w-20 text-[12px] font-semibold capitalize truncate" style={{ color: '#171c26' }}>
-                    {stat.type}
-                  </div>
-                  <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: 'rgba(23,28,38,0.06)' }}>
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${stat.percentage}%`,
-                        background: stageColors[i % stageColors.length],
-                      }}
-                    />
-                  </div>
-                  <span className="text-[11px] font-bold w-6 text-right" style={{ color: 'rgba(23,28,38,0.5)' }}>
-                    {stat.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ─── Metrics Row ─── */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
-
-        {/* Task Ratio */}
-        <div
-          className="rounded-2xl p-5 flex items-center gap-5"
-          style={{
-            background: 'white',
-            border: '1px solid hsl(38 16% 90%)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-          }}
-        >
-          {/* Circular progress */}
-          <div className="relative w-20 h-20 shrink-0">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-              <circle cx="40" cy="40" r={radius} fill="none" strokeWidth="6" stroke="rgba(23,28,38,0.06)" />
-              <circle
-                cx="40" cy="40" r={radius}
-                fill="none" strokeWidth="6"
-                stroke="#C9963B"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                strokeLinecap="round"
-                style={{ transition: 'stroke-dashoffset 0.8s ease' }}
-              />
-            </svg>
-            <span
-              className="absolute inset-0 flex items-center justify-center text-xs font-bold"
-              style={{ color: '#171c26', fontFamily: 'var(--font-body), sans-serif' }}
-            >
-              {taskMetrics.percentage}%
-            </span>
-          </div>
-
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#C9963B' }}>Tasks</p>
-            <p
-              className="text-2xl font-semibold leading-none"
-              style={{ fontFamily: 'var(--font-display), serif', color: '#171c26' }}
-            >
-              {taskMetrics.completed}
-              <span className="text-base font-normal ml-1" style={{ color: 'rgba(23,28,38,0.35)' }}>
-                / {taskMetrics.total}
-              </span>
-            </p>
-            <p className="text-[11px] mt-1 font-medium" style={{ color: 'rgba(23,28,38,0.45)' }}>
-              Completed this period
-            </p>
+            <p className="stat-card-value text-2xl font-bold text-gray-900">{formatPrice(financials.totalQuotes)}</p>
+            <p className="stat-card-label text-sm text-gray-500 font-medium">Total Revenue</p>
           </div>
         </div>
 
-        {/* Financials */}
-        <div
-          className="rounded-2xl p-5 col-span-2"
-          style={{
-            background: 'white',
-            border: '1px solid hsl(38 16% 90%)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-          }}
-        >
-          <div className="grid grid-cols-2 gap-4 h-full">
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(82,201,127,0.1)' }}>
-                  <DollarSign size={12} style={{ color: '#52c97f' }} />
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(23,28,38,0.4)' }}>
-                  Pipeline Value
-                </p>
-              </div>
-              <p
-                className="leading-none"
-                style={{
-                  fontFamily: 'var(--font-display), serif',
-                  fontSize: 26,
-                  fontWeight: 600,
-                  color: '#171c26',
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {formatPrice(financials.totalQuotes)}
-              </p>
-              <p className="text-[11px] font-medium" style={{ color: 'rgba(23,28,38,0.4)' }}>
-                Total active deal size
-              </p>
+        {/* Card 2: New Leads */}
+        <div className="stat-card bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-2">
+            <div className="stat-card-icon w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+              <Users size={20} className="text-[#C9963B]" />
             </div>
+            <div className="stat-card-trend flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-medium">
+              <ArrowUpRight size={14} className="mr-1" />
+              +5%
+            </div>
+          </div>
+          <div>
+            <p className="stat-card-value text-2xl font-bold text-gray-900">{leadCounts.new}</p>
+            <p className="stat-card-label text-sm text-gray-500 font-medium">New Leads</p>
+          </div>
+        </div>
 
-            <div className="space-y-1 border-l pl-4" style={{ borderColor: 'hsl(38 16% 90%)' }}>
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(124,141,255,0.1)' }}>
-                  <CheckCircle2 size={12} style={{ color: '#7c8dff' }} />
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(23,28,38,0.4)' }}>
-                  Avg. Deal
-                </p>
-              </div>
-              <p
-                className="leading-none"
-                style={{
-                  fontFamily: 'var(--font-display), serif',
-                  fontSize: 26,
-                  fontWeight: 600,
-                  color: '#171c26',
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {formatPrice(financials.avgQuote)}
-              </p>
-              <p className="text-[11px] font-medium" style={{ color: 'rgba(23,28,38,0.4)' }}>
-                Average per transaction
-              </p>
+        {/* Card 3: Contacted */}
+        <div className="stat-card bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-2">
+            <div className="stat-card-icon w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+              <MessageCircle size={20} className="text-[#C9963B]" />
             </div>
+            <div className="stat-card-trend flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-medium">
+              <ArrowUpRight size={14} className="mr-1" />
+              +8%
+            </div>
+          </div>
+          <div>
+            <p className="stat-card-value text-2xl font-bold text-gray-900">{leadCounts.contacted}</p>
+            <p className="stat-card-label text-sm text-gray-500 font-medium">Contacted</p>
+          </div>
+        </div>
+
+        {/* Card 4: Negotiation */}
+        <div className="stat-card bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-2">
+            <div className="stat-card-icon w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+              <Briefcase size={20} className="text-[#C9963B]" />
+            </div>
+            <div className="stat-card-trend flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-medium">
+              <ArrowUpRight size={14} className="mr-1" />
+              +15%
+            </div>
+          </div>
+          <div>
+            <p className="stat-card-value text-2xl font-bold text-gray-900">{leadCounts.negotiation}</p>
+            <p className="stat-card-label text-sm text-gray-500 font-medium">Negotiation</p>
+          </div>
+        </div>
+
+        {/* Card 5: Closed Deals */}
+        <div className="stat-card bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div className="flex items-start justify-between mb-2">
+            <div className="stat-card-icon w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+              <CheckCircle size={20} className="text-[#C9963B]" />
+            </div>
+            <div className="stat-card-trend flex items-center text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-medium">
+              <ArrowUpRight size={14} className="mr-1" />
+              +22%
+            </div>
+          </div>
+          <div>
+            <p className="stat-card-value text-2xl font-bold text-gray-900">{leadCounts.converted}</p>
+            <p className="stat-card-label text-sm text-gray-500 font-medium">Closed Deals</p>
           </div>
         </div>
       </section>
 
-      {/* ─── Quick Actions ─── */}
-      <section>
-        <h2
-          className="text-base font-bold mb-3"
-          style={{
-            fontFamily: 'var(--font-body), sans-serif',
-            color: '#171c26',
-            letterSpacing: '-0.01em',
-          }}
-        >
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {quickActions.map((action) => {
-            const Icon = action.icon
-            return (
-              <Link
-                key={action.label}
-                href={action.href}
-                className="group flex flex-col items-center gap-3 p-5 rounded-2xl transition-all"
-                style={{
-                  background: 'white',
-                  border: '1px solid hsl(38 16% 90%)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.border = '1px solid rgba(201,150,59,0.35)'
-                  e.currentTarget.style.boxShadow = '0 6px 24px rgba(201,150,59,0.1), 0 2px 8px rgba(0,0,0,0.04)'
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.border = '1px solid hsl(38 16% 90%)'
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.03)'
-                  e.currentTarget.style.transform = 'translateY(0)'
-                }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
-                  style={{
-                    background: 'rgba(201,150,59,0.08)',
-                    border: '1px solid rgba(201,150,59,0.16)',
-                  }}
-                >
-                  <Icon size={16} style={{ color: '#C9963B' }} />
+      {/* ─── Two Column Section ─── */}
+      <section className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left: Performance Analytics */}
+        <div className="lg:col-span-3 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-900">Performance Analytics</h2>
+            <div className="flex items-center gap-4 text-sm font-medium">
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#C9963B]" /> Revenue</div>
+              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-gray-200" /> Leads</div>
+            </div>
+          </div>
+          <div className="w-full h-64 relative">
+            {/* Tooltip mockup */}
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-3 rounded shadow-lg pointer-events-none opacity-90 z-10">
+              <div className="font-bold">$12,700.00</div>
+              <div className="text-gray-300">Target: 15M</div>
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45" />
+            </div>
+            <svg width="100%" height="100%" viewBox="0 0 600 200" preserveAspectRatio="none">
+              {/* Grid Lines */}
+              {[0, 1, 2, 3, 4].map(i => (
+                <line key={i} x1="30" y1={i * 40} x2="600" y2={i * 40} stroke="#f3f4f6" strokeWidth="1" />
+              ))}
+              {/* Y-Axis Labels */}
+              {['100%', '75%', '50%', '25%', '0%'].map((lbl, i) => (
+                <text key={i} x="25" y={i * 40 + 4} fontSize="10" fill="#9ca3af" textAnchor="end">{lbl}</text>
+              ))}
+              {/* X-Axis Labels */}
+              {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, i) => (
+                <text key={i} x={45 + i * (550 / 11)} y="195" fontSize="10" fill="#9ca3af" textAnchor="middle">{month}</text>
+              ))}
+              {/* Leads Line (Gray) */}
+              <path d="M45 160 L95 140 L145 150 L195 110 L245 120 L295 90 L345 100 L395 70 L445 110 L495 60 L545 40 L595 50" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+              {/* Revenue Line (Amber) */}
+              <path d="M45 180 L95 170 L145 140 L195 130 L245 150 L295 110 L345 90 L395 60 L445 80 L495 30 L545 20 L595 10" fill="none" stroke="#C9963B" strokeWidth="3" />
+              {/* Active Point */}
+              <circle cx="295" cy="110" r="4" fill="#C9963B" stroke="white" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Right: Important News */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col h-full">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Important News</h2>
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+            {activities.length > 0 ? activities.map((act, i) => {
+              const color = avatarColors[i % avatarColors.length]
+              const userObj = Array.isArray(act.users) ? act.users[0] : act.users
+              const name = userObj?.full_name || 'System'
+              const initials = name.substring(0, 2).toUpperCase()
+              return (
+                <div key={act.id} className="flex gap-3">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
+                    style={{ backgroundColor: color.bg, color: color.text }}
+                  >
+                    {initials}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">{name}</p>
+                    <p className="text-sm text-gray-500 line-clamp-1">{act.description}</p>
+                  </div>
+                  <div className="text-xs text-gray-400 font-medium whitespace-nowrap">
+                    {new Date(act.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()}
+                  </div>
                 </div>
-                <span className="text-[12px] font-semibold text-center" style={{ color: 'rgba(23,28,38,0.65)' }}>
-                  {action.label}
-                </span>
-              </Link>
-            )
-          })}
+              )
+            }) : (
+              <div className="text-sm text-gray-400 text-center py-4">No recent news</div>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* ─── Recent Activity ─── */}
-      <section>
-        <div className="flex items-center gap-2.5 mb-3">
-          <Activity size={15} style={{ color: '#C9963B' }} />
-          <h2
-            className="text-base font-bold"
-            style={{ fontFamily: 'var(--font-body), sans-serif', color: '#171c26', letterSpacing: '-0.01em' }}
-          >
-            Recent Activity
-          </h2>
+      {/* ─── Recent Leads Section ─── */}
+      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900">Recent Leads</h2>
+          <Link href={`/${locale}/dashboard/leads`} className="text-sm font-medium text-[#C9963B] hover:text-[#b0802c] flex items-center">
+            View all <ArrowRight size={16} className="ml-1" />
+          </Link>
         </div>
-
-        {activities.length > 0 ? (
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{
-              background: 'white',
-              border: '1px solid hsl(38 16% 90%)',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            }}
-          >
-            {activities.map((act, i) => (
-              <div
-                key={act.id}
-                className="flex gap-4 px-5 py-3.5 items-start transition-colors"
-                style={{
-                  borderBottom: i < activities.length - 1 ? '1px solid hsl(38 16% 93%)' : 'none',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'hsl(38 20% 97%)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 mt-0.5"
-                  style={{ background: 'rgba(201,150,59,0.08)', border: '1px solid rgba(201,150,59,0.14)' }}
-                >
-                  {typeEmoji[act.type] || '📌'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px]" style={{ color: '#171c26' }}>
-                    <span className="font-semibold">
-                      {(() => {
-                        const userObj = Array.isArray(act.users) ? act.users[0] : act.users
-                        return userObj?.full_name || 'System'
-                      })()}
-                    </span>
-                    <span style={{ color: 'rgba(23,28,38,0.45)' }}> — </span>
-                    <span style={{ color: 'rgba(23,28,38,0.7)' }}>{act.description}</span>
-                  </p>
-                  <p className="text-[11px] mt-0.5 flex items-center gap-1 font-medium" style={{ color: 'rgba(23,28,38,0.38)' }}>
-                    <Clock size={10} />
-                    {new Date(act.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div
-            className="rounded-2xl p-12 text-center"
-            style={{
-              background: 'white',
-              border: '1px dashed rgba(201,150,59,0.2)',
-            }}
-          >
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
-              style={{ background: 'rgba(201,150,59,0.06)', border: '1px solid rgba(201,150,59,0.14)' }}
-            >
-              <FileText size={20} style={{ color: 'rgba(201,150,59,0.4)' }} />
-            </div>
-            <p className="text-sm font-medium" style={{ color: 'rgba(23,28,38,0.4)' }}>
-              No activity yet. Start by adding a property or lead.
-            </p>
-          </div>
-        )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-gray-500 font-medium">
+                <th className="px-6 py-4 font-medium">Lead Name</th>
+                <th className="px-6 py-4 font-medium">Property</th>
+                <th className="px-6 py-4 font-medium">Stage</th>
+                <th className="px-6 py-4 font-medium">Value</th>
+                <th className="px-6 py-4 font-medium">Last Activity</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {recentLeads.length > 0 ? recentLeads.map((lead) => {
+                const propertyTitle = Array.isArray(lead.properties) ? lead.properties[0]?.title : lead.properties?.title;
+                return (
+                  <tr key={lead.id} className="hover:bg-gray-50/50">
+                    <td className="px-6 py-4 font-medium text-gray-900">{lead.first_name} {lead.last_name}</td>
+                    <td className="px-6 py-4 text-gray-500">{propertyTitle || '-'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`badge-stage-${lead.stage || 'new'} inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold capitalize`}>
+                        {lead.stage || 'New'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-900 font-medium">{lead.budget ? formatPrice(lead.budget) : '-'}</td>
+                    <td className="px-6 py-4 text-gray-500">{new Date(lead.updated_at || lead.created_at).toLocaleDateString()}</td>
+                  </tr>
+                )
+              }) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">No recent leads found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   )

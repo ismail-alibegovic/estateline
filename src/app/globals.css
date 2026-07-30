@@ -4,11 +4,11 @@
 
 /*
  * Estateline — Luxury Real Estate CRM
- * Design System: "Modern Noir Prestige"
- * Sidebar: Obsidian #0d1117 with champagne gold accents
- * Canvas: Alabaster warm white #FAF8F5
+ * Design System: "Warm Cream Prestige"
+ * Sidebar: Light cream #F5F1EB with amber accents
+ * Canvas: Warm white #FAF8F5
  * Typography: Cormorant Garamond (display) + Outfit (body)
- * Palette: Deep noir, champagne gold, sage, warm ivory
+ * Palette: Warm cream, amber/golden, muted sage, clean white
  */
 
 @layer base {
@@ -53,13 +53,16 @@
     /* Radius */
     --radius: 0.75rem;
 
-    /* ─── Sidebar ─────────────────────────── */
-    --sidebar: #0d1117;                 /* Near-black obsidian */
-    --sidebar-border: rgba(201,150,59,0.15);
-    --sidebar-active: rgba(201,150,59,0.18);
-    --sidebar-active-text: #C9963B;
-    --sidebar-muted: rgba(255,255,255,0.38);
-    --sidebar-label: rgba(201,150,59,0.4);
+    /* ─── Sidebar (Light Cream) ────────────── */
+    --sidebar-bg: #F5F1EB;
+    --sidebar-border: rgba(0,0,0,0.06);
+    --sidebar-active-bg: #C9963B;
+    --sidebar-active-text: #ffffff;
+    --sidebar-text: #6B7280;
+    --sidebar-text-hover: #374151;
+    --sidebar-icon: #9CA3AF;
+    --sidebar-icon-active: #ffffff;
+    --sidebar-label: rgba(0,0,0,0.35);
   }
 }
 
@@ -104,17 +107,52 @@
 @layer components {
 
   /* ═══════════════════════════════════════
-     SIDEBAR
+     SIDEBAR (Light Cream)
   ═══════════════════════════════════════ */
   .sidebar {
-    background: #0d1117;
-    border-right: 1px solid rgba(201,150,59,0.12);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
     height: 100%;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     transition: width 0.28s cubic-bezier(0.4,0,0.2,1);
     overflow: hidden;
+  }
+
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--sidebar-text);
+    transition: all 0.15s ease;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .sidebar-nav-item:hover {
+    color: var(--sidebar-text-hover);
+    background: rgba(0,0,0,0.04);
+  }
+  .sidebar-nav-item.active {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(201,150,59,0.25);
+  }
+  .sidebar-nav-item.active .sidebar-icon {
+    color: var(--sidebar-icon-active);
+  }
+
+  .sidebar-icon {
+    color: var(--sidebar-icon);
+    flex-shrink: 0;
+  }
+  .sidebar-nav-item:hover .sidebar-icon {
+    color: var(--sidebar-text-hover);
   }
 
   /* ═══════════════════════════════════════
@@ -137,30 +175,71 @@
   }
 
   /* ═══════════════════════════════════════
-     STAT CARDS
+     STAT CARDS (Light cream style)
   ═══════════════════════════════════════ */
   .stat-card {
     position: relative;
     background: #ffffff;
     border: 1px solid hsl(38 16% 90%);
-    border-radius: var(--radius);
+    border-radius: 14px;
+    padding: 18px 20px;
     box-shadow:
-      0 1px 2px rgba(0,0,0,0.03),
-      0 4px 20px rgba(0,0,0,0.04);
+      0 1px 3px rgba(0,0,0,0.04),
+      0 4px 16px rgba(0,0,0,0.03);
     transition: box-shadow 0.2s ease, transform 0.18s ease;
     overflow: hidden;
   }
   .stat-card:hover {
     box-shadow:
       0 4px 16px rgba(0,0,0,0.06),
-      0 16px 48px rgba(201,150,59,0.09);
+      0 12px 40px rgba(201,150,59,0.08);
     transform: translateY(-2px);
   }
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
+
+  .stat-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(201,150,59,0.1);
+  }
+
+  .stat-card-value {
+    font-family: var(--font-body), sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1F2937;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .stat-card-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .stat-card-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+  .stat-card-trend.up {
+    color: #059669;
+    background: rgba(5,150,105,0.08);
+  }
+  .stat-card-trend.down {
+    color: #DC2626;
+    background: rgba(220,38,38,0.08);
   }
 
   /* ═══════════════════════════════════════
@@ -255,6 +334,56 @@
     border: 1px solid rgba(139,92,246,0.18);
   }
 
+  /* Stage badges for leads table */
+  .badge-stage-new {
+    background: #FEE2E2;
+    color: #991B1B;
+    padding: 3px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-stage-contacted {
+    background: #D1FAE5;
+    color: #065F46;
+    padding: 3px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-stage-qualified {
+    background: #DBEAFE;
+    color: #1E40AF;
+    padding: 3px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-stage-negotiation {
+    background: #FEF3C7;
+    color: #92400E;
+    padding: 3px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-stage-converted {
+    background: #D1FAE5;
+    color: #065F46;
+    padding: 3px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-stage-lost {
+    background: #F3F4F6;
+    color: #6B7280;
+    padding: 3px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
   /* ═══════════════════════════════════════
      SECTION LABELS (sidebar group headers)
   ═══════════════════════════════════════ */
@@ -263,7 +392,7 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(201,150,59,0.45);
+    color: var(--sidebar-label);
     padding: 0 10px;
     margin-bottom: 2px;
     font-family: var(--font-body), sans-serif;
@@ -371,5 +500,56 @@
       0 1px 3px rgba(0,0,0,0.04),
       0 8px 32px rgba(0,0,0,0.06),
       0 2px 8px rgba(201,150,59,0.04);
+  }
+
+  /* ═══════════════════════════════════════
+     SEARCH BAR (Top bar)
+  ═══════════════════════════════════════ */
+  .search-bar {
+    background: #F5F1EB;
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 10px;
+    padding: 8px 14px 8px 36px;
+    font-size: 13px;
+    font-family: var(--font-body), sans-serif;
+    color: #374151;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    width: 100%;
+    max-width: 360px;
+  }
+  .search-bar::placeholder {
+    color: #9CA3AF;
+  }
+  .search-bar:focus {
+    background: #ffffff;
+    border-color: rgba(201,150,59,0.4);
+    box-shadow: 0 0 0 3px rgba(201,150,59,0.08);
+  }
+
+  /* ═══════════════════════════════════════
+     NEWS / ACTIVITY CARD
+  ═══════════════════════════════════════ */
+  .news-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .news-item:last-child {
+    border-bottom: none;
+  }
+  .news-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
   }
 }
