@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
+import { maskEmail } from '@/lib/redact'
 import { Resend } from 'resend'
 
 const resendApiKey = process.env.RESEND_API_KEY
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Failed to send email: ${err.message}` }, { status: 500 })
     }
   } else {
-    console.log(`[Mock Email Send] To: ${to} | Subject: ${subject}`)
+    console.log(`[Mock Email Send] To: ${maskEmail(to)} | Subject: ${subject}`)
   }
 
   // Log activity into activity_log with type = 'email'

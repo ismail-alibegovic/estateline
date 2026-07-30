@@ -1,5 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
+import { NextRequest } from 'next/server'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import type { Database } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -52,6 +55,13 @@ function fmt(n: number, cur = 'BAM', locale = 'en') {
 }
 
 export default async function OrgMicrosite({ params }: { params: { subdomain: string } }) {
+  const reqHeaders = headers()
+  const dummyReq = new NextRequest(`https://localhost/site/${params.subdomain}`, { headers: reqHeaders })
+  const rl = await checkRateLimit(dummyReq, 60, 60 * 1000)
+  if (!rl.success) {
+    return rateLimitResponse() as any
+  }
+
   const slug = params.subdomain
 
   const supabase = createServerClient(

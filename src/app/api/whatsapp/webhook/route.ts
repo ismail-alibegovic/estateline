@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { normalizeWhatsApp } from '@/lib/whatsapp'
+import { maskPhone } from '@/lib/redact'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     let targetOrg = org
 
     if (!targetOrg) {
-      console.warn(`WhatsApp message received for unmapped phone_number_id`)
+      console.warn(`WhatsApp message received for unmapped phone_number_id: ${maskPhone(phone_number_id)}`)
       return NextResponse.json({ error: 'Tenant organization not found' }, { status: 404 })
     }
 

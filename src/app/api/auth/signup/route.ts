@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
+import { maskEmail } from '@/lib/redact'
 import { createRouteClient } from '@/lib/auth'
 
 export async function POST(request: Request) {
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     }
 
     // Step 2: Create auth user via Admin API
-    console.log('Creating auth user:', email)
+    console.log('Creating auth user:', maskEmail(email))
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,

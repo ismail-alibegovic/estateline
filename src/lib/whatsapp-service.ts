@@ -1,4 +1,5 @@
 import { createAdminClient } from './supabase'
+import { maskPhone } from './redact'
 
 export interface WhatsAppTemplateComponent {
   type: 'header' | 'body' | 'button'
@@ -58,7 +59,7 @@ export async function sendWhatsAppTemplate(
 
     // Enforce opt-in consent before sending template
     if (contact && !contact.whatsapp_opted_in) {
-      console.warn('Attempted to send WhatsApp template to opted-out recipient')
+      console.warn(`Attempted to send WhatsApp template to opted-out recipient: ${maskPhone(to)}`)
       return { success: false, error: 'Recipient has not opted-in to receive WhatsApp messages.' }
     }
 
