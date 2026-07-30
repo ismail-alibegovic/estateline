@@ -62,4 +62,26 @@ describe('Sentry PII Scrubbing (beforeSend)', () => {
     expect(sanitized.message).not.toContain('user@domain.com')
     expect(sanitized.extra.contact_name).toBe('[REDACTED_NAME]')
   })
+
+  it('captures Sentry exceptions and scrubs PII via SDK integration', () => {
+    let capturedEvent: any = null
+    const mockEvent: any = {
+      exception: {
+        values: [{ value: 'Uncaught Error: User user@domain.com with phone +38761222333 failed' }]
+      },
+      extra: {
+        first_name: 'Alice',
+        email: 'alice@domain.com',
+        phone: '+38761222333'
+      }
+    }
+
+    capturedEvent = beforeSendSentry(mockEvent)
+
+    expect(capturedEvent.exception.values[0].value).not.toContain('user@domain.com')
+    expect(capturedEvent.exception.values[0].value).not.toContain('+38761222333')
+    expect(capturedEvent.extra.first_name).toBe('[REDACTED_NAME]')
+    expect(capturedEvent.extra.email).toBe('[REDACTED_EMAIL]')
+    expect(capturedEvent.extra.phone).toBe('[REDACTED_PHONE]')
+  })
 })
