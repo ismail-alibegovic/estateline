@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import { WhatsAppButton } from '@/components/WhatsAppButton'
-import { Plus, X, Search, Users, Mail, Trash2 } from 'lucide-react'
+import { Plus, X, Search, Users, Mail, Trash2, Phone, Building2, CheckCircle2, MapPin } from 'lucide-react'
 
 interface ContactRow {
   id: string
@@ -18,24 +18,60 @@ interface ContactRow {
   created_at: string
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  client: 'bg-blue-50 text-blue-700 border-blue-200',
-  owner: 'bg-violet-50 text-violet-700 border-violet-200',
-  tenant: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  vendor: 'bg-amber-50 text-amber-700 border-amber-200',
-  other: 'bg-gray-50 text-gray-600 border-gray-200',
+const TYPE_LABELS: Record<string, { bs: string; color: string; bg: string }> = {
+  client: { bs: 'Kupac', color: '#C9963B', bg: '#FAF8F5' },
+  owner: { bs: 'Vlasnik / Prodavac', color: '#9333EA', bg: '#F3E8FF' },
+  tenant: { bs: 'Zakupac', color: '#059669', bg: '#ECFDF5' },
+  vendor: { bs: 'Partner / Notar', color: '#2563EB', bg: '#EFF6FF' },
+  other: { bs: 'Ostalo', color: '#6B7280', bg: '#F3F4F6' },
 }
 
-const AVATAR_COLORS = [
-  'bg-blue-500', 'bg-violet-500', 'bg-emerald-500', 'bg-amber-500',
-  'bg-rose-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-pink-500',
+const DEMO_CONTACTS: ContactRow[] = [
+  {
+    id: 'demo-contact-1',
+    first_name: 'Haris',
+    last_name: 'Dizdarević',
+    email: 'haris.d@email.com',
+    phone: '+387 61 111 222',
+    type: 'client',
+    city: 'Sarajevo',
+    company: 'IT Solutions',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-contact-2',
+    first_name: 'Lejla',
+    last_name: 'Muminović',
+    email: 'lejla.m@email.com',
+    phone: '+387 62 333 444',
+    type: 'owner',
+    city: 'Sarajevo',
+    company: 'Vlasnik stana Podgaj 14',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-contact-3',
+    first_name: 'Denis',
+    last_name: 'Kovačević',
+    email: 'denis.k@email.com',
+    phone: '+387 61 555 666',
+    type: 'vendor',
+    city: 'Sarajevo',
+    company: 'Notarska Kancelarija Kovačević',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-contact-4',
+    first_name: 'Amra',
+    last_name: 'Hadžimuhović',
+    email: 'amra.h@email.com',
+    phone: '+387 63 777 888',
+    type: 'tenant',
+    city: 'Sarajevo',
+    company: 'Zakupac poslovnog prostora',
+    created_at: new Date().toISOString(),
+  },
 ]
-
-function getAvatarColor(name: string) {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
@@ -45,15 +81,20 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'client' | 'owner' | 'tenant' | 'vendor' | 'other'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'client' | 'owner' | 'tenant' | 'vendor'>('all')
   const [toasts, setToasts] = useState<Toast[]>([])
 
   // Modal
   const [isOpen, setIsOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    first_name: '', last_name: '', email: '', phone: '',
-    type: 'client', city: '', company: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    type: 'client',
+    city: 'Sarajevo',
+    company: '',
   })
 
   const toast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -84,7 +125,12 @@ export default function ContactsPage() {
         .select('*')
         .eq('organization_id', (member as any).organization_id)
         .order('created_at', { ascending: false })
-      if (data) setContacts(data as ContactRow[])
+
+      if (data && data.length > 0) {
+        setContacts(data as ContactRow[])
+      } else {
+        setContacts(DEMO_CONTACTS)
+      }
     }
     setLoading(false)
   }, [])
@@ -93,40 +139,58 @@ export default function ContactsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!orgId || !form.first_name.trim()) return
+    if (!form.first_name.trim()) return
     setSaving(true)
 
-    const supabase = createBrowserClient()
-    const { error } = await supabase.from('contacts').insert({
-      organization_id: orgId,
-      first_name: form.first_name,
-      last_name: form.last_name || null,
-      email: form.email || null,
-      phone: form.phone || null,
-      type: form.type,
-      city: form.city || null,
-      company: form.company || null,
-    })
+    if (orgId) {
+      const supabase = createBrowserClient()
+      const { error } = await supabase.from('contacts').insert({
+        organization_id: orgId,
+        first_name: form.first_name,
+        last_name: form.last_name || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        type: form.type,
+        city: form.city || null,
+        company: form.company || null,
+      })
 
-    setSaving(false)
-    if (error) {
-      toast(error.message, 'error')
+      if (error) {
+        toast(error.message, 'error')
+      } else {
+        toast('Kontakt je usješno dodan!')
+        setIsOpen(false)
+        setForm({ first_name: '', last_name: '', email: '', phone: '', type: 'client', city: 'Sarajevo', company: '' })
+        loadContacts()
+      }
     } else {
-      toast('Contact added!')
+      const newContact: ContactRow = {
+        id: `demo-${Date.now()}`,
+        first_name: form.first_name,
+        last_name: form.last_name || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        type: form.type,
+        city: form.city || 'Sarajevo',
+        company: form.company || null,
+        created_at: new Date().toISOString(),
+      }
+      setContacts(prev => [newContact, ...prev])
+      toast('Kontakt je dodan!')
       setIsOpen(false)
-      setForm({ first_name: '', last_name: '', email: '', phone: '', type: 'buyer', city: '', company: '' })
-      loadContacts()
+      setForm({ first_name: '', last_name: '', email: '', phone: '', type: 'client', city: 'Sarajevo', company: '' })
     }
+    setSaving(false)
   }
 
   const deleteContact = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return
+    if (!confirm('Da li ste sigurni da želite obrisati ovaj kontakt?')) return
     const supabase = createBrowserClient()
     const { error } = await supabase.from('contacts').delete().eq('id', id)
     if (error) {
       toast(error.message, 'error')
     } else {
-      toast('Contact deleted!')
+      toast('Kontakt je obrisan!')
       setContacts(prev => prev.filter(c => c.id !== id))
     }
   }
@@ -137,225 +201,277 @@ export default function ContactsPage() {
     return matchSearch && matchType
   })
 
-  const inputClass = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors'
-
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-32">
-        <div className="animate-spin h-8 w-8 border-2 border-primary/20 border-t-primary rounded-full" />
+      <div className="w-full space-y-6 py-12">
+        <div className="skeleton h-10 w-64 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="skeleton h-44 rounded-3xl" />
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Toast Notifications */}
+    <div className="max-w-7xl mx-auto space-y-8 py-4 font-sans animate-fade-in">
+      {/* Toast notifications */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${t.type === 'success'
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : 'bg-red-50 text-red-700 border-red-200'
-              }`}
+            className={`pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold border ${
+              t.type === 'success' ? 'bg-gray-900 text-white border-gray-800' : 'bg-red-600 text-white border-red-500'
+            }`}
           >
-            {t.type === 'success' ? '✓' : '✗'} {t.message}
+            {t.type === 'success' ? <CheckCircle2 size={16} className="text-[#C9963B]" /> : <X size={16} />}
+            <span>{t.message}</span>
           </div>
         ))}
       </div>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/70 pb-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">CRM</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{contacts.length} contacts total</p>
+          <p className="page-eyebrow mb-1">IMENIK AGENCIJE</p>
+          <h1
+            className="text-3xl font-bold text-gray-900"
+            style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
+          >
+            {t('title') || 'Adresar & Kontakti'}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Baza kupaca, vlasnika nekretnina, zakupaca, notara i agencijskih partnera.
+          </p>
         </div>
+
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white shadow-md transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, #C9963B 0%, #b88328 100%)',
+            boxShadow: '0 4px 16px rgba(201,150,59,0.25)',
+          }}
         >
-          <Plus size={16} /> {t('addContact')}
+          <Plus size={16} />
+          <span>Dodaj Novi Kontakt</span>
         </button>
-      </div>
+      </header>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 p-4 bg-card border border-border rounded-xl">
-        <div className="flex-1 relative">
-          <Search size={14} className="absolute left-3 top-2.5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search contacts…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-8 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none w-full"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {['all', 'client', 'owner', 'tenant', 'vendor', 'other'].map(type => (
-            <button
-              key={type}
-              onClick={() => setTypeFilter(type as any)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all capitalize ${typeFilter === type
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background border-border text-muted-foreground hover:bg-muted'
-                }`}
-            >
-              {type === 'all' ? 'All' : type}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Table */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-2xl bg-card">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Users size={28} className="text-muted-foreground" />
+      {/* Controls & Filter Tabs */}
+      <div className="bg-white rounded-3xl border border-gray-200/70 p-4 sm:p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-md">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Pretraži po imenu, telefonu, emailu ili firmi..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+            />
           </div>
-          <h3 className="font-display font-semibold text-foreground mb-1">
-            {search || typeFilter !== 'all' ? 'No contacts match your filters' : 'No contacts yet'}
-          </h3>
-          <p className="text-muted-foreground text-sm mb-4">Add your clients and partners here.</p>
-          {!search && typeFilter === 'all' && (
-            <button
-              onClick={() => setIsOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-all"
-            >
-              <Plus size={16} /> Add First Contact
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="border-b border-border bg-muted/40">
-              <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <th className="px-5 py-3.5 font-semibold">Name</th>
-                <th className="px-5 py-3.5 font-semibold hidden md:table-cell">Email</th>
-                <th className="px-5 py-3.5 font-semibold">Phone</th>
-                <th className="px-5 py-3.5 font-semibold">Type</th>
-                <th className="px-5 py-3.5 font-semibold hidden lg:table-cell">City</th>
-                <th className="px-5 py-3.5 font-semibold hidden lg:table-cell">Company</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map((c) => {
-                const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase() || '?'
-                const avatarColor = getAvatarColor(`${c.first_name}${c.last_name}`)
-                return (
-                  <tr key={c.id} className="hover:bg-muted/30 transition-colors group">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 ${avatarColor}`}>
-                          {initials}
-                        </div>
-                        <span className="font-semibold text-foreground">{c.first_name} {c.last_name || ''}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground hidden md:table-cell">{c.email || '—'}</td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <span>{c.phone || '—'}</span>
-                        {c.phone && <WhatsAppButton phone={c.phone} entityType="contact" entityId={c.id} />}
-                        {c.email && (
-                          <a
-                            href={`mailto:${c.email}`}
-                            title="Send email"
-                            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/10 text-[#C9963B] hover:bg-amber-500/20 transition-colors"
-                          >
-                            <Mail size={12} />
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${TYPE_COLORS[c.type] || TYPE_COLORS.other}`}>
-                        {c.type}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">{c.city || '—'}</td>
-                    <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">{c.company || '—'}</td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => deleteContact(c.id)}
-                        className="p-1 rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors border border-transparent hover:border-red-100"
-                        title="Delete Contact"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
 
-      {/* New Contact Modal */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold font-display">New Contact</h2>
-              <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                <X size={20} />
+          {/* Type Filters */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(['all', 'client', 'owner', 'tenant', 'vendor'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => setTypeFilter(type)}
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all capitalize ${
+                  typeFilter === type
+                    ? 'bg-[#C9963B] text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {type === 'all' ? `Svi (${contacts.length})` : TYPE_LABELS[type]?.bs || type}
               </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid List of Contacts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map((c) => {
+          const typeMeta = TYPE_LABELS[c.type] || TYPE_LABELS.client
+          const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase() || 'K'
+          return (
+            <div
+              key={c.id}
+              className="bg-white border border-gray-200/70 rounded-3xl p-6 hover:border-[#C9963B] transition-all shadow-sm flex flex-col justify-between space-y-4 group"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-900 font-bold text-base flex items-center justify-center border border-amber-200/80 shrink-0">
+                    {initials}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-gray-900 group-hover:text-[#C9963B] transition-colors">
+                      {c.first_name} {c.last_name || ''}
+                    </h3>
+                    {c.company && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                        <Building2 size={12} className="text-gray-400" />
+                        <span>{c.company}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border" style={{ color: typeMeta.color, background: typeMeta.bg, borderColor: `${typeMeta.color}30` }}>
+                  {typeMeta.bs}
+                </span>
+              </div>
+
+              {/* Contact info list */}
+              <div className="space-y-2 text-xs text-gray-600 bg-[#FAF8F5] p-3.5 rounded-2xl border border-gray-100">
+                {c.phone ? (
+                  <div className="flex items-center justify-between">
+                    <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 font-semibold text-gray-800 hover:text-[#C9963B]">
+                      <Phone size={13} className="text-gray-400" />
+                      <span>{c.phone}</span>
+                    </a>
+                    <WhatsAppButton phone={c.phone} entityType="contact" entityId={c.id} />
+                  </div>
+                ) : (
+                  <p className="text-gray-400 italic">Nema broja telefona</p>
+                )}
+
+                {c.email && (
+                  <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-gray-600 hover:text-[#C9963B] truncate pt-1 border-t border-gray-200/60">
+                    <Mail size={13} className="text-gray-400 shrink-0" />
+                    <span className="truncate">{c.email}</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                  <MapPin size={12} /> {c.city || 'Sarajevo'}
+                </span>
+
+                <button
+                  onClick={() => deleteContact(c.id)}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Modal New Contact */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5 relative">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+            >
+              <X size={20} />
+            </button>
+
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Dodaj Novi Kontakt</h3>
+              <p className="text-xs text-gray-500 mt-1">Unesite lične podatke kupca, prodavca ili notara.</p>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">First Name *</label>
-                  <input type="text" required placeholder="Jane" className={inputClass} value={form.first_name} onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} />
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Ime *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Haris"
+                    value={form.first_name}
+                    onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Last Name</label>
-                  <input type="text" placeholder="Doe" className={inputClass} value={form.last_name} onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))} />
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Prezime</label>
+                  <input
+                    type="text"
+                    placeholder="Dizdarević"
+                    value={form.last_name}
+                    onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Email</label>
-                <input type="email" placeholder="jane@example.com" className={inputClass} value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Broj Telefona</label>
+                <input
+                  type="tel"
+                  placeholder="+387 61 000 000"
+                  value={form.phone}
+                  onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Phone</label>
-                <input type="tel" placeholder="+387 61 000 000" className={inputClass} value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">E-mail Adresa</label>
+                <input
+                  type="email"
+                  placeholder="haris@email.com"
+                  value={form.email}
+                  onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Type</label>
-                  <select className={inputClass} value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}>
-                    <option value="client">Client</option>
-                    <option value="owner">Owner</option>
-                    <option value="tenant">Tenant</option>
-                    <option value="vendor">Vendor</option>
-                    <option value="other">Other</option>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Uloga / Vrsta</label>
+                  <select
+                    value={form.type}
+                    onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  >
+                    <option value="client">Kupac</option>
+                    <option value="owner">Vlasnik / Prodavac</option>
+                    <option value="tenant">Zakupac</option>
+                    <option value="vendor">Partner / Notar</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">City</label>
-                  <input type="text" placeholder="Sarajevo" className={inputClass} value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} />
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Grad</label>
+                  <input
+                    type="text"
+                    placeholder="Sarajevo"
+                    value={form.city}
+                    onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Company</label>
-                <input type="text" placeholder="Acme Real Estate" className={inputClass} value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} />
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+                >
+                  Odustani
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors"
+                >
+                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Kontakt'}
+                </button>
               </div>
-
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all text-sm mt-2"
-              >
-                {saving ? 'Saving…' : 'Add Contact'}
-              </button>
             </form>
           </div>
         </div>

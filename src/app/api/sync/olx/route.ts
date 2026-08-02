@@ -47,22 +47,21 @@ export async function POST(request: Request) {
   const ctx = await getRouteContext()
   if (isAuthError(ctx)) return ctx
 
-  const { org, supabase, user } = ctx
+  const { org, supabase } = ctx
 
   try {
     const body = await request.json().catch(() => ({}))
     const { direction, olx_url } = body
 
-    if (direction === 'pull') {
-      if (!olx_url) {
-        return NextResponse.json({ error: 'OLX URL is required' }, { status: 400 })
+    if (direction === 'pull' || !direction) {
+      const targetUrl = olx_url || (org as any).olx_profile_url
+      if (!targetUrl) {
+        return NextResponse.json({ error: 'OLX profile URL is required' }, { status: 400 })
       }
 
       // Clean URL to point to main shop/profile page
-      const cleanUrl = cleanOlxUrl(olx_url)
+      const cleanUrl = cleanOlxUrl(targetUrl)
 
-      console.log('Fetching HTML from main page:', cleanUrl)
-      
       // 1. Fetch HTML to extract User ID
       const htmlRes = await globalThis.fetch(cleanUrl, {
         headers: {
@@ -76,7 +75,7 @@ export async function POST(request: Request) {
 
       const html = await htmlRes.text()
       
-      // Parse User ID using double-insurance
+      // Parse User ID
       let userId = null
       const literalMatch = html.match(/user:\{type:"[^"]*",id:(\d+)/)
       if (literalMatch) {
@@ -92,15 +91,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Could not extract User ID from this OLX page. Please ensure it is a valid shop or user profile link.' }, { status: 400 })
       }
 
-      // Update organization table with the profile URL
+      // Update organization table with profile URL
       await supabase
         .from('organizations')
-        .update({ olx_profile_url: olx_url })
+        .update({ olx_profile_url: targetUrl })
         .eq('id', org.id)
 
       // 2. Fetch JSON listings from the public search API
       const apiURL = `https://olx.ba/api/search?user_id=${userId}`
-      console.log('Fetching listings JSON from:', apiURL)
       
       const jsonRes = await globalThis.fetch(apiURL, {
         headers: {
@@ -115,12 +113,12 @@ export async function POST(request: Request) {
 
       const json = await jsonRes.json()
       const listings = json.data || []
-      const imported = []
+      const imported: any[] = []
 
       for (const item of listings) {
         const externalId = `OLX-${item.id}`
 
-        // Check if property is already syndicating/imported
+        // Check if listing already imported
         const { data: existingSyn } = await supabase
           .from('property_syndications')
           .select('id, property_id')
@@ -133,7 +131,7 @@ export async function POST(request: Request) {
           continue // Already imported
         }
 
-        // --- FETCH FULL DETAILS ---
+        // Fetch detail data from API
         let detailData: any = null
         try {
           const detailRes = await globalThis.fetch(`https://olx.ba/api/listings/${item.id}`, {
@@ -149,104 +147,105 @@ export async function POST(request: Request) {
           console.error(`Failed to fetch details for listing ${item.id}:`, detailErr)
         }
 
-        // Map Category ID & Title to valid property_type enum
+        // Map Category ID & Title to property_type
         const type = mapOlxCategoryToPropertyType(item.category_id, item.title)
 
         // Parse area size
         let areaSize = 0
         if (item.special_labels) {
-          const sizeLabel = item.special_labels.find((l: any) => l.label === 'Kvadrata')
+          const sizeLabel = item.special_labels.find((l: any) => l.label === 'Kvadrata' || l.label === 'Kvadratura')
           if (sizeLabel) {
             areaSize = parseFloat(sizeLabel.value) || 0
           }
         }
 
-        // Parse bedrooms count
-        let bedrooms = 0
+        // Parse rooms count
+        let bedrooms = 1
         if (item.special_labels) {
-          const bedLabel = item.special_labels.find((l: any) => l.label === 'Broj Soba')
+          const bedLabel = item.special_labels.find((l: any) => l.label === 'Broj Soba' || l.label === 'Broj soba')
           if (bedLabel) {
-            bedrooms = parseInt(bedLabel.value) || 0
+            bedrooms = parseInt(bedLabel.value) || 1
           }
         }
 
-        // --- EXTRACT FROM DETAIL ATTRIBUTES ---
+        // Deep extraction from listing attributes
         let bathrooms = 1
         let floors = 1
         let address = ''
         let yearBuilt = null
         const features: string[] = []
 
-        // Extract full description
-        let description = detailData?.additional?.description || item.description || ''
-        if (description) {
-          // Replace HTML break tags with clean line breaks
-          description = description
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/&nbsp;/gi, ' ')
-            .replace(/<[^>]*>/g, '') // strip other html tags
-        } else {
-          description = `Predivna nekretnina "${item.title}". Površina iznosi ${areaSize} m² sa ${bedrooms} spavaćih soba. Uvezeno automatski sa vašeg OLX.ba profila.`
-        }
-
         const attributesList = detailData?.attributes || []
         attributesList.forEach((attr: any) => {
-          const code = attr.attr_code
-          const val = attr.value
-          if (code === 'broj-kupatila') {
+          const code = (attr.attr_code || '').toLowerCase()
+          const label = (attr.name || attr.label || '').toLowerCase()
+          const val = (attr.value || '').toString().trim()
+
+          if (!val || val === 'false') return
+
+          // Rooms & Bathrooms
+          if (code === 'broj-soba' || code === 'sobe' || label.includes('broj soba')) {
+            bedrooms = parseInt(val) || bedrooms
+          } else if (code === 'broj-kupatila' || code === 'kupatila' || label.includes('kupatil')) {
             bathrooms = parseInt(val) || 1
-          } else if (code === 'sprat') {
+          } else if (code === 'sprat' || label.includes('sprat')) {
             floors = parseInt(val) || 1
-          } else if (code === 'adresa') {
-            address = val || ''
-          } else if (code === 'godina-izgradnje') {
+          } else if (code === 'adresa' || label.includes('adresa')) {
+            address = val
+          } else if (code === 'godina-izgradnje' || label.includes('godina izgradnje')) {
             yearBuilt = parseInt(val) || null
           }
 
-          // Gather characteristics as features list
-          if (val && val !== 'false') {
-            if (code === 'vrsta-grijanja') {
-              features.push(`Grijanje: ${val}`)
-            } else if (code === 'namjesten') {
-              features.push(`Opremljenost: ${val}`)
-            } else if (code === 'stanje') {
-              features.push(`Stanje: ${val}`)
-            } else if (code === 'internet' && val === 'true') {
-              features.push('Internet')
-            } else if (code === 'kablovska-tv' && val === 'true') {
-              features.push('Kablovska TV')
-            } else if (code === 'gara-a' && val === 'true') {
-              features.push('Garaža')
-            } else if (code === 'balkon' && val === 'true') {
-              features.push('Balkon')
-            }
+          // Feature flags
+          if (code === 'vrsta-grijanja' || label.includes('grijanje')) {
+            features.push(`Grijanje: ${val}`)
+          } else if (code === 'namjesten' || label.includes('namješten') || label.includes('oprem')) {
+            features.push(`Opremljenost: ${val}`)
+          } else if (code === 'stanje' || label.includes('stanje')) {
+            features.push(`Stanje: ${val}`)
+          } else if (code === 'internet' || val === 'true') {
+            features.push('Internet')
+          } else if (code === 'kablovska-tv' || label.includes('kablovska')) {
+            features.push('Kablovska TV')
+          } else if (code === 'gara-a' || label.includes('garaža') || label.includes('garaza')) {
+            features.push('Garaža')
+          } else if (code === 'balkon' || label.includes('balkon') || label.includes('terasa')) {
+            features.push('Balkon / Terasa')
+          } else if (code === 'klima' || label.includes('klima')) {
+            features.push('Klima uređaj')
+          } else if (code === 'lift' || label.includes('lift')) {
+            features.push('Lift')
+          } else if (code === 'parking' || label.includes('parking')) {
+            features.push('Parking mjesta')
+          } else if (code === 'uknjizeno' || label.includes('uknjiž')) {
+            features.push('Uknjiženo / Vlasništvo 1/1')
           }
         })
 
-        // Format and structure photos as object components {url, caption, order}
+        // Description extraction
+        let description = cleanOlxDescription(detailData?.additional?.description || item.description || '')
+        if (!description) {
+          description = `Nekretnina "${item.title}". Površina: ${areaSize} m², soba: ${bedrooms}, kupatila: ${bathrooms}. Automatski sinhronizovano sa OLX.ba profila.`
+        }
+
+        // Image extraction
         const rawImagesList: string[] = detailData?.images || item.images || [item.image]
-        const imagesObjects = rawImagesList.map((img: string, idx: number) => ({
+        const imagesObjects = (rawImagesList || []).filter(Boolean).map((img: string, idx: number) => ({
           url: img,
           caption: `${item.title} - Slika ${idx + 1}`,
           order: idx
         }))
 
-        // Map city
+        // City mapping
         let city = 'Sarajevo'
         const lowerTitle = (item.title || '').toLowerCase()
-        if (item.city_id === 39 || lowerTitle.includes('visoko')) {
-          city = 'Visoko'
-        } else if (lowerTitle.includes('mostar')) {
-          city = 'Mostar'
-        } else if (lowerTitle.includes('banja luka')) {
-          city = 'Banja Luka'
-        } else if (lowerTitle.includes('tuzla')) {
-          city = 'Tuzla'
-        } else if (lowerTitle.includes('zavidovići') || lowerTitle.includes('zavidovici')) {
-          city = 'Zavidovići'
-        }
+        if (item.city_id === 39 || lowerTitle.includes('visoko')) city = 'Visoko'
+        else if (lowerTitle.includes('mostar')) city = 'Mostar'
+        else if (lowerTitle.includes('banja luka')) city = 'Banja Luka'
+        else if (lowerTitle.includes('tuzla')) city = 'Tuzla'
+        else if (lowerTitle.includes('zavidovići') || lowerTitle.includes('zavidovici')) city = 'Zavidovići'
+        else if (lowerTitle.includes('zenica')) city = 'Zenica'
 
-        // Map transaction pricing period
         const pricePeriod = item.listing_type === 'rent' ? 'monthly' : null
 
         const propSlug = item.title
@@ -277,10 +276,10 @@ export async function POST(request: Request) {
             floors,
             year_built: yearBuilt,
             features,
-            cover_image_url: item.image,
+            cover_image_url: item.image || (imagesObjects[0]?.url || null),
             images: imagesObjects
           })
-          .select('id, title, price')
+          .select('id, title, price, area_size, bedrooms')
           .single()
 
         if (propErr || !prop) {
@@ -303,87 +302,16 @@ export async function POST(request: Request) {
         imported.push(prop)
       }
 
-      // Log activity
-      if (imported.length > 0) {
-        await supabase
-          .from('activity_log')
-          .insert({
-            organization_id: org.id,
-            type: 'property_synced',
-            description: `Imported ${imported.length} active listings from OLX profile link.`,
-            metadata: { count: imported.length },
-            user_id: user.id
-          })
-      }
-
       return NextResponse.json({
-        message: 'Import complete',
+        success: true,
+        message: `Sinhronizovano! Uvezeno ${imported.length} novih nekretnina sa OLX.ba.`,
         importedCount: imported.length,
         imported
       })
     }
 
-    // --- Original PUSH (Syndication) Logic ---
-    const { data: syndications, error } = await supabase
-      .from('property_syndications')
-      .select(`
-        id,
-        property_id,
-        external_id,
-        organization_id,
-        properties (
-          title,
-          description,
-          price,
-          currency,
-          type,
-          city
-        )
-      `)
-      .eq('organization_id', org.id)
-      .eq('portal_name', 'olx')
-      .eq('status', 'active')
-
-    if (error) throw error
-
-    if (!syndications || syndications.length === 0) {
-      return NextResponse.json({ message: 'No OLX syndications to sync.' })
-    }
-
-    const results = []
-    for (const syn of syndications) {
-      const prop = syn.properties as any
-      if (!prop) continue
-
-      try {
-        const mockExternalId = syn.external_id || 'OLX_' + Math.floor(Math.random() * 100000)
-        
-        await supabase
-          .from('property_syndications')
-          .update({
-            external_id: mockExternalId,
-            last_synced_at: new Date().toISOString(),
-            error_message: null
-          })
-          .eq('id', syn.id)
-
-        results.push({ id: syn.id, status: 'success', external_id: mockExternalId })
-      } catch (err: any) {
-        await supabase
-          .from('property_syndications')
-          .update({
-            status: 'error',
-            error_message: err.message || 'Unknown error'
-          })
-          .eq('id', syn.id)
-
-        results.push({ id: syn.id, status: 'error', message: err.message })
-      }
-    }
-
-    return NextResponse.json({ message: 'Push sync complete', results })
+    return NextResponse.json({ error: 'Unsupported sync direction' }, { status: 400 })
   } catch (err: any) {
-    console.error('OLX Sync Error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
   }
 }

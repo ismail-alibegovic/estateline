@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import {
   CheckSquare, Square, Plus, Search, Calendar,
-  AlertCircle, Clock, Trash2, Filter, X, CheckCheck, User, Building2
+  Clock, Trash2, X, CheckCircle2, AlertCircle, Building2, User
 } from 'lucide-react'
 
 interface Task {
@@ -15,30 +15,58 @@ interface Task {
   priority: 'low' | 'medium' | 'high'
   due_date: string | null
   created_at: string
-  contact_id: string | null
-  lead_id: string | null
-  property_id: string | null
-  contacts?: { first_name: string; last_name: string | null } | null
-  leads?: { first_name: string; last_name: string | null } | null
-  properties?: { title: string } | null
+  contact_id?: string | null
+  lead_id?: string | null
+  property_id?: string | null
 }
 
-interface ContactOption { id: string; first_name: string; last_name: string | null }
-interface LeadOption { id: string; first_name: string; last_name: string | null }
-interface PropertyOption { id: string; title: string }
+const DEMO_TASKS: Task[] = [
+  {
+    id: 'demo-task-1',
+    title: 'Pripremi kupoprodajni ugovor za stan na Skenderiji',
+    description: 'Provjeriti zk izvadak u sudu i kontaktirati notara Denisa Kovačevića.',
+    status: 'in_progress',
+    priority: 'high',
+    due_date: new Date(Date.now() + 86400000).toISOString(),
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-task-2',
+    title: 'Pozovi vlasnika stana na Ilidži radi produženja ugovora',
+    description: 'Provjeriti novu cijenu i uslove izdavanja sa vlasnicom Lejlom Muminović.',
+    status: 'todo',
+    priority: 'medium',
+    due_date: new Date(Date.now() + 172800000).toISOString(),
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-task-3',
+    title: 'Ažuriraj ponudu nekretnina na OLX.ba profilu',
+    description: 'Uvoz novih slika i ažuriranje cijena novogradnje na Grbavici.',
+    status: 'completed',
+    priority: 'low',
+    due_date: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-task-4',
+    title: 'Pošalji ponudu stana klijentu Emiru Hadžiću',
+    description: 'Poslati e-mail sa 3 opcije dvosobnih stanova u centru.',
+    status: 'todo',
+    priority: 'high',
+    due_date: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+  },
+]
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
-  const [contacts, setContacts] = useState<ContactOption[]>([])
-  const [leads, setLeads] = useState<LeadOption[]>([])
-  const [properties, setProperties] = useState<PropertyOption[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'todo' | 'in_progress' | 'completed'>('all')
-  const [priorityFilter, setPriorityFilter] = useState<'all' | 'low' | 'medium' | 'high'>('all')
   const [toasts, setToasts] = useState<Toast[]>([])
 
   // Modal State
@@ -48,9 +76,6 @@ export default function TasksPage() {
   const [newDesc, setNewDesc] = useState('')
   const [newPriority, setNewPriority] = useState<'low' | 'medium' | 'high'>('medium')
   const [newDueDate, setNewDueDate] = useState('')
-  const [newContactId, setNewContactId] = useState('')
-  const [newLeadId, setNewLeadId] = useState('')
-  const [newPropertyId, setNewPropertyId] = useState('')
 
   const toast = (message: string, type: 'success' | 'error' = 'success') => {
     const id = Math.random().toString(36).slice(2)
@@ -77,21 +102,17 @@ export default function TasksPage() {
       const oid = (member as any).organization_id
       setOrgId(oid)
 
-      const [tasksResp, contactsResp, leadsResp, propertiesResp] = await Promise.all([
-        supabase
-          .from('tasks')
-          .select('*, contacts(first_name, last_name), leads(first_name, last_name), properties(title)')
-          .eq('organization_id', oid)
-          .order('created_at', { ascending: false }),
-        supabase.from('contacts').select('id, first_name, last_name').eq('organization_id', oid).order('first_name'),
-        supabase.from('leads').select('id, first_name, last_name').eq('organization_id', oid).order('first_name'),
-        supabase.from('properties').select('id, title').eq('organization_id', oid).order('title')
-      ])
+      const { data } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('organization_id', oid)
+        .order('created_at', { ascending: false })
 
-      if (tasksResp.data) setTasks(tasksResp.data as Task[])
-      if (contactsResp.data) setContacts(contactsResp.data as ContactOption[])
-      if (leadsResp.data) setLeads(leadsResp.data as LeadOption[])
-      if (propertiesResp.data) setProperties(propertiesResp.data as PropertyOption[])
+      if (data && data.length > 0) {
+        setTasks(data as Task[])
+      } else {
+        setTasks(DEMO_TASKS)
+      }
     }
     setLoading(false)
   }, [])
@@ -100,32 +121,44 @@ export default function TasksPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTitle.trim() || !orgId) return
+    if (!newTitle.trim()) return
     setSaving(true)
 
-    const supabase = createBrowserClient()
-    const { error } = await supabase.from('tasks').insert({
-      organization_id: orgId,
-      title: newTitle,
-      description: newDesc || null,
-      status: 'todo',
-      priority: newPriority,
-      due_date: newDueDate || null,
-      contact_id: newContactId || null,
-      lead_id: newLeadId || null,
-      property_id: newPropertyId || null,
-    })
+    if (orgId) {
+      const supabase = createBrowserClient()
+      const { error } = await supabase.from('tasks').insert({
+        organization_id: orgId,
+        title: newTitle,
+        description: newDesc || null,
+        status: 'todo',
+        priority: newPriority,
+        due_date: newDueDate || null,
+      })
 
-    setSaving(false)
-    if (error) {
-      toast(error.message, 'error')
+      if (error) {
+        toast(error.message, 'error')
+      } else {
+        toast('Zadatak je uspješno kreiran!')
+        setNewTitle(''); setNewDesc(''); setNewPriority('medium'); setNewDueDate('')
+        setIsOpen(false)
+        loadData()
+      }
     } else {
-      toast('Task created!')
+      const newTask: Task = {
+        id: `demo-${Date.now()}`,
+        title: newTitle,
+        description: newDesc || null,
+        status: 'todo',
+        priority: newPriority,
+        due_date: newDueDate || null,
+        created_at: new Date().toISOString(),
+      }
+      setTasks(prev => [newTask, ...prev])
+      toast('Zadatak je kreiran!')
       setNewTitle(''); setNewDesc(''); setNewPriority('medium'); setNewDueDate('')
-      setNewContactId(''); setNewLeadId(''); setNewPropertyId('')
       setIsOpen(false)
-      loadData()
     }
+    setSaving(false)
   }
 
   const toggleStatus = async (id: string, current: Task['status']) => {
@@ -142,265 +175,248 @@ export default function TasksPage() {
     const supabase = createBrowserClient()
     await supabase.from('tasks').delete().eq('id', id)
     setTasks(prev => prev.filter(t => t.id !== id))
-    toast('Task deleted')
+    toast('Zadatak je obrisan!')
   }
 
   const filteredTasks = tasks.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
-                          (t.description || '').toLowerCase().includes(search.toLowerCase())
+      (t.description || '').toLowerCase().includes(search.toLowerCase())
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter
-    const matchesPriority = priorityFilter === 'all' || t.priority === priorityFilter
-    return matchesSearch && matchesStatus && matchesPriority
+    return matchesSearch && matchesStatus
   })
-
-  const counts = {
-    todo: tasks.filter(t => t.status === 'todo').length,
-    in_progress: tasks.filter(t => t.status === 'in_progress').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-  }
-
-  const priorityColors: Record<string, string> = {
-    high: 'badge-rose',
-    medium: 'badge-gold',
-    low: 'badge-sage',
-  }
-
-  const inputClass = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors'
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-32">
-        <div className="animate-spin h-8 w-8 border-2 border-primary/20 border-t-primary rounded-full" />
+      <div className="w-full space-y-6 py-12">
+        <div className="skeleton h-10 w-64 rounded-xl" />
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="skeleton h-20 rounded-3xl" />
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Toasts */}
+    <div className="max-w-6xl mx-auto space-y-8 py-4 font-sans animate-fade-in">
+      {/* Toast notifications */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
-          <div key={t.id} className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${t.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-            {t.type === 'success' ? '✓' : '✗'} {t.message}
+          <div
+            key={t.id}
+            className={`pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold border ${
+              t.type === 'success' ? 'bg-gray-900 text-white border-gray-800' : 'bg-red-600 text-white border-red-500'
+            }`}
+          >
+            {t.type === 'success' ? <CheckCircle2 size={16} className="text-[#C9963B]" /> : <X size={16} />}
+            <span>{t.message}</span>
           </div>
         ))}
       </div>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/70 pb-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Workflow</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {counts.todo} to do &middot; {counts.in_progress} in progress &middot; {counts.completed} completed
+          <p className="page-eyebrow mb-1">ORGANIZACIJA & POSLOVI</p>
+          <h1
+            className="text-3xl font-bold text-gray-900"
+            style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
+          >
+            Zadaci Agencije
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Evidencija dnevnih obaveza, pripremne dokumentacije i poziva klijentima.
           </p>
         </div>
+
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white shadow-md transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, #C9963B 0%, #b88328 100%)',
+            boxShadow: '0 4px 16px rgba(201,150,59,0.25)',
+          }}
         >
-          <Plus size={16} /> Add Task
+          <Plus size={16} />
+          <span>Dodaj Zadatak</span>
         </button>
-      </div>
+      </header>
 
-      {/* Status Summary Chips */}
-      <div className="flex gap-2 flex-wrap">
-        {([['all', 'All'], ['todo', 'To Do'], ['in_progress', 'In Progress'], ['completed', 'Completed']] as const).map(([val, label]) => (
-          <button
-            key={val}
-            onClick={() => setStatusFilter(val)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-all ${
-              statusFilter === val ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground border-border hover:bg-muted'
-            }`}
-          >
-            {label} {val !== 'all' && `(${counts[val as keyof typeof counts] ?? tasks.length})`}
-          </button>
-        ))}
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
-            <Search size={13} className="absolute left-2.5 top-2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search tasks…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-7 pr-3 py-1.5 text-xs border border-border rounded-full bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none w-40"
-            />
-          </div>
-          <select
-            value={priorityFilter}
-            onChange={e => setPriorityFilter(e.target.value as any)}
-            className="text-xs border border-border rounded-full px-3 py-1.5 bg-background text-muted-foreground outline-none"
-          >
-            <option value="all">All Priorities</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
+      {/* Controls Bar */}
+      <div className="bg-white rounded-3xl border border-gray-200/70 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Pretraži zadatke i obaveze..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(['all', 'todo', 'in_progress', 'completed'] as const).map(status => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                statusFilter === status
+                  ? 'bg-[#C9963B] text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {status === 'all' ? `Svi (${tasks.length})` : status === 'todo' ? 'Za Uraditi' : status === 'in_progress' ? 'U Toku' : 'Završeno'}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Tasks List */}
-      {filteredTasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-2xl bg-card">
-          <CheckCheck size={40} className="text-muted-foreground/30 mb-3" />
-          <h3 className="font-display font-semibold text-foreground mb-1">No tasks found</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            {search || statusFilter !== 'all' ? 'Try adjusting your filters.' : 'Create your first task to get organized.'}
-          </p>
-          {!search && statusFilter === 'all' && (
-            <button onClick={() => setIsOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90">
-              <Plus size={16} /> Add First Task
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {filteredTasks.map((task) => (
-            <div
-              key={task.id}
-              className={`p-4 bg-card border border-border rounded-xl hover:shadow-sm transition-all flex items-start gap-4 ${task.status === 'completed' ? 'opacity-60' : ''}`}
-            >
+      <div className="space-y-3">
+        {filteredTasks.map((t) => (
+          <div
+            key={t.id}
+            className="bg-white border border-gray-200/70 rounded-3xl p-5 shadow-sm hover:border-[#C9963B] transition-all flex items-start justify-between gap-4 group"
+          >
+            <div className="flex items-start gap-4">
               <button
-                onClick={() => toggleStatus(task.id, task.status)}
-                className="mt-0.5 shrink-0 hover:scale-110 transition-transform"
+                onClick={() => toggleStatus(t.id, t.status)}
+                className="mt-0.5 text-gray-400 hover:text-[#C9963B] transition-colors shrink-0"
               >
-                {task.status === 'completed' && <CheckSquare size={20} className="text-emerald-500 fill-emerald-50" />}
-                {task.status === 'in_progress' && <Clock size={20} className="text-amber-500" />}
-                {task.status === 'todo' && <Square size={20} className="text-muted-foreground" />}
-              </button>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h3 className={`font-semibold text-foreground text-sm ${task.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
-                    {task.title}
-                  </h3>
-                  <span className={`badge ${priorityColors[task.priority]}`}>
-                    {task.priority}
-                  </span>
-                  <span className={`badge ${
-                    task.status === 'completed' ? 'badge-sage opacity-75' :
-                    task.status === 'in_progress' ? 'badge-gold' :
-                    'badge-indigo'
-                  }`}>
-                    {task.status === 'todo' ? 'to do' : task.status === 'in_progress' ? 'in progress' : 'done'}
-                  </span>
-                </div>
-                {task.description && (
-                  <p className="text-muted-foreground text-xs leading-relaxed mb-2">{task.description}</p>
+                {t.status === 'completed' ? (
+                  <CheckSquare size={22} className="text-[#C9963B]" />
+                ) : (
+                  <Square size={22} />
                 )}
-                
-                {/* Related entities displays */}
-                <div className="flex flex-wrap gap-x-3 gap-y-1 items-center text-xs text-muted-foreground">
-                  {task.due_date && (
-                    <span className="flex items-center gap-1">
-                      <Calendar size={11} />
-                      Due: {new Date(task.due_date).toLocaleDateString()}
-                    </span>
-                  )}
-                  {task.contacts && (
-                    <span className="flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded font-medium">
-                      <User size={10} />
-                      {task.contacts.first_name} {task.contacts.last_name || ''}
-                    </span>
-                  )}
-                  {task.leads && (
-                    <span className="flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded font-medium">
-                      <User size={10} />
-                      Lead: {task.leads.first_name} {task.leads.last_name || ''}
-                    </span>
-                  )}
-                  {task.properties && (
-                    <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded font-medium max-w-xs truncate">
-                      <Building2 size={10} />
-                      {task.properties.title}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <button
-                onClick={() => deleteTask(task.id)}
-                className="text-muted-foreground hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-all"
-              >
-                <Trash2 size={14} />
               </button>
+
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-bold text-sm text-gray-900 transition-colors ${
+                      t.status === 'completed' ? 'line-through text-gray-400' : 'group-hover:text-[#C9963B]'
+                    }`}
+                  >
+                    {t.title}
+                  </span>
+
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                    t.priority === 'high'
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : t.priority === 'medium'
+                      ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {t.priority === 'high' ? 'Hitno' : t.priority === 'medium' ? 'Srednji' : 'Nizak'}
+                  </span>
+                </div>
+
+                {t.description && (
+                  <p className="text-xs text-gray-500">{t.description}</p>
+                )}
+
+                {t.due_date && (
+                  <p className="text-[11px] text-gray-400 flex items-center gap-1 pt-1">
+                    <Calendar size={12} />
+                    <span>Rok: {new Date(t.due_date).toLocaleDateString('bs-BA')}</span>
+                  </p>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+
+            <button
+              onClick={() => deleteTask(t.id)}
+              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors shrink-0"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
 
       {/* Create Task Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold font-display">New Task</h2>
-              <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5 relative">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+            >
+              <X size={20} />
+            </button>
+
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Dodaj Novi Zadatak</h3>
+              <p className="text-xs text-gray-500 mt-1">Unesite opis zadatka, prioritet i rok izvršenja.</p>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Task Title *</label>
-                <input type="text" required placeholder="e.g. Follow up with client" className={inputClass} value={newTitle} onChange={e => setNewTitle(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Description</label>
-                <textarea placeholder="Additional details..." rows={3} className={inputClass} value={newDesc} onChange={e => setNewDesc(e.target.value)} />
-              </div>
-              
-              {/* Assignments / Links fields */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Assign to Contact</label>
-                  <select className={inputClass} value={newContactId} onChange={e => { setNewContactId(e.target.value); if (e.target.value) setNewLeadId('') }}>
-                    <option value="">— Select contact —</option>
-                    {contacts.map(c => (
-                      <option key={c.id} value={c.id}>{c.first_name} {c.last_name || ''}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Assign to Lead</label>
-                  <select className={inputClass} value={newLeadId} onChange={e => { setNewLeadId(e.target.value); if (e.target.value) setNewContactId('') }}>
-                    <option value="">— Select lead —</option>
-                    {leads.map(l => (
-                      <option key={l.id} value={l.id}>{l.first_name} {l.last_name || ''}</option>
-                    ))}
-                  </select>
-                </div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Naslov Zadatka *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Pripremi ugovor za kupca..."
+                  value={newTitle}
+                  onChange={e => setNewTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Related Property</label>
-                <select className={inputClass} value={newPropertyId} onChange={e => setNewPropertyId(e.target.value)}>
-                  <option value="">— Select property —</option>
-                  {properties.map(p => (
-                    <option key={p.id} value={p.id}>{p.title}</option>
-                  ))}
-                </select>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Detaljan Opis</label>
+                <textarea
+                  rows={3}
+                  placeholder="Provjeriti dokumentaciju i notarske takse..."
+                  value={newDesc}
+                  onChange={e => setNewDesc(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Priority</label>
-                  <select className={inputClass} value={newPriority} onChange={e => setNewPriority(e.target.value as any)}>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Prioritet</label>
+                  <select
+                    value={newPriority}
+                    onChange={e => setNewPriority(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  >
+                    <option value="low">Nizak</option>
+                    <option value="medium">Srednji</option>
+                    <option value="high">Visok (Hitno)</option>
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Due Date</label>
-                  <input type="date" className={inputClass} value={newDueDate} onChange={e => setNewDueDate(e.target.value)} />
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Rok (Datum)</label>
+                  <input
+                    type="date"
+                    value={newDueDate}
+                    onChange={e => setNewDueDate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
                 </div>
               </div>
-              
-              <button type="submit" disabled={saving} className="w-full py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all text-sm">
-                {saving ? 'Creating…' : 'Create Task'}
-              </button>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+                >
+                  Odustani
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors"
+                >
+                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Zadatak'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

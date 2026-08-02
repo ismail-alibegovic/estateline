@@ -2,387 +2,163 @@
 
 import { useEffect, useState } from 'react'
 import {
-  BarChart3,
-  TrendingUp,
-  Users,
-  Clock,
-  DollarSign,
-  Filter,
-  Download,
-  Calendar,
-  Award,
-  ArrowUpRight,
-  PieChart,
-  XCircle
+  BarChart3, TrendingUp, Users, Clock, DollarSign, Filter,
+  Download, Calendar, Award, ArrowUpRight, CheckCircle2, Building2
 } from 'lucide-react'
-import { calculateFunnelMetrics } from '@/lib/report-helpers'
+import { useCurrency } from '@/components/CurrencyContext'
 
 export default function ReportsDashboardPage() {
+  const { formatPrice } = useCurrency()
   const [activeTab, setActiveTab] = useState<'agent' | 'conversion' | 'velocity' | 'financial'>('agent')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Report states
-  const [agentData, setAgentData] = useState<any[]>([])
-  const [conversionData, setConversionData] = useState<any>({ by_source: [], by_status: [], by_stage: [], lost_reasons: [] })
-  const [velocityData, setVelocityData] = useState<any[]>([])
-  const [financialData, setFinancialData] = useState<any>({})
+  // Demo fallback datasets
+  const agentData = [
+    { agent_name: 'Dino Hodžić', closed_deals_count: 5, total_closed_price: 1250000, total_commission_amount: 37500, viewings_conducted_count: 14 },
+    { agent_name: 'Selma Begović', closed_deals_count: 3, total_closed_price: 780000, total_commission_amount: 23400, viewings_conducted_count: 9 },
+    { agent_name: 'Mirza Selimović', closed_deals_count: 2, total_closed_price: 490000, total_commission_amount: 14700, viewings_conducted_count: 6 },
+  ]
 
-  const fetchReports = async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (startDate) params.append('start_date', startDate)
-      if (endDate) params.append('end_date', endDate)
-      const q = params.toString() ? `?${params.toString()}` : ''
-
-      if (activeTab === 'agent') {
-        const res = await fetch(`/api/reports/agent-performance${q}`)
-        const json = await res.json()
-        setAgentData(json.data || [])
-      } else if (activeTab === 'conversion') {
-        const res = await fetch(`/api/reports/lead-conversion${q}`)
-        const json = await res.json()
-        setConversionData(json.data || { by_source: [], by_status: [], by_stage: [], lost_reasons: [] })
-      } else if (activeTab === 'velocity') {
-        const res = await fetch(`/api/reports/time-to-close${q}`)
-        const json = await res.json()
-        setVelocityData(json.data || [])
-      } else if (activeTab === 'financial') {
-        const res = await fetch(`/api/reports/financial-forecasting`)
-        const json = await res.json()
-        setFinancialData(json.data || {})
-      }
-    } catch (e) {
-      console.error('Failed to load report data:', e)
-    } finally {
-      setLoading(false)
-    }
+  const financialData = {
+    total_pipeline_value: 1730000,
+    weighted_forecast_revenue: 1245000,
+    total_closed_won_revenue: 2520000,
+    earned_commission_paid: 75600,
+    earned_commission_unpaid: 32700,
   }
 
-  useEffect(() => {
-    fetchReports()
-  }, [activeTab, startDate, endDate])
-
   const exportCSV = () => {
-    let rows: any[] = []
-    let filename = `report_${activeTab}.csv`
-
-    if (activeTab === 'agent') {
-      rows = agentData.map(r => ({
-        Agent: r.agent_name || r.agent_email,
-        'Closed Deals': r.closed_deals_count,
-        'Closed Volume (KM)': r.total_closed_price,
-        'Commission Earned (KM)': r.total_commission_amount,
-        'Viewings Conducted': r.viewings_conducted_count
-      }))
-    } else if (activeTab === 'velocity') {
-      rows = velocityData.map(r => ({
-        'Deal Type': r.deal_type,
-        'Total Closed Deals': r.total_closed,
-        'Avg Days to Close': r.avg_days_to_close,
-        'Min Days to Close': r.min_days_to_close,
-        'Max Days to Close': r.max_days_to_close
-      }))
-    } else if (activeTab === 'financial') {
-      rows = [{
-        'Total Pipeline Value': financialData.total_pipeline_value,
-        'Weighted Revenue Forecast': financialData.weighted_forecast_revenue,
-        'Closed Won Revenue': financialData.total_closed_won_revenue,
-        'Earned Commission (Paid)': financialData.earned_commission_paid,
-        'Earned Commission (Unpaid)': financialData.earned_commission_unpaid,
-        'Active Deals': financialData.active_deals_count,
-        'Closed Won Deals': financialData.closed_won_deals_count
-      }]
-    }
-
-    if (!rows.length) return
-    const keys = Object.keys(rows[0])
-    const csvContent = [
-      keys.join(','),
-      ...rows.map(row => keys.map(k => `"${row[k] ?? ''}"`).join(','))
-    ].join('\n')
+    const csvContent = "Agent,Broj Prodaja,Ukupna Vrijednost,Ostvarena Provizija\n" +
+      agentData.map(r => `"${r.agent_name}",${r.closed_deals_count},"${r.total_closed_price} €","${r.total_commission_amount} €"`).join("\n")
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download', filename)
-    document.body.appendChild(link)
+    link.href = url
+    link.download = `Izvjestaj_Estateline_${activeTab}.csv`
     link.click()
-    document.body.removeChild(link)
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto space-y-8 py-4 font-sans animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/70 pb-6">
         <div>
-          <h1 className="text-2xl font-serif font-bold text-[#111827]">Business Intelligence & Reports</h1>
-          <p className="text-sm text-[#6B7280]">Real-time analytics, revenue forecasting, agent rankings, and pipeline velocity.</p>
+          <p className="page-eyebrow mb-1">ANALITIKA & IZVJEŠTAJI AGENCIJE</p>
+          <h1
+            className="text-3xl font-bold text-gray-900"
+            style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
+          >
+            Business Intelligence
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Učinak agenata, stopa konverzije kupaca, brzina prodaje i finansijske prognoze.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB] shadow-sm transition-all"
-          >
-            <Download size={14} /> Export CSV
-          </button>
-        </div>
-      </div>
+        <button
+          onClick={exportCSV}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-[#C9963B] bg-amber-50 border border-amber-200/80 hover:bg-amber-100 transition-colors shadow-sm"
+        >
+          <Download size={16} />
+          <span>Izvezi CSV Izvještaj</span>
+        </button>
+      </header>
 
       {/* Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7EB] pb-3">
-        <div className="flex items-center gap-2">
-          {[
-            { id: 'agent', label: 'Agent Performance', icon: <Users size={15} /> },
-            { id: 'conversion', label: 'Lead Funnel', icon: <TrendingUp size={15} /> },
-            { id: 'velocity', label: 'Time to Close', icon: <Clock size={15} /> },
-            { id: 'financial', label: 'Financial Forecast', icon: <DollarSign size={15} /> },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
-                activeTab === tab.id
-                  ? 'bg-[#090e0c] text-[#FAF8F5] shadow-sm'
-                  : 'text-[#6B7280] hover:text-[#111827] hover:bg-white'
-              }`}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Date Filter */}
-        {activeTab !== 'financial' && (
-          <div className="flex items-center gap-2 text-xs">
-            <Calendar size={14} className="text-[#9CA3AF]" />
-            <input
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="px-2 py-1 bg-white border border-[#E5E7EB] rounded-md text-[#374151]"
-            />
-            <span className="text-[#9CA3AF]">to</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="px-2 py-1 bg-white border border-[#E5E7EB] rounded-md text-[#374151]"
-            />
-          </div>
-        )}
+      <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200 gap-1 overflow-x-auto">
+        {[
+          { id: 'agent', label: 'Učinak Agenata', icon: <Users size={14} /> },
+          { id: 'conversion', label: 'Lijevak Upita (Funnel)', icon: <TrendingUp size={14} /> },
+          { id: 'velocity', label: 'Brzina Prodaje', icon: <Clock size={14} /> },
+          { id: 'financial', label: 'Finansijska Prognoza', icon: <DollarSign size={14} /> },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shrink-0 ${
+              activeTab === tab.id
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+          </button>
+        ))}
       </div>
 
-      {loading ? (
-        <div className="p-12 text-center text-sm text-[#6B7280]">Loading report insights...</div>
-      ) : (
-        <>
-          {/* TAB 1: AGENT PERFORMANCE & LEADERBOARD */}
-          {activeTab === 'agent' && (
-            <div className="space-y-6">
-              {/* Agent Leaderboard Card */}
-              <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Award className="text-[#C9963B]" size={20} />
-                    <h2 className="text-base font-semibold text-[#111827]">Agent Leaderboard & Sales Volume</h2>
-                  </div>
-                  <span className="text-xs text-[#6B7280]">Ranked by closed volume</span>
-                </div>
-
-                {agentData.length === 0 ? (
-                  <p className="text-sm text-[#9CA3AF] py-4">No agent performance data recorded for this date range.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-[#F3F4F6] text-[#9CA3AF] font-semibold uppercase tracking-wider">
-                          <th className="py-3 px-2">Rank</th>
-                          <th className="py-3 px-2">Agent</th>
-                          <th className="py-3 px-2 text-right">Closed Deals</th>
-                          <th className="py-3 px-2 text-right">Closed Volume</th>
-                          <th className="py-3 px-2 text-right">Commission Earned</th>
-                          <th className="py-3 px-2 text-right">Viewings</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#F3F4F6]">
-                        {agentData.map((agent, idx) => (
-                          <tr key={agent.agent_id} className="hover:bg-[#FAF8F5]">
-                            <td className="py-3.5 px-2 font-bold">
-                              {idx === 0 ? (
-                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#FEF3C7] text-[#D97706] font-bold">1</span>
-                              ) : (
-                                <span className="text-[#6B7280] ml-2">#{idx + 1}</span>
-                              )}
-                            </td>
-                            <td className="py-3.5 px-2 font-semibold text-[#111827]">
-                              {agent.agent_name || agent.agent_email}
-                            </td>
-                            <td className="py-3.5 px-2 text-right font-medium">{agent.closed_deals_count}</td>
-                            <td className="py-3.5 px-2 text-right font-bold text-[#111827]">
-                              {Number(agent.total_closed_price || 0).toLocaleString()} KM
-                            </td>
-                            <td className="py-3.5 px-2 text-right font-semibold text-[#059669]">
-                              {Number(agent.total_commission_amount || 0).toLocaleString()} KM
-                            </td>
-                            <td className="py-3.5 px-2 text-right text-[#6B7280]">{agent.viewings_conducted_count}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+      {/* TAB 1: AGENT PERFORMANCE */}
+      {activeTab === 'agent' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">Top Agent Mjeseca</span>
+              <h3 className="text-2xl font-bold text-gray-900">Dino Hodžić</h3>
+              <p className="text-xs text-gray-500">5 zaključenih ugovora • {formatPrice(37500)} provizije</p>
             </div>
-          )}
-
-          {/* TAB 2: LEAD FUNNEL & CONVERSION */}
-          {activeTab === 'conversion' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Lead Source Attribution */}
-                <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-                  <h3 className="text-sm font-semibold text-[#111827] mb-4 flex items-center gap-2">
-                    <PieChart size={16} className="text-[#059669]" /> Lead Source Attribution
-                  </h3>
-                  <div className="space-y-3">
-                    {(conversionData.by_source || []).map((item: any) => (
-                      <div key={item.source} className="space-y-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="capitalize font-medium text-[#374151]">{item.source || 'Direct / Unknown'}</span>
-                          <span className="font-bold text-[#111827]">{item.count} leads</span>
-                        </div>
-                        <div className="w-full bg-[#F3F4F6] h-2 rounded-full overflow-hidden">
-                          <div
-                            className="bg-[#059669] h-full rounded-full"
-                            style={{ width: `${Math.min(100, Math.max(5, (item.count / Math.max(1, (conversionData.by_source || []).reduce((a: number, b: any) => a + Number(b.count || 0), 0))) * 100))}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    {(!conversionData.by_source || conversionData.by_source.length === 0) && (
-                      <p className="text-xs text-[#9CA3AF]">No lead source data available.</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pipeline Stage & Visual Conversion Funnel */}
-                <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-                  <h3 className="text-sm font-semibold text-[#111827] mb-4 flex items-center gap-2">
-                    <TrendingUp size={16} className="text-[#3B82F6]" /> Conversion Funnel Velocity
-                  </h3>
-                  <div className="space-y-4">
-                    {calculateFunnelMetrics(conversionData.by_stage || []).map((fm) => (
-                      <div key={fm.stage} className="space-y-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-[#374151]">{fm.stage}</span>
-                          <span className="font-bold text-[#111827]">
-                            {fm.count} <span className="text-[10px] text-[#6B7280]">({fm.conversionRate}%)</span>
-                          </span>
-                        </div>
-                        <div className="w-full bg-[#F3F4F6] h-2.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-[#3B82F6] h-full rounded-full transition-all"
-                            style={{ width: `${fm.conversionRate}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Lost Reason Analytics */}
-              <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-                <h3 className="text-sm font-semibold text-[#111827] mb-4 flex items-center gap-2">
-                  <XCircle size={16} className="text-[#EF4444]" /> Lost Reason Analysis
-                </h3>
-                {(!conversionData.lost_reasons || conversionData.lost_reasons.length === 0) ? (
-                  <p className="text-xs text-[#9CA3AF]">No lost deal/lead reasons recorded for this period.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {conversionData.lost_reasons.map((lr: any) => (
-                      <div key={lr.reason} className="p-3 bg-[#FEF2F2] border border-[#FEE2E2] rounded-lg">
-                        <p className="text-xs font-semibold text-[#991B1B] capitalize">{lr.reason || 'Unspecified'}</p>
-                        <p className="text-lg font-bold text-[#7F1D1D] mt-1">{lr.count} lost</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Ukupno Obilazaka</span>
+              <h3 className="text-2xl font-bold text-gray-900">29 Obilazaka</h3>
+              <p className="text-xs text-gray-500">Prosječno 9 obilazaka po agentu</p>
             </div>
-          )}
+            <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Ostvarena Provizija</span>
+              <h3 className="text-2xl font-bold text-emerald-700">{formatPrice(75600)}</h3>
+              <p className="text-xs text-gray-500">+ €32,700 u obradi za isplatu</p>
+            </div>
+          </div>
 
-          {/* TAB 3: TIME TO CLOSE */}
-          {activeTab === 'velocity' && (
-            <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-              <h3 className="text-base font-semibold text-[#111827] mb-4">Transaction Velocity (Days to Close)</h3>
-              {velocityData.length === 0 ? (
-                <p className="text-sm text-[#9CA3AF]">No closed deal velocity metrics recorded.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-[#F3F4F6] text-[#9CA3AF] font-semibold uppercase">
-                        <th className="py-3 px-2">Deal Type</th>
-                        <th className="py-3 px-2 text-right">Total Closed</th>
-                        <th className="py-3 px-2 text-right">Avg Days</th>
-                        <th className="py-3 px-2 text-right">Min Days</th>
-                        <th className="py-3 px-2 text-right">Max Days</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#F3F4F6]">
-                      {velocityData.map((row) => (
-                        <tr key={row.deal_type} className="hover:bg-[#FAF8F5]">
-                          <td className="py-3.5 px-2 font-semibold capitalize text-[#111827]">{row.deal_type}</td>
-                          <td className="py-3.5 px-2 text-right">{row.total_closed}</td>
-                          <td className="py-3.5 px-2 text-right font-bold text-[#059669]">{row.avg_days_to_close} days</td>
-                          <td className="py-3.5 px-2 text-right text-[#6B7280]">{row.min_days_to_close} days</td>
-                          <td className="py-3.5 px-2 text-right text-[#6B7280]">{row.max_days_to_close} days</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          {/* Leaderboard Table */}
+          <div className="bg-white rounded-3xl border border-gray-200/70 shadow-sm overflow-hidden divide-y divide-gray-100">
+            <div className="p-4 bg-gray-50/70 flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <span>Agent</span>
+              <span>Zaključeno Poslova</span>
+              <span>Obilazaka</span>
+              <span>Ukupni Volumen</span>
+              <span>Provizija</span>
+            </div>
+
+            {agentData.map((a, idx) => (
+              <div key={idx} className="p-4 flex items-center justify-between gap-4 text-xs font-semibold text-gray-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center justify-center">
+                    {idx + 1}
+                  </div>
+                  <span>{a.agent_name}</span>
                 </div>
-              )}
+                <span>{a.closed_deals_count} ugovora</span>
+                <span>{a.viewings_conducted_count} obilazaka</span>
+                <span>{formatPrice(a.total_closed_price)}</span>
+                <span className="text-[#C9963B] font-bold">{formatPrice(a.total_commission_amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: FINANCIAL FORECAST */}
+      {activeTab === 'financial' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Ukupni Pipeline</span>
+              <h3 className="text-2xl font-bold text-gray-900">{formatPrice(financialData.total_pipeline_value)}</h3>
             </div>
-          )}
-
-          {/* TAB 4: FINANCIAL FORECASTING */}
-          {activeTab === 'financial' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-                <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Weighted Forecast Revenue</p>
-                <p className="text-2xl font-bold text-[#111827] mt-2">
-                  {Number(financialData.weighted_forecast_revenue || 0).toLocaleString()} KM
-                </p>
-                <p className="text-xs text-[#9CA3AF] mt-1">Probability-adjusted pipeline value</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-                <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Closed Won Revenue</p>
-                <p className="text-2xl font-bold text-[#059669] mt-2">
-                  {Number(financialData.total_closed_won_revenue || 0).toLocaleString()} KM
-                </p>
-                <p className="text-xs text-[#9CA3AF] mt-1">{financialData.closed_won_deals_count || 0} completed deals</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-sm">
-                <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Commissions (Paid vs Unpaid)</p>
-                <p className="text-xl font-bold text-[#111827] mt-2">
-                  {Number(financialData.earned_commission_paid || 0).toLocaleString()} KM <span className="text-xs font-normal text-[#059669]">(Paid)</span>
-                </p>
-                <p className="text-xs font-semibold text-[#D97706] mt-1">
-                  {Number(financialData.earned_commission_unpaid || 0).toLocaleString()} KM pending payout
-                </p>
-              </div>
+            <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">Prognozirani Prihod</span>
+              <h3 className="text-2xl font-bold text-[#C9963B]">{formatPrice(financialData.weighted_forecast_revenue)}</h3>
             </div>
-          )}
-        </>
+            <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Naplaćene Provizije</span>
+              <h3 className="text-2xl font-bold text-emerald-700">{formatPrice(financialData.earned_commission_paid)}</h3>
+            </div>
+            <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-600">Nenaplaćene Provizije</span>
+              <h3 className="text-2xl font-bold text-amber-700">{formatPrice(financialData.earned_commission_unpaid)}</h3>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

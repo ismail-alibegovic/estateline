@@ -186,14 +186,31 @@
     box-shadow:
       0 1px 3px rgba(0,0,0,0.04),
       0 4px 16px rgba(0,0,0,0.03);
-    transition: box-shadow 0.2s ease, transform 0.18s ease;
+    transition: box-shadow 0.25s ease, transform 0.2s ease, border-color 0.25s ease;
     overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #C9963B, #f0c068, #C9963B);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 14px 14px 0 0;
   }
   .stat-card:hover {
     box-shadow:
       0 4px 16px rgba(0,0,0,0.06),
-      0 12px 40px rgba(201,150,59,0.08);
-    transform: translateY(-2px);
+      0 12px 40px rgba(201,150,59,0.1);
+    transform: translateY(-3px);
+    border-color: rgba(201,150,59,0.2);
+  }
+  .stat-card:hover::before {
+    transform: scaleX(1);
   }
 
   .stat-card-icon {
@@ -500,6 +517,116 @@
       0 1px 3px rgba(0,0,0,0.04),
       0 8px 32px rgba(0,0,0,0.06),
       0 2px 8px rgba(201,150,59,0.04);
+  }
+
+  /* ═══════════════════════════════════════
+     ENTRANCE ANIMATIONS
+  ═══════════════════════════════════════ */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulseGold {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(201,150,59,0.2); }
+    50%      { box-shadow: 0 0 0 8px rgba(201,150,59,0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-6px); }
+  }
+  @keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease forwards;
+    opacity: 0;
+  }
+  .animate-slide-in-right {
+    animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  /* Staggered delays */
+  .delay-75  { animation-delay: 75ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-225 { animation-delay: 225ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+
+  /* ═══════════════════════════════════════
+     GLASSMORPHISM
+  ═══════════════════════════════════════ */
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* ═══════════════════════════════════════
+     GRADIENT TEXT
+  ═══════════════════════════════════════ */
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #C9963B 0%, #f0c068 55%, #C9963B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ═══════════════════════════════════════
+     ENHANCED TOOLTIPS
+  ═══════════════════════════════════════ */
+  .tooltip-luxury {
+    background: #1F2937;
+    color: white;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    pointer-events: none;
+  }
+  .tooltip-luxury::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px;
+    height: 8px;
+    background: #1F2937;
   }
 
   /* ═══════════════════════════════════════

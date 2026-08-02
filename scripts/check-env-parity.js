@@ -37,7 +37,7 @@ for (const filePath of files) {
   while ((match = regex.exec(content)) !== null) {
     const key = match[1];
     // Ignore standard Node/Next env vars
-    if (!['NODE_ENV', 'VERCEL_ENV', 'VERCEL_URL'].includes(key)) {
+    if (!['NODE_ENV', 'VERCEL_ENV', 'VERCEL_URL', 'NEXT_RUNTIME'].includes(key)) {
       referencedKeys.add(key);
     }
   }

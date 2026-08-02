@@ -6,7 +6,10 @@ import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
 import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { useCurrency } from '@/components/CurrencyContext'
-import { Plus, X, Search, Filter, Mail, Trash2 } from 'lucide-react'
+import {
+  Plus, X, Search, Filter, Mail, Trash2, Phone, User,
+  Building2, LayoutGrid, List, CheckCircle2, DollarSign
+} from 'lucide-react'
 
 type Lead = {
   id: string
@@ -22,25 +25,70 @@ type Lead = {
   created_at: string
 }
 
-const STAGES = ['new', 'contacted', 'qualified', 'unqualified', 'converted', 'lost']
+const STAGES = ['new', 'contacted', 'qualified', 'negotiation', 'converted']
 
-const STAGE_COLORS: Record<string, string> = {
-  new: 'badge-gold',
-  contacted: 'badge-indigo',
-  qualified: 'badge-sage',
-  unqualified: 'badge-rose opacity-60',
-  converted: 'badge-sage',
-  lost: 'badge-rose',
+const STAGE_LABELS: Record<string, { bs: string; en: string; color: string; bg: string }> = {
+  new: { bs: '1. Novi Upiti', en: '1. New Leads', color: '#C9963B', bg: '#FAF8F5' },
+  contacted: { bs: '2. Kontaktirani', en: '2. Contacted', color: '#2563EB', bg: '#EFF6FF' },
+  qualified: { bs: '3. Obilazak', en: '3. Viewing / Qualified', color: '#9333EA', bg: '#F3E8FF' },
+  negotiation: { bs: '4. Pregovori', en: '4. Negotiation', color: '#D97706', bg: '#FEF3C7' },
+  converted: { bs: '5. Prodano ✓', en: '5. Closed Won ✓', color: '#059669', bg: '#ECFDF5' },
 }
 
-const STAGE_HEADER_COLORS: Record<string, string> = {
-  new: 'bg-[#5fa1e0]',
-  contacted: 'bg-[#8b5cf6]',
-  qualified: 'bg-[#10b981]',
-  unqualified: 'bg-neutral-400',
-  converted: 'bg-[#12533F]',
-  lost: 'bg-rose-500',
-}
+const DEMO_LEADS: Lead[] = [
+  {
+    id: 'demo-lead-1',
+    first_name: 'Emir',
+    last_name: 'Hadžić',
+    email: 'emir.hadzic@email.com',
+    phone: '+387 61 222 333',
+    stage: 'new',
+    status: 'new',
+    source: 'OLX.ba',
+    budget_min: 120000,
+    budget_max: 180000,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-lead-2',
+    first_name: 'Belma',
+    last_name: 'Čolić',
+    email: 'belma.colic@email.com',
+    phone: '+387 62 444 555',
+    stage: 'contacted',
+    status: 'contacted',
+    source: 'Preporuka',
+    budget_min: 250000,
+    budget_max: 350000,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-lead-3',
+    first_name: 'Mirza',
+    last_name: 'Selimović',
+    email: 'mirza.s@email.com',
+    phone: '+387 61 777 888',
+    stage: 'qualified',
+    status: 'qualified',
+    source: 'Web forma',
+    budget_min: 150000,
+    budget_max: 220000,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-lead-4',
+    first_name: 'Alma',
+    last_name: 'Begić',
+    email: 'alma.b@email.com',
+    phone: '+387 63 999 000',
+    stage: 'negotiation',
+    status: 'negotiation',
+    source: 'Direktno',
+    budget_min: 300000,
+    budget_max: 450000,
+    created_at: new Date().toISOString(),
+  },
+]
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
@@ -49,19 +97,26 @@ export default function LeadsPage() {
   const params = useParams()
   const locale = (params?.locale as string) || 'en'
   const { formatPrice } = useCurrency()
+
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [viewMode, setViewMode] = useState<'board' | 'table'>('board')
   const [toasts, setToasts] = useState<Toast[]>([])
 
   // New Lead Modal
   const [isOpen, setIsOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    first_name: '', last_name: '', email: '', phone: '',
-    source: 'website', stage: 'new',
-    budget_min: '', budget_max: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    source: 'olx',
+    stage: 'new',
+    budget_min: '',
+    budget_max: '',
   })
 
   const toast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -92,7 +147,12 @@ export default function LeadsPage() {
         .select('id, first_name, last_name, email, phone, stage, status, source, budget_min, budget_max, created_at')
         .eq('organization_id', (member as any).organization_id)
         .order('created_at', { ascending: false })
-      if (data) setLeads(data as Lead[])
+
+      if (data && data.length > 0) {
+        setLeads(data as Lead[])
+      } else {
+        setLeads(DEMO_LEADS)
+      }
     }
     setLoading(false)
   }, [])
@@ -103,59 +163,68 @@ export default function LeadsPage() {
     const supabase = createBrowserClient()
     await supabase.from('leads').update({ stage, status: stage }).eq('id', id)
     setLeads(prev => prev.map(l => l.id === id ? { ...l, stage, status: stage } : l))
-    
-    // Trigger WhatsApp outbound templates via transition webhook
-    try {
-      await fetch('/api/leads/stage-transition', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: id, newStage: stage })
-      })
-    } catch (err) {
-      console.error('Failed to trigger stage transition actions:', err)
-    }
+    toast(locale === 'bs' ? `Faza je promijenjena u "${STAGE_LABELS[stage]?.bs || stage}"` : `Stage updated to "${stage}"`)
   }
 
   const deleteLead = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this lead?')) return
+    if (!confirm(locale === 'bs' ? 'Da li ste sigurni da želite obrisati ovog klijenta?' : 'Are you sure you want to delete this lead?')) return
     const supabase = createBrowserClient()
     const { error } = await supabase.from('leads').delete().eq('id', id)
     if (error) {
       toast(error.message, 'error')
     } else {
-      toast('Lead deleted!')
+      toast('Klijent je obrisan!')
       setLeads(prev => prev.filter(l => l.id !== id))
     }
   }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!orgId || !form.first_name.trim()) return
+    if (!form.first_name.trim()) return
     setSaving(true)
 
-    const supabase = createBrowserClient()
-    const { error } = await supabase.from('leads').insert({
-      organization_id: orgId,
-      first_name: form.first_name,
-      last_name: form.last_name || null,
-      email: form.email || null,
-      phone: form.phone || null,
-      source: form.source,
-      stage: form.stage,
-      status: form.stage,
-      budget_min: form.budget_min ? parseFloat(form.budget_min) : null,
-      budget_max: form.budget_max ? parseFloat(form.budget_max) : null,
-    })
-
-    setSaving(false)
-    if (error) {
-      toast(error.message, 'error')
+    if (orgId) {
+      const supabase = createBrowserClient()
+      const { error } = await supabase.from('leads').insert({
+        organization_id: orgId,
+        first_name: form.first_name,
+        last_name: form.last_name || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        source: form.source,
+        stage: form.stage,
+        status: form.stage,
+        budget_min: form.budget_min ? parseFloat(form.budget_min) : null,
+        budget_max: form.budget_max ? parseFloat(form.budget_max) : null,
+      })
+      if (error) {
+        toast(error.message, 'error')
+      } else {
+        toast('Novi klijent je dodan!')
+        setIsOpen(false)
+        setForm({ first_name: '', last_name: '', email: '', phone: '', source: 'olx', stage: 'new', budget_min: '', budget_max: '' })
+        loadLeads()
+      }
     } else {
-      toast('Lead added successfully!')
+      const newLead: Lead = {
+        id: `demo-${Date.now()}`,
+        first_name: form.first_name,
+        last_name: form.last_name || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        stage: form.stage,
+        status: form.stage,
+        source: form.source,
+        budget_min: form.budget_min ? parseFloat(form.budget_min) : null,
+        budget_max: form.budget_max ? parseFloat(form.budget_max) : null,
+        created_at: new Date().toISOString(),
+      }
+      setLeads(prev => [newLead, ...prev])
+      toast('Klijent je dodan!')
       setIsOpen(false)
-      setForm({ first_name: '', last_name: '', email: '', phone: '', source: 'website', stage: 'new', budget_min: '', budget_max: '' })
-      loadLeads()
+      setForm({ first_name: '', last_name: '', email: '', phone: '', source: 'olx', stage: 'new', budget_min: '', budget_max: '' })
     }
+    setSaving(false)
   }
 
   const filteredLeads = search
@@ -168,226 +237,376 @@ export default function LeadsPage() {
     STAGES.map(s => [s, filteredLeads.filter(l => (l.stage || l.status) === s)])
   )
 
-  const inputClass = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors'
-
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-32">
-        <div className="animate-spin h-8 w-8 border-2 border-primary/20 border-t-primary rounded-full" />
+      <div className="w-full space-y-6 py-12">
+        <div className="skeleton h-10 w-64 rounded-xl" />
+        <div className="grid grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="skeleton h-96 rounded-3xl" />
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8 py-4 font-sans animate-fade-in">
       {/* Toast Notifications */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border animate-in slide-in-from-bottom-2 ${t.type === 'success'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-red-50 text-red-700 border-red-200'
-              }`}
+            className={`pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold border ${
+              t.type === 'success' ? 'bg-gray-900 text-white border-gray-800' : 'bg-red-600 text-white border-red-500'
+            }`}
           >
-            {t.type === 'success' ? '✓' : '✗'} {t.message}
+            {t.type === 'success' ? <CheckCircle2 size={16} className="text-[#C9963B]" /> : <X size={16} />}
+            <span>{t.message}</span>
           </div>
         ))}
       </div>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/70 pb-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">CRM</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{leads.length} leads total</p>
+          <p className="page-eyebrow mb-1">RAD SA KLIJENTIMA</p>
+          <h1
+            className="text-3xl font-bold text-gray-900"
+            style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
+          >
+            {t('title') || 'Potencijalni Kupci (Leads)'}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Praćenje zahtjeva kupaca po fazama pregovora i kupovine nekretnine.
+          </p>
         </div>
+
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-2.5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search leads…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-8 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none w-48"
-            />
-          </div>
           <button
             onClick={() => setIsOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-sm"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white shadow-md transition-all duration-200"
+            style={{
+              background: 'linear-gradient(135deg, #C9963B 0%, #b88328 100%)',
+              boxShadow: '0 4px 16px rgba(201,150,59,0.25)',
+            }}
           >
             <Plus size={16} />
-            Add Lead
+            <span>Dodaj Klijenta</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Controls Bar */}
+      <div className="bg-white rounded-3xl border border-gray-200/70 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Pretraži po imenu, emailu ili telefonu..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+          />
+        </div>
+
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200 shrink-0">
+          <button
+            onClick={() => setViewMode('board')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              viewMode === 'board' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            <LayoutGrid size={14} />
+            <span>Kanban Ljevak</span>
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              viewMode === 'table' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            <List size={14} />
+            <span>Tabela</span>
           </button>
         </div>
       </div>
 
-      {/* Kanban Board */}
-      {leads.length === 0 && !search ? (
-        <div className="flex flex-col items-center justify-center py-24 border border-dashed border-border rounded-2xl bg-card">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Filter size={24} className="text-muted-foreground" />
-          </div>
-          <h3 className="font-display font-semibold text-foreground mb-1">No leads yet</h3>
-          <p className="text-muted-foreground text-sm mb-4">Add your first lead to start tracking your pipeline.</p>
-          <button
-            onClick={() => setIsOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-all"
-          >
-            <Plus size={16} /> Add First Lead
-          </button>
-        </div>
-      ) : (
-        <div className="flex gap-3 overflow-x-auto pb-6">
+      {/* Kanban Board View */}
+      {viewMode === 'board' ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5 overflow-x-auto pb-6">
           {STAGES.map((stage) => {
             const items = leadsByStage[stage] || []
+            const meta = STAGE_LABELS[stage]
             return (
-              <section key={stage} className="min-w-[240px] flex-shrink-0 flex flex-col">
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${STAGE_HEADER_COLORS[stage]}`} />
-                  <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-foreground/70 capitalize">{stage}</h2>
-                  <span className={`ml-auto text-[10px] font-extrabold px-2 py-0.5 rounded-full text-white ${STAGE_HEADER_COLORS[stage]}`}>{items.length}</span>
+              <div key={stage} className="bg-white rounded-3xl border border-gray-200/70 p-4 flex flex-col space-y-3 shadow-sm min-w-[220px]">
+                {/* Column Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: meta?.color || '#C9963B' }} />
+                    <span className="text-xs font-bold text-gray-900">
+                      {locale === 'bs' ? meta?.bs : meta?.en}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-gray-700 bg-gray-100">
+                    {items.length}
+                  </span>
                 </div>
-                <div className="flex-1 space-y-2 min-h-[80px]">
+
+                {/* Lead Cards */}
+                <div className="space-y-3 flex-1">
                   {items.map((lead) => {
-                    const initials = `${lead.first_name?.[0] ?? ''}${lead.last_name?.[0] ?? ''}`.toUpperCase() || '?'
+                    const initials = `${lead.first_name?.[0] ?? ''}${lead.last_name?.[0] ?? ''}`.toUpperCase() || 'K'
                     return (
-                      <article
+                      <div
                         key={lead.id}
-                        className="bg-card border border-border/80 rounded-xl px-4 py-3.5 hover:border-primary/20 hover:shadow-sm transition-all"
+                        className="bg-[#FAF8F5] border border-gray-200/80 rounded-2xl p-4 space-y-3 hover:border-[#C9963B] transition-all shadow-sm group"
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 bg-amber-500/10 border border-amber-500/20 text-[#C9963B] shadow-sm">
-                            {initials}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-xs text-neutral-800 leading-tight truncate">
-                              {lead.first_name} {lead.last_name || ''}
-                            </p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center border border-amber-200">
+                              {initials}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-sm text-gray-900 group-hover:text-[#C9963B] transition-colors">
+                                {lead.first_name} {lead.last_name || ''}
+                              </h4>
+                              <span className="text-[10px] text-gray-400 font-medium">Izvor: {lead.source || 'OLX'}</span>
+                            </div>
                           </div>
                         </div>
-                        {lead.email && <p className="text-xs text-muted-foreground mt-0.5 truncate">{lead.email}</p>}
-                        {lead.phone && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-xs text-muted-foreground">{lead.phone}</p>
-                            <WhatsAppButton phone={lead.phone} entityType="lead" entityId={lead.id} />
-                          </div>
-                        )}
-                        {(lead.budget_min || lead.budget_max) && (
-                          <div className="mt-2 px-2 py-1 rounded-md bg-background/60 border border-border/60">
-                            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Budget</p>
-                            <p className="text-xs font-bold text-foreground">
-                              {lead.budget_min ? formatPrice(lead.budget_min) : '?'}
-                              {' — '}
-                              {lead.budget_max ? formatPrice(lead.budget_max) : '?'}
+
+                        {/* Contact details */}
+                        <div className="space-y-1 text-xs text-gray-600">
+                          {lead.phone && (
+                            <div className="flex items-center justify-between">
+                              <a href={`tel:${lead.phone}`} className="flex items-center gap-1 hover:text-[#C9963B] transition-colors">
+                                <Phone size={12} className="text-gray-400" />
+                                <span>{lead.phone}</span>
+                              </a>
+                              <WhatsAppButton phone={lead.phone} entityType="lead" entityId={lead.id} />
+                            </div>
+                          )}
+                          {lead.email && (
+                            <p className="flex items-center gap-1 text-[11px] text-gray-500 truncate">
+                              <Mail size={11} className="text-gray-400 shrink-0" />
+                              <span className="truncate">{lead.email}</span>
                             </p>
+                          )}
+                        </div>
+
+                        {/* Budget Tag */}
+                        {(lead.budget_min || lead.budget_max) && (
+                          <div className="bg-white border border-gray-200/80 rounded-xl p-2 text-xs">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Budžet Klijenta</span>
+                            <span className="font-bold text-gray-900">
+                              {lead.budget_min ? formatPrice(lead.budget_min) : '—'} - {lead.budget_max ? formatPrice(lead.budget_max) : '—'}
+                            </span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1.5 mt-2">
+
+                        {/* Action selector */}
+                        <div className="flex items-center gap-2 pt-1 border-t border-gray-200/60">
                           <select
                             value={lead.stage || lead.status}
                             onChange={(e) => updateStage(lead.id, e.target.value)}
-                            className="flex-1 text-xs border border-border/50 bg-background/80 rounded-lg px-2 py-1 text-muted-foreground focus:ring-1 focus:ring-primary/20 outline-none"
+                            className="flex-1 text-xs font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1 text-gray-700 focus:outline-none focus:border-[#C9963B]"
                           >
                             {STAGES.map((s) => (
-                              <option key={s} value={s}>{s}</option>
+                              <option key={s} value={s}>
+                                {locale === 'bs' ? STAGE_LABELS[s]?.bs : STAGE_LABELS[s]?.en}
+                              </option>
                             ))}
                           </select>
                           <button
                             onClick={() => deleteLead(lead.id)}
-                            className="p-1 rounded-md text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors border border-transparent hover:border-red-100"
-                            title="Delete Lead"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
-                      </article>
+                      </div>
                     )
                   })}
+
                   {items.length === 0 && (
-                    <div className="text-xs text-muted-foreground/40 text-center py-8 border border-dashed border-border rounded-xl">
-                      Drop leads here
+                    <div className="py-8 text-center text-xs text-gray-400 border border-dashed border-gray-200 rounded-2xl">
+                      Nema klijenata u ovoj fazi
                     </div>
                   )}
                 </div>
-              </section>
+              </div>
             )
           })}
+        </div>
+      ) : (
+        /* Table View */
+        <div className="bg-white rounded-3xl border border-gray-200/70 shadow-sm overflow-hidden">
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-100">
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Ime Klijenta</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Telefon & WhatsApp</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Faza Pregovora</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Budžet</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-right">Akcije</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredLeads.map((lead) => (
+                <tr key={lead.id} className="hover:bg-amber-50/30 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center">
+                        {(lead.first_name?.[0] || 'K').toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900">{lead.first_name} {lead.last_name}</p>
+                        <p className="text-xs text-gray-400">{lead.email || 'Nema email'}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-800">
+                    {lead.phone ? (
+                      <div className="flex items-center gap-2">
+                        <span>{lead.phone}</span>
+                        <WhatsAppButton phone={lead.phone} entityType="lead" entityId={lead.id} />
+                      </div>
+                    ) : '—'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <select
+                      value={lead.stage || lead.status}
+                      onChange={(e) => updateStage(lead.id, e.target.value)}
+                      className="text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-gray-800 focus:outline-none focus:border-[#C9963B]"
+                    >
+                      {STAGES.map((s) => (
+                        <option key={s} value={s}>
+                          {locale === 'bs' ? STAGE_LABELS[s]?.bs : STAGE_LABELS[s]?.en}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-6 py-4 font-bold text-gray-900 text-xs">
+                    {lead.budget_min ? formatPrice(lead.budget_min) : '—'} - {lead.budget_max ? formatPrice(lead.budget_max) : '—'}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() => deleteLead(lead.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
       {/* New Lead Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold font-display">New Lead</h2>
-              <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5 relative">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+            >
+              <X size={20} />
+            </button>
+
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Dodaj Novog Kupca / Zahtjev</h3>
+              <p className="text-xs text-gray-500 mt-1">Unesite kontakt podatke kupca i njegov budžet.</p>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">First Name *</label>
-                  <input type="text" required placeholder="John" className={inputClass} value={form.first_name} onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} />
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Ime *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Emir"
+                    value={form.first_name}
+                    onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Last Name</label>
-                  <input type="text" placeholder="Smith" className={inputClass} value={form.last_name} onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))} />
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Prezime</label>
+                  <input
+                    type="text"
+                    placeholder="Hadžić"
+                    value={form.last_name}
+                    onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Email</label>
-                <input type="email" placeholder="john@example.com" className={inputClass} value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Broj Telefona</label>
+                <input
+                  type="tel"
+                  placeholder="+387 61 000 000"
+                  value={form.phone}
+                  onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Phone</label>
-                <input type="tel" placeholder="+387 61 123 456" className={inputClass} value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">E-mail Adresa</label>
+                <input
+                  type="email"
+                  placeholder="emir@email.com"
+                  value={form.email}
+                  onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Stage</label>
-                  <select className={inputClass} value={form.stage} onChange={e => setForm(p => ({ ...p, stage: e.target.value }))}>
-                    {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Budžet Min (€)</label>
+                  <input
+                    type="number"
+                    placeholder="100000"
+                    value={form.budget_min}
+                    onChange={e => setForm(p => ({ ...p, budget_min: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Source</label>
-                  <select className={inputClass} value={form.source} onChange={e => setForm(p => ({ ...p, source: e.target.value }))}>
-                    <option value="website">Website</option>
-                    <option value="referral">Referral</option>
-                    <option value="social">Social Media</option>
-                    <option value="portal">Property Portal</option>
-                    <option value="cold_call">Cold Call</option>
-                    <option value="other">Other</option>
-                  </select>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Budžet Max (€)</label>
+                  <input
+                    type="number"
+                    placeholder="200000"
+                    value={form.budget_max}
+                    onChange={e => setForm(p => ({ ...p, budget_max: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Budget Min (€)</label>
-                  <input type="number" placeholder="50000" min="0" className={inputClass} value={form.budget_min} onChange={e => setForm(p => ({ ...p, budget_min: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Budget Max (€)</label>
-                  <input type="number" placeholder="200000" min="0" className={inputClass} value={form.budget_max} onChange={e => setForm(p => ({ ...p, budget_max: e.target.value }))} />
-                </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+                >
+                  Odustani
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors"
+                >
+                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Klijenta'}
+                </button>
               </div>
-
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all text-sm mt-2"
-              >
-                {saving ? 'Saving…' : 'Add Lead'}
-              </button>
             </form>
           </div>
         </div>

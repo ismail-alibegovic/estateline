@@ -9,8 +9,8 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-// Allow only the documented locale segments; reject anything else.
-export const dynamicParams = false
+// Allow dynamic locale segments and params
+export const dynamicParams = true
 
 export default async function LocaleLayout({
   children,

@@ -18,6 +18,13 @@ import {
   BarChart3,
   Bell,
   ChevronDown,
+  Plus,
+  FileText,
+  MessageSquare,
+  DollarSign,
+  ClipboardList,
+  Eye,
+  Receipt,
 } from 'lucide-react'
 
 interface Session {
@@ -32,6 +39,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const locale = (params?.locale as string) || 'en'
   const t = useTranslations('nav')
+  const tDash = useTranslations('dashboard')
+  const tCommon = useTranslations('common')
   const { currency, setCurrency } = useCurrency()
 
   const handleLanguageChange = (newLocale: string) => {
@@ -83,122 +92,150 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return rel === '/dashboard' ? pathname.endsWith('/dashboard') : pathname.includes(rel)
   }
 
-  const NAV = [
-    { href: `/${locale}/dashboard`, label: t('overview') || 'Dashboard', icon: <LayoutGrid size={18} /> },
+  // Fully translated navigation groups
+  const NAV_MAIN = [
+    { href: `/${locale}/dashboard`, label: t('overview') || 'Overview', icon: <LayoutGrid size={18} /> },
     { href: `/${locale}/dashboard/pipeline`, label: t('pipeline') || 'Pipeline', icon: <Briefcase size={18} /> },
     { href: `/${locale}/dashboard/leads`, label: t('leads') || 'Leads', icon: <Users size={18} /> },
     { href: `/${locale}/dashboard/properties`, label: t('properties') || 'Properties', icon: <Building2 size={18} /> },
+  ]
+
+  const NAV_TOOLS = [
     { href: `/${locale}/dashboard/calendar`, label: t('calendar') || 'Calendar', icon: <CalendarDays size={18} /> },
+    { href: `/${locale}/dashboard/tasks`, label: t('tasks') || 'Tasks', icon: <ClipboardList size={18} /> },
+    { href: `/${locale}/dashboard/communications`, label: t('communications') || 'Messages', icon: <MessageSquare size={18} /> },
+    { href: `/${locale}/dashboard/documents`, label: t('documents') || 'Documents', icon: <FileText size={18} /> },
+  ]
+
+  const NAV_FINANCE = [
+    { href: `/${locale}/dashboard/quotes`, label: t('quotes') || 'Quotes', icon: <Receipt size={18} /> },
+    { href: `/${locale}/dashboard/invoices`, label: t('invoices') || 'Invoices', icon: <DollarSign size={18} /> },
+    { href: `/${locale}/dashboard/financials`, label: t('billing') || 'Financials', icon: <BarChart3 size={18} /> },
+    { href: `/${locale}/dashboard/viewings`, label: t('viewings') || 'Viewings', icon: <Eye size={18} /> },
     { href: `/${locale}/dashboard/reports`, label: t('reports') || 'Reports', icon: <BarChart3 size={18} /> },
-    { href: `/${locale}/dashboard/settings/profile`, label: t('settings') || 'Settings', icon: <Settings size={18} /> },
   ]
 
   const initials = session.user?.full_name
     ? session.user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : session.user?.email?.[0]?.toUpperCase() || 'U'
 
+  const renderNavItem = (item: { href: string; label: string; icon: React.ReactNode }) => {
+    const active = isActive(item.href)
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className="sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-[13px]"
+        style={{
+          color: active ? '#FFFFFF' : '#6B7280',
+          background: active ? 'linear-gradient(135deg, #C9963B, #d4a248)' : 'transparent',
+          boxShadow: active ? '0 2px 8px rgba(201,150,59,0.3)' : 'none',
+        }}
+        onMouseEnter={e => {
+          if (!active) {
+            e.currentTarget.style.color = '#374151'
+            e.currentTarget.style.background = 'rgba(201,150,59,0.06)'
+          }
+        }}
+        onMouseLeave={e => {
+          if (!active) {
+            e.currentTarget.style.color = '#6B7280'
+            e.currentTarget.style.background = 'transparent'
+          }
+        }}
+      >
+        <span className="sidebar-icon shrink-0" style={{ opacity: active ? 1 : 0.7 }}>
+          {item.icon}
+        </span>
+        <span className="truncate">{item.label}</span>
+      </Link>
+    )
+  }
+
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-gray-50">
       {/* ═══════════════════════════════════════════════════════════
-          SIDEBAR — Light Cream/Beige
+          SIDEBAR — Clean Luxury Header + Grouped Navigation
       ═══════════════════════════════════════════════════════════ */}
       <aside
         className="flex flex-col h-full shrink-0 overflow-hidden"
         style={{
-          width: 240,
-          background: '#F5F1EB',
-          borderRight: '1px solid rgba(0,0,0,0.05)',
+          width: 250,
+          background: 'linear-gradient(180deg, #F5F1EB 0%, #F0EBE3 100%)',
+          borderRight: '1px solid rgba(0,0,0,0.06)',
         }}
       >
-        {/* ─── Logo ─── */}
+        {/* ─── Clean Logo Header ─── */}
         <div
           className="flex items-center shrink-0"
-          style={{
-            height: 64,
-            padding: '0 20px',
-          }}
+          style={{ height: 64, padding: '0 20px' }}
         >
-          <Link href={`/${locale}/dashboard`} className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
-            {/* Logo mark: gold gradient square */}
-            <div
-              className="shrink-0 flex items-center justify-center rounded-[8px]"
-              style={{
-                width: 32,
-                height: 32,
-                background: 'linear-gradient(135deg, #C9963B 0%, #f0c068 55%, #9a6c1a 100%)',
-                boxShadow: '0 2px 8px rgba(201,150,59,0.25)',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
+          <Link href={`/${locale}/dashboard`} className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden group">
+            <div className="shrink-0 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+              <img
+                src="/logo-icon.png"
+                alt="EstateLine"
+                className="w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(201,150,59,0.3)]"
+                style={{ mixBlendMode: 'multiply' }}
+              />
             </div>
             <div className="min-w-0 overflow-hidden">
-              <p
-                className="truncate leading-none"
+              <span
+                className="block truncate leading-none font-bold"
                 style={{
-                  fontFamily: 'var(--font-display), Georgia, serif',
+                  fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif',
                   fontSize: 20,
-                  fontWeight: 700,
                   color: '#1F2937',
                   letterSpacing: '-0.01em',
                 }}
               >
-                Estateline
-              </p>
+                EstateLine
+              </span>
+              {session.org?.name && session.org.name.toLowerCase() !== 'estateline' && (
+                <span className="block text-[10px] font-medium text-gray-400 truncate mt-0.5">{session.org.name}</span>
+              )}
             </div>
           </Link>
         </div>
 
         {/* ─── Navigation ─── */}
-        <nav className="flex-1 overflow-y-auto py-4 px-4 flex flex-col gap-1.5">
-          {NAV.map((item) => {
-            const active = isActive(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-[13.5px]"
-                style={{
-                  color: active ? '#FFFFFF' : '#6B7280',
-                  background: active ? '#C9963B' : 'transparent',
-                }}
-                onMouseEnter={e => {
-                  if (!active) {
-                    e.currentTarget.style.color = '#374151'
-                    e.currentTarget.style.background = 'rgba(0,0,0,0.03)'
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!active) {
-                    e.currentTarget.style.color = '#6B7280'
-                    e.currentTarget.style.background = 'transparent'
-                  }
-                }}
-              >
-                <span className="sidebar-icon shrink-0" style={{ opacity: active ? 1 : 0.75 }}>
-                  {item.icon}
-                </span>
-                <span className="truncate">{item.label}</span>
-              </Link>
-            )
-          })}
+        <nav className="flex-1 overflow-y-auto py-3 px-3 flex flex-col gap-0.5">
+          {/* Main section */}
+          <div className="section-label mb-2 mt-1">{t('main') || 'MAIN'}</div>
+          {NAV_MAIN.map(renderNavItem)}
+
+          {/* Tools section */}
+          <div className="section-label mb-2 mt-5">{t('tools') || 'TOOLS'}</div>
+          {NAV_TOOLS.map(renderNavItem)}
+
+          {/* Finance section */}
+          <div className="section-label mb-2 mt-5">{t('finance') || 'FINANCE & REPORTS'}</div>
+          {NAV_FINANCE.map(renderNavItem)}
+
+          {/* Settings */}
+          <div className="mt-auto pt-2">
+            {renderNavItem({
+              href: `/${locale}/dashboard/settings/profile`,
+              label: t('settings') || 'Settings',
+              icon: <Settings size={18} />
+            })}
+          </div>
         </nav>
 
         {/* ─── Bottom Actions ─── */}
-        <div className="shrink-0 p-4 flex flex-col gap-4" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="shrink-0 p-4 flex flex-col gap-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
           {/* Toggles */}
           <div className="flex gap-2">
             {/* Language */}
             <div className="flex-1">
-              <div className="flex rounded-md overflow-hidden bg-white/60 border border-gray-200">
+              <div className="flex rounded-lg overflow-hidden bg-white/70 border border-gray-200/60 shadow-sm">
                 {(['en', 'bs'] as const).map(lang => (
                   <button
                     key={lang}
                     onClick={() => handleLanguageChange(lang)}
-                    className="flex-1 py-1.5 text-[10px] font-bold uppercase transition-all"
+                    className="flex-1 py-1.5 text-[10px] font-bold uppercase transition-all duration-200"
                     style={{
-                      background: locale === lang ? '#C9963B' : 'transparent',
+                      background: locale === lang ? 'linear-gradient(135deg, #C9963B, #d4a248)' : 'transparent',
                       color: locale === lang ? '#FFFFFF' : '#6B7280',
                     }}
                   >
@@ -210,14 +247,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Currency */}
             <div className="flex-1">
-              <div className="flex rounded-md overflow-hidden bg-white/60 border border-gray-200">
+              <div className="flex rounded-lg overflow-hidden bg-white/70 border border-gray-200/60 shadow-sm">
                 {(['BAM', 'EUR'] as const).map(cur => (
                   <button
                     key={cur}
                     onClick={() => setCurrency(cur as any)}
-                    className="flex-1 py-1.5 text-[10px] font-bold uppercase transition-all"
+                    className="flex-1 py-1.5 text-[10px] font-bold uppercase transition-all duration-200"
                     style={{
-                      background: currency === cur ? '#C9963B' : 'transparent',
+                      background: currency === cur ? 'linear-gradient(135deg, #C9963B, #d4a248)' : 'transparent',
                       color: currency === cur ? '#FFFFFF' : '#6B7280',
                     }}
                   >
@@ -232,10 +269,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <form action="/api/auth/signout" method="POST">
             <button
               type="submit"
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-[13.5px] text-[#EF4444] hover:bg-red-50/50"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 font-medium text-[13px] text-red-400 hover:text-red-500 hover:bg-red-50/60"
             >
-              <LogOut size={18} />
-              <span>Log Out</span>
+              <LogOut size={17} />
+              <span>{tCommon('signOut') || 'Log Out'}</span>
             </button>
           </form>
         </div>
@@ -249,7 +286,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div
           className="h-[64px] flex items-center px-6 shrink-0 gap-4"
           style={{
-            background: '#FFFFFF',
+            background: 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             borderBottom: '1px solid rgba(0,0,0,0.05)',
           }}
         >
@@ -259,44 +298,70 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4">
             {/* Add New Lead button */}
             <button
-              className="px-4 py-2 rounded-md text-sm font-semibold transition-colors shadow-sm"
+              onClick={() => router.push(`/${locale}/dashboard/leads`)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm"
               style={{
-                background: '#C9963B',
+                background: 'linear-gradient(135deg, #C9963B 0%, #d4a248 100%)',
                 color: '#FFFFFF',
+                boxShadow: '0 2px 8px rgba(201,150,59,0.25)',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#b88631')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#C9963B')}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-1px)'
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(201,150,59,0.35)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(201,150,59,0.25)'
+              }}
             >
-              Add New Lead
+              <Plus size={16} strokeWidth={2.5} />
+              {tDash('addNewLead') || 'Add New Lead'}
             </button>
 
             {/* Notification Bell */}
-            <button className="text-gray-400 hover:text-gray-600 transition-colors relative">
+            <button
+              onClick={() => router.push(`/${locale}/dashboard/communications`)}
+              className="relative text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-lg hover:bg-gray-50"
+            >
               <Bell size={20} />
-              {/* Optional notification dot */}
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              <span
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-white"
+                style={{ background: '#EF4444' }}
+              />
             </button>
 
+            {/* Separator */}
+            <div className="w-px h-8 bg-gray-100" />
+
             {/* User Profile */}
-            <div className="flex items-center gap-3 cursor-pointer pl-5 border-l border-gray-100">
+            <Link
+              href={`/${locale}/dashboard/settings/profile`}
+              className="flex items-center gap-3 cursor-pointer group"
+            >
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-transform duration-200 group-hover:scale-105"
                 style={{
                   background: 'linear-gradient(135deg, #F3E8D6, #E8D3B1)',
                   color: '#9A6C1A',
                   fontFamily: 'var(--font-body), sans-serif',
+                  boxShadow: '0 2px 6px rgba(201,150,59,0.15)',
                 }}
               >
                 {initials}
               </div>
-              <span className="text-sm font-medium text-gray-700 hidden sm:block">
-                {session.user?.full_name || session.user?.email || 'User'}
-              </span>
-              <ChevronDown size={14} className="text-gray-400" />
-            </div>
+              <div className="hidden sm:block">
+                <p className="text-sm font-semibold text-gray-800 leading-tight">
+                  {session.user?.full_name || session.user?.email || 'User'}
+                </p>
+                {session.org && (
+                  <p className="text-[10px] text-gray-400 leading-tight">{session.org.subscription_tier || 'Pro'}</p>
+                )}
+              </div>
+              <ChevronDown size={14} className="text-gray-400 transition-transform duration-200 group-hover:rotate-180" />
+            </Link>
           </div>
         </div>
 

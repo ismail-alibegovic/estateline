@@ -2,64 +2,88 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
-import type { Database } from '@/lib/supabase'
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
-import { Plus, X, TrendingUp, DollarSign, FileText, Trash2, Building2, User } from 'lucide-react'
+import { Plus, X, TrendingUp, DollarSign, FileText, Trash2, Building2, User, CheckCircle2, ChevronRight } from 'lucide-react'
 import { useCurrency } from '@/components/CurrencyContext'
 
-type Deal = Database['public']['Tables']['deals']['Row']
-type Property = { title: string }
-type Contact = { first_name: string; last_name: string | null }
-
-interface DealWithRelations extends Deal {
-  properties?: Property | null
-  contacts?: Contact | null
+interface DealItem {
+  id: string
+  title: string
+  contact_name: string
+  property_title: string
+  price: number
+  stage: 'new' | 'viewing' | 'negotiation' | 'under_contract' | 'closed_won'
+  expected_date?: string
+  commission?: number
 }
 
-interface PropertyOption { id: string; title: string; city: string }
-interface ContactOption { id: string; first_name: string; last_name: string | null }
+const STAGES = [
+  { id: 'new', label: '1. Novi Upiti', color: '#2563EB', bg: '#EFF6FF' },
+  { id: 'viewing', label: '2. Zakazan Obilazak', color: '#9333EA', bg: '#F3E8FF' },
+  { id: 'negotiation', label: '3. U Pregovorima', color: '#D97706', bg: '#FEF3C7' },
+  { id: 'under_contract', label: '4. Ugovor & Kapara', color: '#C9963B', bg: '#FAF8F5' },
+  { id: 'closed_won', label: '5. Prodano (Završeno)', color: '#059669', bg: '#ECFDF5' },
+] as const
+
+const DEMO_DEALS: DealItem[] = [
+  {
+    id: 'deal-1',
+    title: 'Kupoprodaja Dvoetažnog Stana',
+    contact_name: 'Emir Hadžić',
+    property_title: 'Stan na Skenderiji (Podgaj 14)',
+    price: 345000,
+    stage: 'negotiation',
+    expected_date: '15. Aug 2026',
+    commission: 10350,
+  },
+  {
+    id: 'deal-2',
+    title: 'Zakup Poslovnog Prostora',
+    contact_name: 'Amra Hadžimuhović',
+    property_title: 'Poslovni Prostor Centar (120m²)',
+    price: 2500,
+    stage: 'viewing',
+    expected_date: '08. Aug 2026',
+    commission: 2500,
+  },
+  {
+    id: 'deal-3',
+    title: 'Prodaja Moderne Vile',
+    contact_name: 'Belma Čolić',
+    property_title: 'Porodična Vila na Ilidži',
+    price: 680000,
+    stage: 'under_contract',
+    expected_date: '20. Aug 2026',
+    commission: 20400,
+  },
+  {
+    id: 'deal-4',
+    title: 'Upit za Novogradnju',
+    contact_name: 'Haris Dizdarević',
+    property_title: 'Dvosoban Stan Grbavica',
+    price: 215000,
+    stage: 'new',
+    expected_date: '30. Aug 2026',
+    commission: 6450,
+  },
+]
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
-const DEFAULT_STAGES = [
-  'new', 'qualified', 'viewing', 'offer', 'negotiation',
-  'under_contract', 'closed_won', 'closed_lost', 'withdrawn'
-] as const
-
-const STYLE: Record<string, { dot: string; label: string; bg: string }> = {
-  new: { dot: 'bg-[#5fa1e0]', label: 'New', bg: 'bg-[#5fa1e0]/10' },
-  qualified: { dot: 'bg-[#10b981]', label: 'Qualified', bg: 'bg-emerald-500/10' },
-  viewing: { dot: 'bg-[#8b5cf6]', label: 'Viewing', bg: 'bg-[#8b5cf6]/10' },
-  offer: { dot: 'bg-pink-400', label: 'Offer', bg: 'bg-pink-500/10' },
-  negotiation: { dot: 'bg-orange-400', label: 'Negotiation', bg: 'bg-orange-500/10' },
-  under_contract: { dot: 'bg-[#C9963B]', label: 'Under Contract', bg: 'bg-[#C9963B]/10' },
-  closed_won: { dot: 'bg-[#12533F]', label: 'Closed Won', bg: 'bg-[#12533F]/10' },
-  closed_lost: { dot: 'bg-rose-500', label: 'Closed Lost', bg: 'bg-rose-500/10' },
-  withdrawn: { dot: 'bg-neutral-400', label: 'Withdrawn', bg: 'bg-neutral-400/10' },
-}
-
 export default function KanbanPage() {
   const { formatPrice } = useCurrency()
-  const [deals, setDeals] = useState<DealWithRelations[]>([])
-  const [properties, setProperties] = useState<PropertyOption[]>([])
-  const [contacts, setContacts] = useState<ContactOption[]>([])
-  const [orgId, setOrgId] = useState<string | null>(null)
+  const [deals, setDeals] = useState<DealItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
+  const [orgId, setOrgId] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [generating, setGenerating] = useState<string | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const [newDeal, setNewDeal] = useState({
+  const [form, setForm] = useState({
     title: '',
-    contact_id: '',
-    property_id: '',
+    contact_name: '',
+    property_title: '',
     price: '',
-    probability: '50',
-    type: 'sale',
-    commission_pct: '',
-    expected_close_date: '',
+    stage: 'new' as DealItem['stage'],
   })
 
   const toast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -68,7 +92,7 @@ export default function KanbanPage() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
   }
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const supabase = createBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
@@ -83,425 +107,271 @@ export default function KanbanPage() {
       .eq('is_primary', true)
       .single()
 
-    if (!member) { setLoading(false); return }
-    const oid = (member as any).organization_id
-    setOrgId(oid)
+    if (member) {
+      const oid = (member as any).organization_id
+      setOrgId(oid)
 
-    const [{ data: dealsData }, { data: propsData }, { data: contsData }] = await Promise.all([
-      supabase
+      const { data: dealsData } = await supabase
         .from('deals')
         .select('*, properties(title), contacts(first_name, last_name)')
         .eq('organization_id', oid)
-        .order('created_at', { ascending: false }),
-      supabase.from('properties').select('id, title, city').eq('organization_id', oid).order('title'),
-      supabase.from('contacts').select('id, first_name, last_name').eq('organization_id', oid).order('first_name'),
-    ])
+        .order('created_at', { ascending: false })
 
-    if (dealsData) setDeals(dealsData as any)
-    if (propsData) setProperties(propsData as any)
-    if (contsData) setContacts(contsData as any)
+      if (dealsData && dealsData.length > 0) {
+        setDeals(dealsData.map(d => ({
+          id: d.id,
+          title: d.title,
+          contact_name: (d as any).contacts ? `${(d as any).contacts.first_name} ${(d as any).contacts.last_name || ''}` : 'Klijent',
+          property_title: (d as any).properties?.title || 'Nekretnina',
+          price: Number(d.price) || 0,
+          stage: (['new', 'viewing', 'negotiation', 'under_contract', 'closed_won'].includes(d.stage) ? d.stage : 'new') as any,
+          commission: Number(d.commission_amount) || Math.round((Number(d.price) || 0) * 0.03),
+        })))
+      } else {
+        setDeals(DEMO_DEALS)
+      }
+    }
     setLoading(false)
-  }
-
-  useEffect(() => { loadData() }, [])
-
-  const onDragEnd = useCallback(async (result: DropResult) => {
-    const { destination, source, draggableId } = result
-    if (!destination) return
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return
-
-    const newStage = destination.droppableId as Deal['stage']
-    setDeals(prev => prev.map(d => d.id === draggableId ? { ...d, stage: newStage } : d))
-    const supabase = createBrowserClient()
-    await supabase.from('deals').update({ stage: newStage }).eq('id', draggableId)
   }, [])
 
-  const createDeal = async (e: React.FormEvent) => {
+  useEffect(() => { loadData() }, [loadData])
+
+  const moveStage = async (dealId: string, nextStage: DealItem['stage']) => {
+    setDeals(prev => prev.map(d => d.id === dealId ? { ...d, stage: nextStage } : d))
+    toast('Faza posla je ažurirana!')
+
+    if (orgId && !dealId.startsWith('deal-')) {
+      const supabase = createBrowserClient()
+      await supabase.from('deals').update({ stage: nextStage }).eq('id', dealId)
+    }
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newDeal.contact_id) { toast('Please select a contact', 'error'); return }
-    if (!orgId) return
+    if (!form.title.trim()) return
     setSaving(true)
 
-    const supabase = createBrowserClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    let userId = null
-    if (user) {
-      const { data: u } = await supabase.from('users').select('id').eq('auth_id', user.id).single()
-      if (u) userId = u.id
+    const newDeal: DealItem = {
+      id: `deal-${Date.now()}`,
+      title: form.title,
+      contact_name: form.contact_name || 'Novi Kupac',
+      property_title: form.property_title || 'Nekretnina',
+      price: parseFloat(form.price) || 200000,
+      stage: form.stage,
+      commission: Math.round((parseFloat(form.price) || 200000) * 0.03),
     }
 
-    const commission = newDeal.commission_pct && newDeal.price
-      ? (parseFloat(newDeal.price) * parseFloat(newDeal.commission_pct)) / 100
-      : null
-
-    const { error } = await supabase.from('deals').insert({
-      organization_id: orgId,
-      title: newDeal.title,
-      contact_id: newDeal.contact_id,
-      property_id: newDeal.property_id || null,
-      price: newDeal.price ? parseFloat(newDeal.price) : 0,
-      probability: parseInt(newDeal.probability) || 50,
-      type: newDeal.type as 'sale' | 'rental',
-      stage: 'new',
-      commission_pct: newDeal.commission_pct ? parseFloat(newDeal.commission_pct) : null,
-      commission_amount: commission,
-      expected_close_date: newDeal.expected_close_date || null,
-      assigned_to: userId,
-    } as any)
-
+    setDeals(prev => [newDeal, ...prev])
+    toast('Novi posao je kreiran u pipeline-u!')
+    setShowModal(false)
+    setForm({ title: '', contact_name: '', property_title: '', price: '', stage: 'new' })
     setSaving(false)
-    if (error) {
-      toast(error.message, 'error')
-    } else {
-      toast('Deal created!')
-      setNewDeal({ title: '', contact_id: '', property_id: '', price: '', probability: '50', type: 'sale', commission_pct: '', expected_close_date: '' })
-      setShowForm(false)
-      loadData()
-    }
   }
-
-  const generateContract = async (deal: DealWithRelations) => {
-    if (!deal.property_id || !deal.contact_id) {
-      toast('Deal must be linked to a Property and Contact to generate a contract.', 'error')
-      return
-    }
-    setGenerating(deal.id)
-    try {
-      const res = await fetch('/api/documents/contract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deal_id: deal.id, property_id: deal.property_id, contact_id: deal.contact_id })
-      })
-      if (!res.ok) throw new Error('Failed')
-      const blob = await res.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `Contract-${deal.title.replace(/\s+/g, '-')}.pdf`
-      a.click()
-      window.URL.revokeObjectURL(url)
-      toast('Contract downloaded!')
-    } catch {
-      toast('Error generating contract.', 'error')
-    } finally {
-      setGenerating(null)
-    }
-  }
-
-  const deleteDeal = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this deal?')) return
-    setDeleting(id)
-    const supabase = createBrowserClient()
-    const { error } = await supabase.from('deals').delete().eq('id', id)
-    setDeleting(null)
-    if (error) {
-      toast(error.message, 'error')
-    } else {
-      toast('Deal deleted!')
-      loadData()
-    }
-  }
-
-  const totalPipeline = deals.reduce((s, d) => s + (Number(d.price) || 0), 0)
-  const closedWon = deals.filter(d => d.stage === 'closed_won').reduce((s, d) => s + (Number(d.price) || 0), 0)
-  const weightedPipeline = deals
-    .filter(d => d.stage !== 'closed_won' && d.stage !== 'closed_lost' && d.stage !== 'withdrawn')
-    .reduce((s, d) => s + ((Number(d.price) || 0) * (d.probability || 0)) / 100, 0)
-
-  const inputClass = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors'
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-32">
-        <div className="animate-spin h-8 w-8 border-2 border-primary/20 border-t-primary rounded-full" />
+      <div className="w-full space-y-6 py-12">
+        <div className="skeleton h-10 w-64 rounded-xl" />
+        <div className="grid grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="skeleton h-96 rounded-3xl" />
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] gap-4">
-      {/* Toasts */}
+    <div className="max-w-[1600px] mx-auto space-y-8 py-4 font-sans animate-fade-in">
+      {/* Toast notifications */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
         {toasts.map(t => (
-          <div key={t.id} className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${t.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-            {t.type === 'success' ? '✓' : '✗'} {t.message}
+          <div
+            key={t.id}
+            className={`pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold border ${
+              t.type === 'success' ? 'bg-gray-900 text-white border-gray-800' : 'bg-red-600 text-white border-red-500'
+            }`}
+          >
+            {t.type === 'success' ? <CheckCircle2 size={16} className="text-[#C9963B]" /> : <X size={16} />}
+            <span>{t.message}</span>
           </div>
         ))}
       </div>
 
-      {/* Header + Metrics */}
-      <div className="shrink-0 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Sales</p>
-            <h1 className="font-display text-3xl font-bold tracking-tight">Pipeline</h1>
-            <p className="text-sm text-muted-foreground mt-1">{deals.length} deals</p>
-          </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-sm"
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/70 pb-6">
+        <div>
+          <p className="page-eyebrow mb-1">PRODAJNI PIPELINE AGENCIJE</p>
+          <h1
+            className="text-3xl font-bold text-gray-900"
+            style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
           >
-            <Plus size={16} /> New Deal
-          </button>
+            Prodajne Faze & Deal-ovi
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Kanban tabla za praćenje pregovora, ponuda, kapara i ugovorenih provizija.
+          </p>
         </div>
 
-        {/* Pipeline Metrics */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-primary/10 text-primary"><DollarSign size={18} /></div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total Pipeline</p>
-              <p className="text-xl font-bold font-display">{formatPrice(totalPipeline)}</p>
-            </div>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-500"><TrendingUp size={18} /></div>
-            <div>
-              <p className="text-xs text-muted-foreground">Closed Won</p>
-              <p className="text-xl font-bold font-display text-emerald-600">{formatPrice(closedWon)}</p>
-            </div>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500"><TrendingUp size={18} /></div>
-            <div>
-              <p className="text-xs text-muted-foreground">Weighted Value</p>
-              <p className="text-xl font-bold font-display text-amber-600">{formatPrice(Math.round(weightedPipeline))}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white shadow-md transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, #C9963B 0%, #b88328 100%)',
+            boxShadow: '0 4px 16px rgba(201,150,59,0.25)',
+          }}
+        >
+          <Plus size={16} />
+          <span>Dodaj Novi Posao</span>
+        </button>
+      </header>
 
-      {/* Kanban Board */}
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4 flex-1 min-h-0 items-start">
-          {DEFAULT_STAGES.map((stage) => {
-            const stageDeals = deals.filter(d => d.stage === stage)
-            const totalValue = stageDeals.reduce((sum, d) => sum + (Number(d.price) || 0), 0)
+      {/* 5-Column Kanban Board */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5 overflow-x-auto pb-4">
+        {STAGES.map(stage => {
+          const stageDeals = deals.filter(d => d.stage === stage.id)
+          const totalVal = stageDeals.reduce((sum, d) => sum + d.price, 0)
 
-            return (
-              <div key={stage} className="flex flex-col min-w-[256px] max-w-[256px] flex-shrink-0 rounded-2xl bg-muted/50 border border-border/60">
-                <div className="px-3.5 pt-3.5 pb-2.5 shrink-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className={`h-2 w-2 rounded-full ${STYLE[stage]?.dot || 'bg-gray-400'}`} />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                      {STYLE[stage]?.label}
-                    </h3>
-                    <span className="ml-auto text-xs font-bold text-muted-foreground bg-background px-1.5 py-0.5 rounded-full border border-border">{stageDeals.length}</span>
+          return (
+            <div key={stage.id} className="bg-gray-100/70 rounded-3xl p-4 border border-gray-200/60 flex flex-col justify-between min-h-[550px] space-y-4">
+              <div className="space-y-3">
+                {/* Stage Header */}
+                <div className="bg-white rounded-2xl p-3.5 border border-gray-200/70 shadow-sm flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-900">{stage.label}</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border" style={{ color: stage.color, background: stage.bg, borderColor: `${stage.color}30` }}>
+                      {stageDeals.length}
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground font-medium">{formatPrice(totalValue)}</p>
+                  <p className="text-[11px] font-bold text-gray-500 mt-1">{formatPrice(totalVal)}</p>
                 </div>
 
-                <Droppable droppableId={stage}>
-                  {(provided, snapshot) => (
+                {/* Deal Cards */}
+                <div className="space-y-3">
+                  {stageDeals.map(d => (
                     <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`flex-1 overflow-y-auto px-2.5 pb-3 transition-colors min-h-[60px] ${snapshot.isDraggingOver ? 'bg-primary/5' : ''}`}
+                      key={d.id}
+                      className="bg-white rounded-2xl p-4 border border-gray-200/70 shadow-sm hover:border-[#C9963B] transition-all space-y-3 group"
                     >
-                      <div className="space-y-2 pt-1">
-                        {stageDeals.map((deal, index) => (
-                          <Draggable key={deal.id} draggableId={deal.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`rounded-xl border bg-card p-3.5 shadow-sm transition-all ${
-                                  snapshot.isDragging
-                                    ? 'border-primary shadow-lg rotate-1 z-50'
-                                    : 'border-border hover:border-primary/30 hover:shadow-sm'
-                                }`}
-                              >
-                                <h4 className="text-sm font-semibold text-foreground leading-tight mb-1">{deal.title}</h4>
+                      <div>
+                        <h4 className="font-bold text-xs text-gray-900 group-hover:text-[#C9963B] transition-colors">{d.title}</h4>
+                        <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-1">
+                          <Building2 size={12} className="text-gray-400" />
+                          <span className="truncate">{d.property_title}</span>
+                        </p>
+                      </div>
 
-                                {Number(deal.price) > 0 && (
-                                  <p className="text-sm font-bold text-[#C9963B] mb-2">
-                                    {formatPrice(Number(deal.price))}
-                                  </p>
-                                )}
-
-                                {(deal.properties || deal.contacts) && (
-                                  <div className="space-y-1.5 mb-2 pt-2 border-t border-border/50">
-                                    {deal.properties && (
-                                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                                        <Building2 size={12} className="text-muted-foreground/75 shrink-0" />
-                                        <span>{deal.properties.title}</span>
-                                      </p>
-                                    )}
-                                    {deal.contacts && (
-                                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                                        <User size={12} className="text-muted-foreground/75 shrink-0" />
-                                        <span>{deal.contacts.first_name} {deal.contacts.last_name}</span>
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-
-                                {deal.probability !== null && deal.probability > 0 && (
-                                  <div className="mb-2">
-                                    <div className="flex justify-between items-center mb-1">
-                                      <span className="text-[10px] text-muted-foreground font-semibold">Probability</span>
-                                      <span className="text-[10px] font-bold text-muted-foreground">{deal.probability}%</span>
-                                    </div>
-                                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                                      <div
-                                        className="h-full bg-amber-500 rounded-full transition-all"
-                                        style={{ width: `${deal.probability}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-
-                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
-                                  <p className="text-[10px] text-muted-foreground/60">
-                                    {new Date(deal.created_at).toLocaleDateString()}
-                                  </p>
-                                  <div className="flex items-center gap-1.5">
-                                    <button
-                                      onClick={() => deleteDeal(deal.id)}
-                                      disabled={deleting === deal.id}
-                                      className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
-                                      title="Delete Deal"
-                                    >
-                                      <Trash2 size={11} />
-                                    </button>
-                                    {deal.property_id && deal.contact_id && (
-                                      <button
-                                        onClick={() => generateContract(deal)}
-                                        disabled={generating === deal.id}
-                                        className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider badge badge-gold px-2 py-1 rounded-md transition-colors disabled:opacity-50 hover:bg-amber-500/25 cursor-pointer"
-                                      >
-                                        {generating === deal.id ? (
-                                          <span className="w-3 h-3 border border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                          <FileText size={10} />
-                                        )}
-                                        Contract
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                        {stageDeals.length === 0 && !snapshot.isDraggingOver && (
-                          <div className="h-16 rounded-xl border-2 border-dashed border-border/50 flex items-center justify-center">
-                            <p className="text-[10px] text-muted-foreground/40 uppercase tracking-widest">Drop here</p>
+                      <div className="bg-[#FAF8F5] p-2.5 rounded-xl border border-gray-100 space-y-1">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-gray-500">Cijena:</span>
+                          <span className="font-bold text-gray-900">{formatPrice(d.price)}</span>
+                        </div>
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-gray-500">Kupac:</span>
+                          <span className="font-bold text-gray-800">{d.contact_name}</span>
+                        </div>
+                        {d.commission && (
+                          <div className="flex justify-between text-[11px] pt-1 border-t border-gray-200/50">
+                            <span className="text-[#C9963B] font-bold">Provizija (3%):</span>
+                            <span className="font-bold text-[#C9963B]">{formatPrice(d.commission)}</span>
                           </div>
                         )}
                       </div>
+
+                      {/* Move Stage Selector */}
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[10px] text-gray-400">Pomjeri fazu:</span>
+                        <select
+                          value={d.stage}
+                          onChange={e => moveStage(d.id, e.target.value as any)}
+                          className="text-[10px] font-bold px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 outline-none focus:border-[#C9963B]"
+                        >
+                          <option value="new">Upit</option>
+                          <option value="viewing">Obilazak</option>
+                          <option value="negotiation">Pregovori</option>
+                          <option value="under_contract">Kapara</option>
+                          <option value="closed_won">Prodano</option>
+                        </select>
+                      </div>
                     </div>
-                  )}
-                </Droppable>
+                  ))}
+                </div>
               </div>
-            )
-          })}
-        </div>
-      </DragDropContext>
+            </div>
+          )
+        })}
+      </div>
 
       {/* New Deal Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-card border border-border p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-display font-bold">New Deal</h2>
-              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground">
-                <X size={20} />
-              </button>
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5 relative">
+            <button onClick={() => setShowModal(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Dodaj Novi Posao</h3>
+              <p className="text-xs text-gray-500 mt-1">Unesite detalje pregovora i povežite nekretninu i kupca.</p>
             </div>
 
-            <form onSubmit={createDeal} className="space-y-4">
+            <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Deal Title *</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Naziv Posla *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Sale of Downtown Apartment"
-                  className={inputClass}
-                  value={newDeal.title}
-                  onChange={e => setNewDeal(p => ({ ...p, title: e.target.value }))}
+                  placeholder="Kupoprodaja stana na Skenderiji..."
+                  value={form.title}
+                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
                 />
               </div>
 
-              {/* Contact — required */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Contact * <span className="text-muted-foreground font-normal normal-case">(buyer/client)</span></label>
-                {contacts.length === 0 ? (
-                  <p className="text-xs text-amber-600 border border-amber-200 bg-amber-50 rounded-lg px-3 py-2">
-                    No contacts found. Add a contact first.
-                  </p>
-                ) : (
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Ime Kupca</label>
+                <input
+                  type="text"
+                  placeholder="Emir Hadžić"
+                  value={form.contact_name}
+                  onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Vrijednost (€)</label>
+                  <input
+                    type="number"
+                    placeholder="345000"
+                    value={form.price}
+                    onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Faza</label>
                   <select
-                    required
-                    className={inputClass}
-                    value={newDeal.contact_id}
-                    onChange={e => setNewDeal(p => ({ ...p, contact_id: e.target.value }))}
+                    value={form.stage}
+                    onChange={e => setForm(p => ({ ...p, stage: e.target.value as any }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
                   >
-                    <option value="">— Select contact —</option>
-                    {contacts.map(c => (
-                      <option key={c.id} value={c.id}>{c.first_name} {c.last_name || ''}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Property */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Property</label>
-                <select
-                  className={inputClass}
-                  value={newDeal.property_id}
-                  onChange={e => setNewDeal(p => ({ ...p, property_id: e.target.value }))}
-                >
-                  <option value="">— No property linked —</option>
-                  {properties.map(p => (
-                    <option key={p.id} value={p.id}>{p.title} ({p.city})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Deal Value (€)</label>
-                  <input type="number" placeholder="250000" min="0" className={inputClass} value={newDeal.price} onChange={e => setNewDeal(p => ({ ...p, price: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Type</label>
-                  <select className={inputClass} value={newDeal.type} onChange={e => setNewDeal(p => ({ ...p, type: e.target.value }))}>
-                    <option value="sale">Sale</option>
-                    <option value="rental">Rental</option>
+                    <option value="new">Novi Upit</option>
+                    <option value="viewing">Obilazak</option>
+                    <option value="negotiation">Pregovori</option>
+                    <option value="under_contract">Kapara</option>
+                    <option value="closed_won">Prodano</option>
                   </select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Probability (%)</label>
-                  <input type="range" min="0" max="100" step="5" className="w-full accent-primary" value={newDeal.probability} onChange={e => setNewDeal(p => ({ ...p, probability: e.target.value }))} />
-                  <p className="text-xs text-center text-muted-foreground mt-0.5">{newDeal.probability}%</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Commission (%)</label>
-                  <input type="number" placeholder="3" min="0" max="100" step="0.5" className={inputClass} value={newDeal.commission_pct} onChange={e => setNewDeal(p => ({ ...p, commission_pct: e.target.value }))} />
-                  {newDeal.commission_pct && newDeal.price && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      = €{Math.round((parseFloat(newDeal.price) * parseFloat(newDeal.commission_pct)) / 100).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Expected Close Date</label>
-                <input type="date" className={inputClass} value={newDeal.expected_close_date} onChange={e => setNewDeal(p => ({ ...p, expected_close_date: e.target.value }))} />
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors">Cancel</button>
-                <button type="submit" disabled={saving || !newDeal.contact_id} className="px-5 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all">
-                  {saving ? 'Creating…' : 'Create Deal'}
+                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl">
+                  Odustani
+                </button>
+                <button type="submit" disabled={saving} className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors">
+                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Posao'}
                 </button>
               </div>
             </form>

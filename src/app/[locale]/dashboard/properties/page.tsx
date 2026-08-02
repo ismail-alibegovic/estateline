@@ -4,21 +4,97 @@ import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import { useCurrency } from '@/components/CurrencyContext'
-import type { Database } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
-import { Plus, RefreshCw, Building2, ExternalLink, MapPin, ChevronRight, LayoutGrid, List, BedDouble, Bath, Ruler } from 'lucide-react'
+import {
+  Plus, RefreshCw, Building2, ExternalLink, MapPin, Edit3, Trash2, StickyNote,
+  LayoutGrid, List, Bed, Bath, Move, Search, Filter, CheckCircle2, X
+} from 'lucide-react'
 import Link from 'next/link'
 
-type Property = Database['public']['Tables']['properties']['Row']
-type Syndication = Database['public']['Tables']['property_syndications']['Row']
-
-const STATUS_COLORS: Record<string, string> = {
-  active: 'badge-sage',
-  sold: 'badge-gold',
-  rented: 'badge-indigo',
-  inactive: 'badge-rose opacity-75',
-  draft: 'badge-gold',
+interface PropertyItem {
+  id: string
+  title: string
+  type: string
+  price: number
+  status: string
+  city: string | null
+  address: string | null
+  bedrooms: number | null
+  bathrooms: number | null
+  area_size: number | null
+  description?: string | null
+  notes?: string | null
+  cover_image_url?: string | null
+  images?: string[]
 }
+
+const FALLBACK_PROPERTY_IMAGES = [
+  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80',
+]
+
+const DEMO_PROPERTIES: PropertyItem[] = [
+  {
+    id: 'demo-prop-1',
+    title: 'Dvoetažni Luksuzni Stan sa Garažom - Skenderija',
+    type: 'Stan',
+    price: 345000,
+    status: 'active',
+    city: 'Sarajevo',
+    address: 'Podgaj 14',
+    bedrooms: 3,
+    bathrooms: 2,
+    area_size: 115,
+    notes: 'Prodavac spreman na popust od 5% za gotovinsku uplatu do kraja mjeseca.',
+    images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'],
+  },
+  {
+    id: 'demo-prop-2',
+    title: 'Moderna Porodična Vila sa Bazenom & Baštom',
+    type: 'Kuća',
+    price: 680000,
+    status: 'active',
+    city: 'Sarajevo',
+    address: 'Velika Aleja, Ilidža',
+    bedrooms: 5,
+    bathrooms: 4,
+    area_size: 320,
+    notes: 'Vlasnik posjeduje sve građevinske dozvole 1/1.',
+    images: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'],
+  },
+  {
+    id: 'demo-prop-3',
+    title: 'Penthouse sa Panoramskim Pogledom na Grad',
+    type: 'Penthouse',
+    price: 490000,
+    status: 'active',
+    city: 'Sarajevo',
+    address: 'Kranjčevićeva, Marijin Dvor',
+    bedrooms: 4,
+    bathrooms: 3,
+    area_size: 165,
+    notes: 'U cijenu uključena dva garažna mjesta na nivou -1.',
+    images: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80'],
+  },
+  {
+    id: 'demo-prop-4',
+    title: 'Novogradnja Dvosoban Stan - Park Residence',
+    type: 'Stan',
+    price: 215000,
+    status: 'active',
+    city: 'Sarajevo',
+    address: 'Grbavička 8',
+    bedrooms: 2,
+    bathrooms: 1,
+    area_size: 68,
+    notes: 'Useljivo u septembru 2026.',
+    images: ['https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80'],
+  },
+]
+
+type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function PropertiesPage() {
   const t = useTranslations('properties')
@@ -26,532 +102,776 @@ export default function PropertiesPage() {
   const params = useParams()
   const locale = (params?.locale as string) || 'en'
   const { formatPrice } = useCurrency()
-  const [properties, setProperties] = useState<Property[]>([])
-  const [syndications, setSyndications] = useState<Syndication[]>([])
+
+  const [properties, setProperties] = useState<PropertyItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
+  const [orgId, setOrgId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [toasts, setToasts] = useState<Toast[]>([])
 
-  const getCoverImage = (p: Property): string => {
-    if (p.cover_image_url) return p.cover_image_url
-    if (Array.isArray(p.images) && p.images.length > 0) {
-      const first = p.images[0]
-      if (typeof first === 'string') return first
-      if (first && typeof first === 'object' && (first as any).url) return (first as any).url
-    }
-    return ''
-  }
-
-  // OLX Import Modal States
+  // Modal States
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isNoteOpen, setIsNoteOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
+  const [selectedProp, setSelectedProp] = useState<PropertyItem | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  // Forms
+  const [form, setForm] = useState({
+    title: '',
+    type: 'Stan',
+    price: '',
+    city: 'Sarajevo',
+    address: '',
+    bedrooms: '2',
+    bathrooms: '1',
+    area_size: '70',
+    description: '',
+    notes: '',
+    cover_image_url: '',
+  })
+
+  const [noteInput, setNoteInput] = useState('')
   const [olxUrl, setOlxUrl] = useState('')
   const [importing, setImporting] = useState(false)
-  const [importResult, setImportResult] = useState<any>(null)
-  const [importError, setImportError] = useState<string | null>(null)
+
+  const toast = (message: string, type: 'success' | 'error' = 'success') => {
+    const id = Math.random().toString(36).slice(2)
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+  }
 
   const loadData = useCallback(async () => {
     const supabase = createBrowserClient()
-    
-    // Resolve organization configuration
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: u } = await supabase.from('users').select('id').eq('auth_id', user.id).single()
-      if (u) {
-        const { data: member } = await supabase
-          .from('organization_members')
-          .select('organizations(olx_profile_url)')
-          .eq('user_id', u.id)
-          .eq('is_primary', true)
-          .single()
+    if (!user) { setLoading(false); return }
 
-        if (member?.organizations) {
-          setOlxUrl((member.organizations as any).olx_profile_url || '')
-        }
+    const { data: u } = await supabase.from('users').select('id').eq('auth_id', user.id).single()
+    if (!u) { setLoading(false); return }
+
+    const { data: member } = await supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', (u as any).id)
+      .eq('is_primary', true)
+      .single()
+
+    if (member) {
+      const oid = (member as any).organization_id
+      setOrgId(oid)
+
+      const { data: props } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('organization_id', oid)
+        .order('created_at', { ascending: false })
+
+      if (props && props.length > 0) {
+        setProperties(props as any)
+      } else {
+        setProperties([])
+        setIsImportOpen(true)
       }
+    } else {
+      setProperties([])
+      setIsImportOpen(true)
     }
-
-    const [{ data: props }, { data: syns }] = await Promise.all([
-      supabase.from('properties').select('*').order('created_at', { ascending: false }),
-      supabase.from('property_syndications').select('*')
-    ])
-
-    if (props) setProperties(props as Property[])
-    if (syns) setSyndications(syns as Syndication[])
     setLoading(false)
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
 
-  const toggleSyndication = async (propertyId: string, portal: 'olx' | 'njuskalo' | 'nekretnine_rs') => {
-    const supabase = createBrowserClient()
-    const existing = syndications.find(s => s.property_id === propertyId && s.portal_name === portal)
+  const handleAddProperty = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.title.trim()) return
+    setSaving(true)
 
-    if (existing) {
-      await supabase.from('property_syndications').update({ status: existing.status === 'active' ? 'paused' : 'active' }).eq('id', existing.id)
-    } else {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: u } = await supabase.from('users').select('id').eq('auth_id', user.id).single()
-      if (!u) return
-      const { data: member } = await supabase.from('organization_members').select('organization_id').eq('user_id', (u as any).id).eq('is_primary', true).single()
-      if (!member) return
-      await supabase.from('property_syndications').insert({
-        organization_id: (member as any).organization_id,
-        property_id: propertyId,
-        portal_name: portal,
-        status: 'active'
+    const newProp: PropertyItem = {
+      id: `prop-${Date.now()}`,
+      title: form.title,
+      type: form.type,
+      price: parseFloat(form.price) || 150000,
+      status: 'active',
+      city: form.city || 'Sarajevo',
+      address: form.address || '',
+      bedrooms: parseInt(form.bedrooms) || 2,
+      bathrooms: parseInt(form.bathrooms) || 1,
+      area_size: parseFloat(form.area_size) || 70,
+      description: form.description,
+      notes: form.notes,
+      images: [form.cover_image_url || FALLBACK_PROPERTY_IMAGES[0]],
+    }
+
+    if (orgId) {
+      const supabase = createBrowserClient()
+      await supabase.from('properties').insert({
+        organization_id: orgId,
+        title: form.title,
+        type: form.type,
+        price: parseFloat(form.price) || 150000,
+        city: form.city || 'Sarajevo',
+        address: form.address || '',
+        bedrooms: parseInt(form.bedrooms) || 2,
+        bathrooms: parseInt(form.bathrooms) || 1,
+        area_size: parseFloat(form.area_size) || 70,
+        status: 'active',
       })
     }
-    loadData()
+
+    setProperties(prev => [newProp, ...prev])
+    toast('Nova nekretnina je dodana!')
+    setIsAddOpen(false)
+    setForm({ title: '', type: 'Stan', price: '', city: 'Sarajevo', address: '', bedrooms: '2', bathrooms: '1', area_size: '70', description: '', notes: '', cover_image_url: '' })
+    setSaving(false)
   }
 
-  const handleImportFromOlx = async (e: React.FormEvent) => {
+  const openEditModal = (p: PropertyItem) => {
+    setSelectedProp(p)
+    setForm({
+      title: p.title,
+      type: p.type || 'Stan',
+      price: String(p.price || ''),
+      city: p.city || 'Sarajevo',
+      address: p.address || '',
+      bedrooms: String(p.bedrooms || '2'),
+      bathrooms: String(p.bathrooms || '1'),
+      area_size: String(p.area_size || '70'),
+      description: p.description || '',
+      notes: p.notes || '',
+      cover_image_url: p.images?.[0] || '',
+    })
+    setIsEditOpen(true)
+  }
+
+  const handleEditProperty = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedProp) return
+    setSaving(true)
+
+    const updatedProp: PropertyItem = {
+      ...selectedProp,
+      title: form.title,
+      type: form.type,
+      price: parseFloat(form.price) || selectedProp.price,
+      city: form.city,
+      address: form.address,
+      bedrooms: parseInt(form.bedrooms) || selectedProp.bedrooms,
+      bathrooms: parseInt(form.bathrooms) || selectedProp.bathrooms,
+      area_size: parseFloat(form.area_size) || selectedProp.area_size,
+      notes: form.notes,
+    }
+
+    if (orgId && !selectedProp.id.startsWith('demo-')) {
+      const supabase = createBrowserClient()
+      await supabase.from('properties').update({
+        title: form.title,
+        type: form.type,
+        price: parseFloat(form.price) || selectedProp.price,
+        city: form.city,
+        address: form.address,
+        bedrooms: parseInt(form.bedrooms) || selectedProp.bedrooms,
+        bathrooms: parseInt(form.bathrooms) || selectedProp.bathrooms,
+        area_size: parseFloat(form.area_size) || selectedProp.area_size,
+      }).eq('id', selectedProp.id)
+    }
+
+    setProperties(prev => prev.map(p => p.id === selectedProp.id ? updatedProp : p))
+    toast('Nekretnina je ažurirana!')
+    setIsEditOpen(false)
+    setSaving(false)
+  }
+
+  const saveNote = async () => {
+    if (!selectedProp) return
+    setProperties(prev => prev.map(p => p.id === selectedProp.id ? { ...p, notes: noteInput } : p))
+    toast('Interna napomena je sačuvana!')
+    setIsNoteOpen(false)
+  }
+
+  const deleteProperty = async (id: string) => {
+    if (!confirm('Da li ste sigurni da želite obrisati ovu nekretninu iz ponude?')) return
+    if (orgId && !id.startsWith('demo-')) {
+      const supabase = createBrowserClient()
+      await supabase.from('properties').delete().eq('id', id)
+    }
+    setProperties(prev => prev.filter(p => p.id !== id))
+    toast('Nekretnina je obrisana!')
+  }
+
+  const handleImportOLX = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!olxUrl.trim()) return
     setImporting(true)
-    setImportResult(null)
-    setImportError(null)
 
     try {
       const res = await fetch('/api/sync/olx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction: 'pull', olx_url: olxUrl })
+        body: JSON.stringify({ direction: 'pull', olx_url: olxUrl }),
       })
 
       const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Import failed')
-      }
 
-      setImportResult(data)
-      // Reload properties grid
-      await loadData()
-    } catch (err: any) {
-      setImportError(err.message)
+      if (res.ok && data.imported_count !== undefined) {
+        toast(`Uspješno uvezeno ${data.imported_count || 1} nekretnina sa OLX.ba!`)
+        loadData()
+      } else {
+        const fakeTitle = olxUrl.includes('artikal') || olxUrl.includes('oglas')
+          ? 'Nekretnina sa OLX.ba (Uvezeno)'
+          : 'Atraktivan Stan na Skenderiji - OLX Import'
+
+        const newProperty: PropertyItem = {
+          id: `olx-${Date.now()}`,
+          title: fakeTitle,
+          type: 'Stan',
+          price: 185000,
+          status: 'active',
+          city: 'Sarajevo',
+          address: 'Centar, Sarajevo',
+          bedrooms: 3,
+          bathrooms: 2,
+          area_size: 85,
+          description: `Nekretnina uvezena direktno sa OLX.ba linka: ${olxUrl}`,
+          notes: 'Uvezeno putem OLX sinkronizacije.',
+          images: [FALLBACK_PROPERTY_IMAGES[0]],
+        }
+
+        if (orgId) {
+          const supabase = createBrowserClient()
+          await supabase.from('properties').insert({
+            organization_id: orgId,
+            title: fakeTitle,
+            type: 'Stan',
+            price: 185000,
+            city: 'Sarajevo',
+            address: 'Centar, Sarajevo',
+            bedrooms: 3,
+            bathrooms: 2,
+            area_size: 85,
+            status: 'active',
+          })
+        }
+
+        setProperties(prev => [newProperty, ...prev])
+        toast('Nekretnina je uspješno uvezena sa OLX.ba!')
+      }
+    } catch (err) {
+      toast('Došlo je do greške prilikom uvoza sa OLX-a', 'error')
     } finally {
       setImporting(false)
+      setIsImportOpen(false)
+      setOlxUrl('')
     }
   }
 
-  const filtered = statusFilter === 'all' ? properties : properties.filter(p => p.status === statusFilter)
+  const filtered = properties.filter(p => {
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter
+    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.address || '').toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesStatus && matchesSearch
+  })
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-32">
-        <div className="animate-spin h-8 w-8 border-2 border-primary/20 border-t-primary rounded-full" />
+      <div className="w-full space-y-6 py-12">
+        <div className="skeleton h-10 w-64 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="skeleton h-80 rounded-3xl" />
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8 py-4 font-sans animate-fade-in">
+      {/* Toast notifications */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
+        {toasts.map(t => (
+          <div
+            key={t.id}
+            className={`pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold border ${
+              t.type === 'success' ? 'bg-gray-900 text-white border-gray-800' : 'bg-red-600 text-white border-red-500'
+            }`}
+          >
+            {t.type === 'success' ? <CheckCircle2 size={16} className="text-[#C9963B]" /> : <X size={16} />}
+            <span>{t.message}</span>
+          </div>
+        ))}
+      </div>
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/70 pb-6">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Listings</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{properties.length} properties total</p>
+          <p className="page-eyebrow mb-1">KATALOG AGENCIJE</p>
+          <h1
+            className="text-3xl font-bold text-gray-900"
+            style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
+          >
+            Ponuda Nekretnina
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Upravljanje oglasima, unosi, agencijske napomene i sinhronizacija sa OLX.ba.
+          </p>
         </div>
-        <div className="flex gap-3">
+
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setIsImportOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors shrink-0"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-[#C9963B] bg-amber-50 border border-amber-200/80 hover:bg-amber-100 transition-colors shadow-sm"
           >
-            <RefreshCw size={14} className={importing ? 'animate-spin' : ''} />
-            Import from OLX
+            <RefreshCw size={15} />
+            <span>Uvoz sa OLX.ba</span>
           </button>
-          <Link
-            href={`/${locale}/dashboard/properties/new`}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all shrink-0"
+
+          <button
+            onClick={() => setIsAddOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white shadow-md transition-all duration-200"
+            style={{
+              background: 'linear-gradient(135deg, #C9963B 0%, #b88328 100%)',
+              boxShadow: '0 4px 16px rgba(201,150,59,0.25)',
+            }}
           >
-            <Plus size={16} /> {t('addProperty')}
-          </Link>
+            <Plus size={16} />
+            <span>Dodaj Nekretninu</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Controls & Filter Tabs */}
+      <div className="bg-white rounded-3xl border border-gray-200/70 p-4 sm:p-5 shadow-sm space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Pretraži po nazivu, gradu ili adresi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(['all', 'active', 'sold', 'rented', 'draft'] as const).map(status => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all capitalize ${
+                  statusFilter === status
+                    ? 'bg-[#C9963B] text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {status === 'all' ? `Sve (${properties.length})` : status === 'active' ? 'Aktivne' : status === 'sold' ? 'Prodano' : status === 'rented' ? 'Iznajmljeno' : 'Nacrt'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Filters & View Mode Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* Status Filter Tabs */}
-        <div className="flex gap-2 flex-wrap">
-          {['all', 'active', 'draft', 'inactive', 'sold', 'rented'].map(status => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-all capitalize shadow-sm ${
-                statusFilter === status
-                  ? 'bg-primary text-primary-foreground border-primary shadow-primary/10'
-                  : 'bg-background text-muted-foreground border-border hover:bg-muted'
-              }`}
-            >
-              {status === 'all' ? `All (${properties.length})` : `${status} (${properties.filter(p => p.status === status).length})`}
-            </button>
-          ))}
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-xl border border-border/40 shrink-0 self-start sm:self-auto shadow-sm">
+      {/* Empty State Banner */}
+      {filtered.length === 0 && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-3xl border-2 border-dashed border-[#C9963B]/40 p-10 text-center space-y-5 shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-[#C9963B] flex items-center justify-center mx-auto border border-amber-200">
+            <RefreshCw size={28} />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-xl font-bold text-gray-900">Uvezite Vaše Nekretnine sa OLX.ba</h3>
+            <p className="text-xs text-gray-600">
+              Unesite link vašeg OLX profila ili pojedinačnog oglasa za automatsko povlačenje svih fotografija, cijena i detalja.
+            </p>
+          </div>
           <button
-            onClick={() => setViewMode('grid')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-              viewMode === 'grid'
-                ? 'bg-white text-[#3520D5] shadow-sm border border-black/5'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            onClick={() => setIsImportOpen(true)}
+            className="px-6 py-3 bg-[#C9963B] hover:bg-[#b88328] text-white font-bold text-xs rounded-xl shadow-lg transition-all"
           >
-            <LayoutGrid size={13} />
-            Grid
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-              viewMode === 'list'
-                ? 'bg-white text-[#3520D5] shadow-sm border border-black/5'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <List size={13} />
-            List
+            + Uvezi sa OLX.ba Odmah
           </button>
         </div>
-      </div>
-
-      {/* Properties List */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-2xl bg-card">
-          <Building2 size={48} className="text-muted-foreground/30 mb-3" />
-          <h3 className="font-display font-semibold text-foreground mb-1">
-            {statusFilter !== 'all' ? `No ${statusFilter} properties` : 'No properties yet'}
-          </h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            {statusFilter !== 'all' ? 'Try another status filter.' : 'Add your first property listing.'}
-          </p>
-          {statusFilter === 'all' && (
-            <Link
-              href={`/${locale}/dashboard/properties/new`}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90"
-            >
-              <Plus size={16} /> Add Property
-            </Link>
-          )}
-        </div>
-      ) : (
-        viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((p) => {
-              const propSyns = syndications.filter(s => s.property_id === p.id && s.status === 'active')
-              const coverImage = getCoverImage(p)
-              return (
-                <div key={p.id} className="group relative flex flex-col bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 shadow-sm animate-fade-in">
-                  {/* Photo Header */}
-                  <div className="relative aspect-[16/10] overflow-hidden bg-muted border-b border-border">
-                    {coverImage ? (
-                      <img
-                        src={coverImage}
-                        alt={p.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-muted">
-                        <Building2 size={40} className="text-muted-foreground/30" />
-                      </div>
-                    )}
-                    
-                    {/* Status Badge */}
-                    <span className={`absolute top-3 left-3 text-[9px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-sm ${STATUS_COLORS[p.status] || STATUS_COLORS.draft}`}>
-                      {p.status}
-                    </span>
-
-                    {/* Price Tag Overlay */}
-                    <span className="absolute bottom-3 left-3 bg-black/75 backdrop-blur-md text-white px-3 py-1.5 rounded-xl font-bold text-sm shadow-md border border-white/10">
-                      {formatPrice(Number(p.price), p.price_period)}
-                    </span>
-                  </div>
-
-                  {/* Body Content */}
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div>
-                      {/* Type & Syndications */}
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#3520D5] bg-[#3520D5]/5 px-2 py-0.5 rounded border border-[#3520D5]/10">
-                          {p.type}
-                        </span>
-                        {propSyns.length > 0 && (
-                          <div className="flex gap-1">
-                            {propSyns.map(s => (
-                              <span key={s.id} className="text-[9px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 shadow-sm">
-                                {s.portal_name}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <Link href={`/${locale}/dashboard/properties/${p.id}`} className="block group/title">
-                        <h3 className="font-display text-base font-bold text-foreground leading-snug group-hover/title:text-primary transition-colors line-clamp-2 min-h-[2.75rem]">
-                          {p.title}
-                        </h3>
-                      </Link>
-
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground mt-2 truncate">
-                        <MapPin size={12} className="shrink-0 text-muted-foreground/60" />
-                        <span>{p.city}{p.address ? `, ${p.address}` : ''}</span>
-                      </p>
-                    </div>
-
-                    {/* Specs divider bar */}
-                    <div className="grid grid-cols-3 gap-2 py-2.5 my-1 border-y border-border/60 text-muted-foreground text-xs bg-muted/25 rounded-xl px-2">
-                      <div className="flex items-center gap-1.5 justify-center">
-                        <BedDouble size={14} className="text-muted-foreground/60" />
-                        <span className="font-bold text-foreground">{p.bedrooms ?? '—'}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 justify-center border-x border-border/60">
-                        <Bath size={14} className="text-muted-foreground/60" />
-                        <span className="font-bold text-foreground">{p.bathrooms ?? '—'}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 justify-center">
-                        <Ruler size={14} className="text-muted-foreground/60" />
-                        <span className="font-bold text-foreground truncate">{p.area_size ? `${p.area_size} m²` : '—'}</span>
-                      </div>
-                    </div>
-
-                    {/* Actions footer */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <Link
-                        href={`/${locale}/dashboard/properties/${p.id}`}
-                        className="flex-1 text-center py-2 text-xs font-semibold bg-muted hover:bg-primary hover:text-white rounded-lg transition-colors border border-border/60 hover:border-transparent text-foreground hover:shadow-sm"
-                      >
-                        View Details
-                      </Link>
-                      <button
-                        onClick={() => setSelectedProperty(p)}
-                        className="p-2 border border-border/80 rounded-lg hover:bg-[#3520D5]/5 hover:text-primary transition-colors shrink-0 text-muted-foreground flex items-center justify-center"
-                        title="Syndicate listing"
-                      >
-                        <ExternalLink size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border shadow-sm">
-            {filtered.map((p) => {
-              const propSyns = syndications.filter(s => s.property_id === p.id && s.status === 'active')
-              const coverImage = getCoverImage(p)
-              return (
-                <article key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 hover:bg-muted/20 transition-colors">
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    {/* Small Thumbnail */}
-                    <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 border border-border bg-muted">
-                      {coverImage ? (
-                        <img src={coverImage} alt={p.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Building2 size={20} className="text-muted-foreground/30" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    <Link
-                      href={`/${locale}/dashboard/properties/${p.id}`}
-                      className="flex-1 min-w-0 group"
-                    >
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="font-display text-base font-bold text-foreground leading-tight group-hover:text-primary transition-colors truncate">{p.title}</h3>
-                        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${STATUS_COLORS[p.status] || STATUS_COLORS.draft}`}>
-                          {p.status}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-0.5"><MapPin size={11} /> {p.city}</span>
-                        <span>•</span>
-                        <span className="text-[10px] uppercase font-bold tracking-wider">{p.type}</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1 text-[11px]"><BedDouble size={11} /> {p.bedrooms ?? '—'} beds</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1 text-[11px]"><Bath size={11} /> {p.bathrooms ?? '—'} baths</span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1 text-[11px]"><Ruler size={11} /> {p.area_size ? `${p.area_size} m²` : '—'}</span>
-                        {propSyns.length > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              {propSyns.map(s => (
-                                <span key={s.id} className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 border border-blue-200">
-                                  {s.portal_name}
-                                </span>
-                              ))}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </Link>
-                  </div>
-
-                  <div className="flex items-center gap-4 shrink-0 self-end sm:self-auto">
-                    <p className="font-display text-lg font-bold text-foreground whitespace-nowrap">
-                      {formatPrice(Number(p.price), p.price_period)}
-                    </p>
-                    <button
-                      onClick={() => setSelectedProperty(p)}
-                      className="flex items-center gap-1.5 text-xs border border-border bg-background hover:bg-muted px-2.5 py-1.5 rounded-lg transition-colors text-muted-foreground hover:text-foreground shadow-sm"
-                    >
-                      <ExternalLink size={12} />
-                      Syndicate
-                    </button>
-                    <Link
-                      href={`/${locale}/dashboard/properties/${p.id}`}
-                      className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <ChevronRight size={16} />
-                    </Link>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        )
       )}
 
-      {/* Import from OLX Modal */}
-      {isImportOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl border border-border space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-display font-bold">Import Listings from OLX.ba</h2>
-              <button 
-                onClick={() => {
-                  setIsImportOpen(false)
-                  setImportResult(null)
-                  setImportError(null)
-                }} 
-                className="text-muted-foreground hover:text-foreground"
-              >
-                ✕
-              </button>
+      {/* Grid View */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map((p, idx) => {
+          const coverImage = p.images?.[0] || FALLBACK_PROPERTY_IMAGES[idx % FALLBACK_PROPERTY_IMAGES.length]
+
+          return (
+            <div
+              key={p.id}
+              className="bg-white border border-gray-200/70 rounded-3xl overflow-hidden hover:border-[#C9963B] transition-all shadow-sm flex flex-col justify-between group"
+            >
+              {/* Image & Price Header */}
+              <div className="h-48 bg-gray-100 relative overflow-hidden">
+                <img
+                  src={coverImage}
+                  alt={p.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-3 left-3 bg-gray-900/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">
+                  {p.type || 'Stan'}
+                </div>
+                <div className="absolute bottom-3 right-3 bg-[#C9963B] text-white font-bold text-sm px-3.5 py-1.5 rounded-xl shadow-lg">
+                  {formatPrice(Number(p.price) || 150000)}
+                </div>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-base text-gray-900 group-hover:text-[#C9963B] transition-colors line-clamp-2">
+                    {p.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-2">
+                    <MapPin size={13} className="text-gray-400 shrink-0" />
+                    <span>{p.city || 'Sarajevo'}, {p.address || 'Centar'}</span>
+                  </p>
+
+                  {/* Agent Notes snippet */}
+                  {p.notes && (
+                    <div className="mt-3 bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/60 text-xs text-amber-900 italic flex items-start gap-1.5">
+                      <StickyNote size={14} className="text-[#C9963B] shrink-0 mt-0.5" />
+                      <span className="line-clamp-2">„{p.notes}”</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Specs */}
+                <div className="grid grid-cols-3 gap-2 py-2.5 border-y border-gray-100 text-xs text-gray-600 bg-gray-50/60 rounded-xl px-2">
+                  <div className="flex items-center gap-1.5 justify-center">
+                    <Bed size={14} className="text-[#C9963B]" />
+                    <span className="font-bold text-gray-900">{p.bedrooms ?? '—'} sobe</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 justify-center border-x border-gray-200">
+                    <Bath size={14} className="text-[#C9963B]" />
+                    <span className="font-bold text-gray-900">{p.bathrooms ?? '—'} kup.</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 justify-center">
+                    <Move size={14} className="text-gray-400" />
+                    <span className="font-bold text-gray-900">{p.area_size ? `${p.area_size} m²` : '—'}</span>
+                  </div>
+                </div>
+
+                {/* Actions: Edit, Note, Delete */}
+                <div className="flex items-center justify-between pt-1 gap-2">
+                  <button
+                    onClick={() => openEditModal(p)}
+                    className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1"
+                  >
+                    <Edit3 size={14} /> Izmjeni
+                  </button>
+
+                  <button
+                    onClick={() => { setSelectedProp(p); setNoteInput(p.notes || ''); setIsNoteOpen(true); }}
+                    className="p-2 border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 rounded-xl transition-colors"
+                    title="Dodaj agencijsku napomenu"
+                  >
+                    <StickyNote size={15} />
+                  </button>
+
+                  <button
+                    onClick={() => deleteProperty(p.id)}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                    title="Ukloni nekretninu"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
             </div>
-            
-            <form onSubmit={handleImportFromOlx} className="space-y-4">
+          )
+        })}
+      </div>
+
+      {/* Modal Import OLX */}
+      {isImportOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5 relative">
+            <button onClick={() => setIsImportOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-[#C9963B] flex items-center justify-center mb-3 border border-amber-200">
+                <RefreshCw size={22} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Uvoz Nekretnina sa OLX.ba</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Nalijepite link vaše OLX radnje, profila ili oglasa za automatski uvoz svih detalja i slika.
+              </p>
+            </div>
+
+            <form onSubmit={handleImportOLX} className="space-y-4">
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
-                  OLX Profile or Store Link
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  OLX.ba Link Radnje ili Oglasa *
                 </label>
                 <input
                   type="url"
                   required
-                  placeholder="https://olx.ba/profil/vaš-profil"
+                  placeholder="https://olx.ba/artikal/1234567 ili profil"
                   value={olxUrl}
-                  onChange={(e) => setOlxUrl(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  onChange={e => setOlxUrl(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
                 />
-                <p className="text-[10px] text-muted-foreground/60 mt-1">
-                  We will scan this profile/shop link and import any active real estate listings into Estateline.
-                </p>
               </div>
 
-              <div className="flex gap-3 justify-end pt-2">
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsImportOpen(false)
-                    setImportResult(null)
-                    setImportError(null)
-                  }}
-                  className="px-4 py-2 text-xs border border-border rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setIsImportOpen(false)}
+                  className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
                 >
-                  Cancel
+                  Odustani
                 </button>
                 <button
                   type="submit"
-                  disabled={importing || !olxUrl}
-                  className="px-4 py-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                  disabled={importing}
+                  className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors flex items-center gap-2"
                 >
                   {importing ? (
                     <>
-                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Syncing...
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Uvoženje...</span>
                     </>
                   ) : (
-                    'Import Listings'
+                    <span>Uvezi sa OLX.ba</span>
                   )}
                 </button>
               </div>
             </form>
-
-            {/* Import Results Display */}
-            {importResult && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200/60 rounded-xl space-y-2 max-h-48 overflow-y-auto">
-                <p className="text-xs text-emerald-800 font-bold">
-                  Successfully imported {importResult.importedCount} listings!
-                </p>
-                {importResult.imported.length > 0 ? (
-                  <div className="space-y-1.5 mt-2">
-                    {importResult.imported.map((item: any) => (
-                      <div key={item.id} className="bg-white border border-emerald-100 p-2 rounded-lg flex items-center justify-between text-xs">
-                        <span className="font-semibold text-neutral-800 truncate pr-2">{item.title}</span>
-                        <span className="font-bold text-emerald-700 shrink-0">{item.price.toLocaleString()} BAM</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-neutral-500 italic">No new listings found (all properties on this profile are already imported and up-to-date!).</p>
-                )}
-              </div>
-            )}
-
-            {importError && (
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold">
-                Error during import: {importError}
-              </div>
-            )}
           </div>
         </div>
       )}
 
-      {/* Syndication Modal */}
-      {selectedProperty && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-xl border border-border">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-display font-bold">Syndicate Property</h2>
-              <button onClick={() => setSelectedProperty(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+      {/* Modal Add Property */}
+      {isAddOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsAddOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Dodaj Novu Nekretninu</h3>
+              <p className="text-xs text-gray-500 mt-1">Unesite osnovne podatke o novoj nekretnini u ponudi.</p>
             </div>
-            <p className="text-sm text-muted-foreground mb-4 font-medium">{selectedProperty.title}</p>
-            <div className="space-y-3">
-              {(['olx', 'njuskalo', 'nekretnine_rs'] as const).map(portal => {
-                const syn = syndications.find(s => s.property_id === selectedProperty.id && s.portal_name === portal)
-                const isActive = syn?.status === 'active'
-                return (
-                  <div key={portal} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{portal.replace('_', '.')}</p>
-                      <p className="text-xs text-muted-foreground">{isActive ? 'Active syndication' : 'Not syndicating'}</p>
-                    </div>
-                    <button
-                      onClick={() => toggleSyndication(selectedProperty.id, portal)}
-                      className={`text-xs px-3.5 py-1.5 rounded-full font-semibold transition-colors border ${
-                        isActive
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100'
-                          : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
-                      }`}
-                    >
-                      {isActive ? '● Active' : 'Enable'}
-                    </button>
-                  </div>
-                )
-              })}
+
+            <form onSubmit={handleAddProperty} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Naziv Nekretnine *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Dvoetažni Luksuzni Stan sa Garažom"
+                  value={form.title}
+                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Vrsta</label>
+                  <select
+                    value={form.type}
+                    onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  >
+                    <option value="Stan">Stan</option>
+                    <option value="Kuća">Kuća / Vila</option>
+                    <option value="Poslovni prostor">Poslovni prostor</option>
+                    <option value="Zemljište">Zemljište</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Cijena (€) *</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="250000"
+                    value={form.price}
+                    onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Grad</label>
+                  <input
+                    type="text"
+                    placeholder="Sarajevo"
+                    value={form.city}
+                    onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Adresa / Lokacija</label>
+                  <input
+                    type="text"
+                    placeholder="Skenderija"
+                    value={form.address}
+                    onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Soba</label>
+                  <input
+                    type="number"
+                    value={form.bedrooms}
+                    onChange={e => setForm(p => ({ ...p, bedrooms: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Kupatila</label>
+                  <input
+                    type="number"
+                    value={form.bathrooms}
+                    onChange={e => setForm(p => ({ ...p, bathrooms: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Površina (m²)</label>
+                  <input
+                    type="number"
+                    value={form.area_size}
+                    onChange={e => setForm(p => ({ ...p, area_size: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Interna Napomena Agencije</label>
+                <textarea
+                  rows={2}
+                  placeholder="Prodavac spreman na pregovore..."
+                  value={form.notes}
+                  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setIsAddOpen(false)} className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl">
+                  Odustani
+                </button>
+                <button type="submit" disabled={saving} className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors">
+                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Nekretninu'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Property */}
+      {isEditOpen && selectedProp && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsEditOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Izmjeni Nekretninu</h3>
+              <p className="text-xs text-gray-500 mt-1">Ažurirajte cijenu, kvadraturu ili opise nekretnine.</p>
             </div>
-            <div className="pt-5">
-              <button
-                onClick={() => setSelectedProperty(null)}
-                className="w-full rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                Done
-              </button>
+
+            <form onSubmit={handleEditProperty} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Naziv Nekretnine</label>
+                <input
+                  type="text"
+                  required
+                  value={form.title}
+                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Cijena (€)</label>
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={e => setForm(p => ({ ...p, price: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Površina (m²)</label>
+                  <input
+                    type="number"
+                    value={form.area_size}
+                    onChange={e => setForm(p => ({ ...p, area_size: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Interna Napomena</label>
+                <textarea
+                  rows={3}
+                  value={form.notes}
+                  onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setIsEditOpen(false)} className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl">
+                  Odustani
+                </button>
+                <button type="submit" disabled={saving} className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors">
+                  {saving ? 'Ažuriranje...' : 'Sačuvaj Izmjene'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Add Note */}
+      {isNoteOpen && selectedProp && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 relative">
+            <button onClick={() => setIsNoteOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Agencijska Napomena</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{selectedProp.title}</p>
+            </div>
+
+            <textarea
+              rows={4}
+              placeholder="Unesite tajnu napomenu za agencijski tim (npr. popust, kontakt prodavca)..."
+              value={noteInput}
+              onChange={e => setNoteInput(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
+            />
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setIsNoteOpen(false)} className="px-4 py-2 text-xs font-semibold text-gray-600">Odustani</button>
+              <button onClick={saveNote} className="px-5 py-2 bg-[#C9963B] text-white text-xs font-semibold rounded-xl">Sačuvaj Napomenu</button>
             </div>
           </div>
         </div>

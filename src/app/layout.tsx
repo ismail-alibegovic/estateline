@@ -22,6 +22,10 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: 'Estateline — Real Estate CRM',
   description: 'Multi-tenant CRM for real estate agencies in the Balkans',
+  icons: {
+    icon: '/logo-icon.png',
+    apple: '/logo-icon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
+import { useTranslations } from 'next-intl'
+import {
+  RefreshCw, CheckCircle2, AlertCircle, Copy, Check, Link as LinkIcon,
+  ExternalLink, Layers, Database, Sparkles, Building2, ShieldCheck, ArrowUpRight
+} from 'lucide-react'
 
 export default function IntegrationsPage() {
+  const tNav = useTranslations('nav')
   const [org, setOrg] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [copiedFeed, setCopiedFeed] = useState<string | null>(null)
@@ -21,8 +27,9 @@ export default function IntegrationsPage() {
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<any>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [stats, setStats] = useState<any>(null)
 
-  const loadOrg = async () => {
+  const loadOrgData = async () => {
     const supabase = createBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -47,12 +54,23 @@ export default function IntegrationsPage() {
       const orgObj = member.organizations as any
       setOrg(orgObj)
       setOlxUrl(orgObj.olx_profile_url || '')
+
+      // Fetch OLX sync status stats
+      try {
+        const statsRes = await fetch('/api/sync/olx')
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          setStats(statsData)
+        }
+      } catch (err) {
+        console.error('Failed to load stats:', err)
+      }
     }
     setLoading(false)
   }
 
   useEffect(() => {
-    loadOrg()
+    loadOrgData()
   }, [])
 
   const handleSaveUrl = async () => {
@@ -67,11 +85,10 @@ export default function IntegrationsPage() {
 
       if (error) throw error
       
-      // Update local state
       setOrg((prev: any) => ({ ...prev, olx_profile_url: olxUrl }))
-      toast('OLX Profile Link saved successfully!')
+      toast('OLX profilni link je uspješno spašen!')
     } catch (err: any) {
-      toast('Failed to save link: ' + err.message, 'error')
+      toast('Greška pri spašavanju: ' + err.message, 'error')
     } finally {
       setSaving(false)
     }
@@ -92,12 +109,16 @@ export default function IntegrationsPage() {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || 'Sync failed')
+        throw new Error(data.error || 'Sinhronizacija nije uspjela')
       }
 
       setSyncResult(data)
+      toast(`Sinhronizacija završena! Uvezeno ${data.importedCount} novih nekretnina.`)
+      // Refresh stats
+      loadOrgData()
     } catch (err: any) {
       setSyncError(err.message)
+      toast(err.message, 'error')
     } finally {
       setSyncing(false)
     }
@@ -106,238 +127,251 @@ export default function IntegrationsPage() {
   const copyToClipboard = (url: string, key: string) => {
     navigator.clipboard.writeText(url)
     setCopiedFeed(key)
+    toast('Link kopiran u klipbord!')
     setTimeout(() => setCopiedFeed(null), 2000)
   }
 
   if (loading) {
     return (
-      <div className="flex justify-center py-24">
-        <div className="animate-spin h-7 w-7 border-b-2 border-primary rounded-full" />
+      <div className="flex justify-center items-center py-32">
+        <div className="animate-spin h-8 w-8 border-2 border-[#C9963B] border-t-transparent rounded-full" />
       </div>
     )
   }
 
   if (!org) {
-    return <div className="p-8">No organization found. Please onboard first.</div>
+    return <div className="p-8 text-gray-500">Organizacija nije pronađena.</div>
   }
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const njuskaloFeedUrl = `${origin}/api/feeds/njuskalo/${org.id}`
   const nekretnineFeedUrl = `${origin}/api/feeds/nekretnine_rs/${org.id}`
+  const jsonFeedUrl = `${origin}/api/feeds/json/${org.id}`
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-6">
-      <header className="mb-10">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Settings</p>
-        <h1 className="font-display text-3xl font-bold tracking-tight">Integrations & Sync</h1>
-        <p className="mt-2 text-muted-foreground">
-          Syndicate your property listings automatically to popular real estate portals.
-        </p>
-      </header>
-
-      <div className="space-y-8">
-        {/* OLX.ba Section */}
-        <section className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                OLX.ba Integration <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded">API & Scraping Sync</span>
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Enter your OLX profile or store link to automatically sync and import active listings into Estateline.
-              </p>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-full">
-              Active Sync
-            </span>
-          </div>
-
-          <div className="border-t border-border pt-6 space-y-4">
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
-                OLX Profile or Store Link
-              </label>
-              <div className="flex gap-3 max-w-xl">
-                <input
-                  type="url"
-                  placeholder="https://olx.ba/profil/vaš-profil ili https://olx.ba/shops/vaša-trgovina"
-                  value={olxUrl}
-                  onChange={(e) => setOlxUrl(e.target.value)}
-                  className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                />
-                <button
-                  onClick={handleSaveUrl}
-                  disabled={saving || !olxUrl}
-                  className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/95 disabled:opacity-50 transition-colors flex items-center gap-1.5 shrink-0"
-                >
-                  {saving ? 'Saving...' : 'Save URL'}
-                </button>
-              </div>
-              <p className="text-[11px] text-muted-foreground/60 mt-1">
-                Format: https://olx.ba/profil/korisnicko-ime ili https://olx.ba/shops/naziv-trgovine
-              </p>
-            </div>
-
-            <div className="bg-neutral-50 rounded-xl p-4 border border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Sync Listings</p>
-                <p className="text-xs text-muted-foreground">Pull active properties from this profile into your database.</p>
-              </div>
-              <button
-                onClick={handleSyncProfile}
-                disabled={syncing || !org.olx_profile_url}
-                className="rounded-lg bg-emerald-600 text-white px-5 py-2.5 text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-sm shrink-0"
-              >
-                {syncing ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
-                      <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" className="opacity-75" />
-                    </svg>
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.283 8H18.2" />
-                    </svg>
-                    Sync Profile Now
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Sync Results Display */}
-            {syncResult && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200/60 rounded-xl space-y-3 transition-all duration-300">
-                <div className="flex items-center gap-2 text-emerald-800 font-semibold text-sm">
-                  <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Successfully Synced Profile!</span>
-                </div>
-                <p className="text-xs text-emerald-700 font-medium">
-                  We checked the OLX.ba account. Imported {syncResult.importedCount} new properties:
-                </p>
-                {syncResult.imported.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                    {syncResult.imported.map((item: any) => (
-                      <div key={item.id} className="bg-white border border-emerald-100 p-2.5 rounded-lg flex items-center justify-between text-xs">
-                        <span className="font-medium text-neutral-800 truncate pr-2">{item.title}</span>
-                        <span className="font-bold text-emerald-700 shrink-0">{item.price.toLocaleString()} BAM</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-neutral-500 italic">No new listings found (all properties are already synced and up-to-date!).</p>
-                )}
-              </div>
-            )}
-            
-            {syncError && (
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold">
-                Error during sync: {syncError}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Njuškalo & Nekretnine Section */}
-        <section className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            XML Feed Portals <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded">URL-based</span>
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Copy these XML feed URLs and submit them to your B2B dashboard/support agent on the respective portals.
-          </p>
-
-          <div className="mt-6 space-y-6 border-t border-border pt-4">
-            {/* Njuskalo */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium text-foreground">Njuškalo.hr (Croatia)</span>
-                <button
-                  onClick={() => copyToClipboard(njuskaloFeedUrl, 'njuskalo')}
-                  className="text-xs text-primary hover:underline"
-                >
-                  {copiedFeed === 'njuskalo' ? 'Copied!' : 'Copy Feed URL'}
-                </button>
-              </div>
-              <input
-                type="text"
-                readOnly
-                value={njuskaloFeedUrl}
-                className="w-full rounded-lg border border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground font-mono outline-none"
-              />
-            </div>
-
-            {/* Nekretnine.rs */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium text-foreground">Nekretnine.rs (Serbia)</span>
-                <button
-                  onClick={() => copyToClipboard(nekretnineFeedUrl, 'nekretnine')}
-                  className="text-xs text-primary hover:underline"
-                >
-                  {copiedFeed === 'nekretnine' ? 'Copied!' : 'Copy Feed URL'}
-                </button>
-              </div>
-              <input
-                type="text"
-                readOnly
-                value={nekretnineFeedUrl}
-                className="w-full rounded-lg border border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground font-mono outline-none"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* WhatsApp Cloud API Section */}
-        <section className="bg-card border border-border rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            WhatsApp Cloud API <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded">Meta API</span>
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configure your Meta WhatsApp Business API credentials to enable automated lead capture and stage-transition messaging.
-          </p>
-
-          <div className="mt-6 space-y-4 border-t border-border pt-4">
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">
-                Phone Number ID
-              </label>
-              <input
-                type="text"
-                readOnly
-                value={org?.whatsapp_config?.phone_number_id || 'Not configured'}
-                className="w-full rounded-lg border border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground font-mono outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">
-                Webhook Verification URL
-              </label>
-              <div className="flex justify-between items-center mb-1">
-                <input
-                  type="text"
-                  readOnly
-                  value={`${origin}/api/whatsapp/webhook`}
-                  className="w-full rounded-lg border border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground font-mono outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* Floating Toasts */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-8 animate-fade-in-up">
+      {/* Toast Notifications */}
+      <div className="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none">
         {toasts.map(t => (
-          <div key={t.id} className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border ${t.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-            {t.type === 'success' ? '✓' : '✗'} {t.message}
+          <div
+            key={t.id}
+            className={`pointer-events-auto px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 animate-slide-in-right ${
+              t.type === 'success' ? 'bg-gray-900 text-white' : 'bg-red-600 text-white'
+            }`}
+          >
+            {t.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-400" /> : <AlertCircle size={16} />}
+            <span>{t.message}</span>
           </div>
         ))}
       </div>
+
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/60 pb-6">
+        <div>
+          <p className="page-eyebrow mb-1">INTEGRACIJE & PORTE</p>
+          <h1 className="text-3xl font-semibold text-gray-900" style={{ fontFamily: 'var(--font-display), serif' }}>
+            Sinhronizacija Oglasa & Portala
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Automatski uvozite i objavljujte nekretnine na najpopularnijim portalima u BiH i regionu.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="bg-emerald-50 border border-emerald-200/60 px-3.5 py-1.5 rounded-xl flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-semibold text-emerald-800">OLX Integracija Aktivna</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Main OLX Integration Card */}
+      <section className="bg-white rounded-3xl border border-gray-200/70 p-6 sm:p-8 shadow-sm space-y-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-500/5 to-amber-500/0 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center border border-amber-200/60 shrink-0">
+              <span className="font-black text-amber-700 text-xl tracking-tight">OLX</span>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                OLX.ba Automatski Uvoz
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full">
+                  API & Scraper
+                </span>
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Uvezi sve nekretnine, fotografije, kvadraturu, spratnost i sobe direktno sa OLX profila agencije.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSyncProfile}
+            disabled={syncing || !olxUrl}
+            className="flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-sm text-white shadow-md transition-all duration-200 disabled:opacity-50 shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, #C9963B 0%, #b88328 100%)',
+              boxShadow: '0 4px 16px rgba(201,150,59,0.25)',
+            }}
+          >
+            <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+            <span>{syncing ? 'Sinhronizacija u toku...' : 'Ažuriraj sa OLX.ba'}</span>
+          </button>
+        </div>
+
+        {/* Input Form */}
+        <div className="bg-gray-50/70 border border-gray-200/60 rounded-2xl p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+              Link OLX Profila ili Trgovine Agencije
+            </label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <LinkIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="url"
+                  placeholder="https://olx.ba/profil/vasa-agencija ili https://olx.ba/shops/vasa-trgovina"
+                  value={olxUrl}
+                  onChange={(e) => setOlxUrl(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-[#C9963B] focus:ring-2 focus:ring-[#C9963B]/20 transition-all"
+                />
+              </div>
+              <button
+                onClick={handleSaveUrl}
+                disabled={saving || !olxUrl}
+                className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-medium text-sm rounded-xl transition-colors disabled:opacity-50 shrink-0"
+              >
+                {saving ? 'Spašavanje...' : 'Sačuvaj Link'}
+              </button>
+            </div>
+          </div>
+
+          {/* Sync Metadata Checklist */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-200/60 text-xs text-gray-600">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+              <span>Broj soba & kupatila</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+              <span>Kvadratura & spratnost</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+              <span>Vrsta grijanja & oprema</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+              <span>Sve visoke rezolucije slike</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Sync Results Feedback */}
+        {syncResult && (
+          <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-5 space-y-3 animate-fade-in">
+            <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
+              <CheckCircle2 size={18} className="text-emerald-600" />
+              <span>Uspješno sinhronizovano sa OLX.ba!</span>
+            </div>
+            <p className="text-xs text-emerald-700 font-medium">
+              Sistem je obradio profil i uveo {syncResult.importedCount} novih nekretnina:
+            </p>
+            {syncResult.imported && syncResult.imported.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                {syncResult.imported.map((item: any) => (
+                  <div key={item.id} className="bg-white border border-emerald-100 p-3 rounded-xl flex items-center justify-between text-xs shadow-sm">
+                    <div className="min-w-0 pr-2">
+                      <p className="font-semibold text-gray-900 truncate">{item.title}</p>
+                      <p className="text-[11px] text-gray-400">{item.area_size} m² • {item.bedrooms} soba</p>
+                    </div>
+                    <span className="font-bold text-emerald-700 shrink-0">{item.price.toLocaleString()} KM</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 italic">Sve nekretnine sa ovog profila su već uvozne i ažurne!</p>
+            )}
+          </div>
+        )}
+
+        {syncError && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-xs font-semibold flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>Greška pri sinhronizaciji: {syncError}</span>
+          </div>
+        )}
+      </section>
+
+      {/* XML Feed Export Portals */}
+      <section className="bg-white rounded-3xl border border-gray-200/70 p-6 sm:p-8 shadow-sm space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            XML & JSON Feed Izvoz za Portale
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Kopirajte ove linkove u postavke vaših naloga na regionalnim portalima za automatsko objavljivanje.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Njuškalo */}
+          <div className="bg-gray-50/70 border border-gray-200/60 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-gray-900">Njuškalo.hr</span>
+                <span className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">XML</span>
+              </div>
+              <p className="text-xs text-gray-500">Automatski izvoz oglasa za Njuškalo u HR formatu.</p>
+            </div>
+            <button
+              onClick={() => copyToClipboard(njuskaloFeedUrl, 'njuskalo')}
+              className="w-full py-2 px-3 bg-white border border-gray-200 hover:bg-gray-100 text-gray-800 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+            >
+              {copiedFeed === 'njuskalo' ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+              <span>{copiedFeed === 'njuskalo' ? 'Kopirano' : 'Kopiraj XML Link'}</span>
+            </button>
+          </div>
+
+          {/* Nekretnine.rs */}
+          <div className="bg-gray-50/70 border border-gray-200/60 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-gray-900">Nekretnine.rs</span>
+                <span className="text-[10px] font-bold uppercase bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">XML</span>
+              </div>
+              <p className="text-xs text-gray-500">Automatski izvoz oglasa za Nekretnine.rs u RS formatu.</p>
+            </div>
+            <button
+              onClick={() => copyToClipboard(nekretnineFeedUrl, 'nekretnine')}
+              className="w-full py-2 px-3 bg-white border border-gray-200 hover:bg-gray-100 text-gray-800 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+            >
+              {copiedFeed === 'nekretnine' ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+              <span>{copiedFeed === 'nekretnine' ? 'Kopirano' : 'Kopiraj XML Link'}</span>
+            </button>
+          </div>
+
+          {/* Custom JSON Feed */}
+          <div className="bg-gray-50/70 border border-gray-200/60 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-gray-900">Custom Web Feed</span>
+                <span className="text-[10px] font-bold uppercase bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">JSON</span>
+              </div>
+              <p className="text-xs text-gray-500">Prilagođeni JSON izvor za vašu web stranicu agencije.</p>
+            </div>
+            <button
+              onClick={() => copyToClipboard(jsonFeedUrl, 'json')}
+              className="w-full py-2 px-3 bg-white border border-gray-200 hover:bg-gray-100 text-gray-800 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+            >
+              {copiedFeed === 'json' ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+              <span>{copiedFeed === 'json' ? 'Kopirano' : 'Kopiraj JSON Link'}</span>
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
