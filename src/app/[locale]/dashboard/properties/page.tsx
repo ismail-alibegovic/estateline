@@ -35,64 +35,7 @@ const FALLBACK_PROPERTY_IMAGES = [
   'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80',
 ]
 
-const DEMO_PROPERTIES: PropertyItem[] = [
-  {
-    id: 'demo-prop-1',
-    title: 'Dvoetažni Luksuzni Stan sa Garažom - Skenderija',
-    type: 'Stan',
-    price: 345000,
-    status: 'active',
-    city: 'Sarajevo',
-    address: 'Podgaj 14',
-    bedrooms: 3,
-    bathrooms: 2,
-    area_size: 115,
-    notes: 'Prodavac spreman na popust od 5% za gotovinsku uplatu do kraja mjeseca.',
-    images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'],
-  },
-  {
-    id: 'demo-prop-2',
-    title: 'Moderna Porodična Vila sa Bazenom & Baštom',
-    type: 'Kuća',
-    price: 680000,
-    status: 'active',
-    city: 'Sarajevo',
-    address: 'Velika Aleja, Ilidža',
-    bedrooms: 5,
-    bathrooms: 4,
-    area_size: 320,
-    notes: 'Vlasnik posjeduje sve građevinske dozvole 1/1.',
-    images: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'],
-  },
-  {
-    id: 'demo-prop-3',
-    title: 'Penthouse sa Panoramskim Pogledom na Grad',
-    type: 'Penthouse',
-    price: 490000,
-    status: 'active',
-    city: 'Sarajevo',
-    address: 'Kranjčevićeva, Marijin Dvor',
-    bedrooms: 4,
-    bathrooms: 3,
-    area_size: 165,
-    notes: 'U cijenu uključena dva garažna mjesta na nivou -1.',
-    images: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80'],
-  },
-  {
-    id: 'demo-prop-4',
-    title: 'Novogradnja Dvosoban Stan - Park Residence',
-    type: 'Stan',
-    price: 215000,
-    status: 'active',
-    city: 'Sarajevo',
-    address: 'Grbavička 8',
-    bedrooms: 2,
-    bathrooms: 1,
-    area_size: 68,
-    notes: 'Useljivo u septembru 2026.',
-    images: ['https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80'],
-  },
-]
+
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 

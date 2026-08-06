@@ -111,7 +111,7 @@ export default function TasksPage() {
       if (data && data.length > 0) {
         setTasks(data as Task[])
       } else {
-        setTasks(DEMO_TASKS)
+        setTasks([])
       }
     }
     setLoading(false)

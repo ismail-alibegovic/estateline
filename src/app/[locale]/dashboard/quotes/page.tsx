@@ -113,7 +113,7 @@ export default function QuotesPage() {
           }
         }))
       } else {
-        setQuotes(DEMO_QUOTES)
+        setQuotes([])
       }
     }
     setLoading(false)

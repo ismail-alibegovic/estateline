@@ -139,7 +139,7 @@ export default function CalendarPage() {
       if (aggregated.length > 0) {
         setEvents(aggregated)
       } else {
-        setEvents(DEMO_CALENDAR_EVENTS)
+        setEvents([])
       }
     }
     setLoading(false)

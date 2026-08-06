@@ -128,7 +128,7 @@ export default function KanbanPage() {
           commission: Number(d.commission_amount) || Math.round((Number(d.price) || 0) * 0.03),
         })))
       } else {
-        setDeals(DEMO_DEALS)
+        setDeals([])
       }
     }
     setLoading(false)

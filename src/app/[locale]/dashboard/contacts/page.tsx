@@ -129,7 +129,7 @@ export default function ContactsPage() {
       if (data && data.length > 0) {
         setContacts(data as ContactRow[])
       } else {
-        setContacts(DEMO_CONTACTS)
+        setContacts([])
       }
     }
     setLoading(false)

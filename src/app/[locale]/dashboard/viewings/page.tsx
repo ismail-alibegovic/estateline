@@ -112,7 +112,7 @@ export default function ViewingsPage() {
       if (data && data.length > 0) {
         setViewings(data as any)
       } else {
-        setViewings(DEMO_VIEWINGS)
+        setViewings([])
       }
     }
     setLoading(false)

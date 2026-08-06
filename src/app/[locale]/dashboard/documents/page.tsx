@@ -9,6 +9,9 @@ import {
   Plus, CheckCircle2, X
 } from 'lucide-react'
 
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
+
 interface DocumentItem {
   id: string
   title: string
@@ -19,37 +22,11 @@ interface DocumentItem {
   fileUrl: string
 }
 
-const DEMO_DOCUMENTS: DocumentItem[] = [
-  {
-    id: 'demo-doc-1',
-    title: 'Standardni Posrednički Ugovor Agencije',
-    fileName: 'Posrednicki_Ugovor_Estateline.pdf',
-    fileSize: '240 KB',
-    category: 'contracts',
-    uploadedAt: new Date().toISOString(),
-    fileUrl: '',
-  },
-  {
-    id: 'demo-doc-2',
-    title: 'ZK Izvadak - Stan Skenderija (Podgaj 14)',
-    fileName: 'ZK_Izvadak_Skenderija.pdf',
-    fileSize: '1.2 MB',
-    category: 'leases',
-    uploadedAt: new Date().toISOString(),
-    fileUrl: '',
-  },
-  {
-    id: 'demo-doc-3',
-    title: 'Šablon Predugovora o Kupi i Prodaji',
-    fileName: 'Sablon_Predugovor_Nekretnina.docx',
-    fileSize: '85 KB',
-    category: 'templates',
-    uploadedAt: new Date().toISOString(),
-    fileUrl: '',
-  },
-]
+
 
 export default function DocumentsPage() {
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const [activeTab, setActiveTab] = useState<'library' | 'builder'>('library')
   const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -123,7 +100,7 @@ export default function DocumentsPage() {
           fileUrl: d.file_url
         })))
       } else {
-        setDocuments(DEMO_DOCUMENTS)
+        setDocuments([])
       }
       setLoading(false)
     }
@@ -215,11 +192,11 @@ export default function DocumentsPage() {
         </div>
 
         {/* Tab Controls */}
-        <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shrink-0">
+        <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shrink-0 gap-1">
           <button
             onClick={() => setActiveTab('library')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'library' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              activeTab === 'library' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             Biblioteka Dokumenta
@@ -227,12 +204,19 @@ export default function DocumentsPage() {
           <button
             onClick={() => setActiveTab('builder')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
-              activeTab === 'builder' ? 'bg-[#C9963B] text-white shadow-sm' : 'text-gray-500'
+              activeTab === 'builder' ? 'bg-[#C9963B] text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             <Sparkles size={14} />
             <span>Generator Ugovora</span>
           </button>
+          <Link
+            href={`/${locale}/dashboard/documents/templates`}
+            className="px-4 py-2 text-xs font-bold rounded-xl text-slate-700 hover:text-slate-900 hover:bg-white/60 transition-all flex items-center gap-1.5"
+          >
+            <FileText size={14} className="text-[#C9963B]" />
+            <span>Šabloni & PDF Editor</span>
+          </Link>
         </div>
       </header>
 

@@ -113,7 +113,7 @@ export default function InvoicesPage() {
           }
         }))
       } else {
-        setInvoices(DEMO_INVOICES)
+        setInvoices([])
       }
     }
     setLoading(false)

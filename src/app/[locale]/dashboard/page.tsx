@@ -29,56 +29,7 @@ const FALLBACK_PROPERTY_IMAGES = [
   'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80',
 ]
 
-const DEMO_PROPERTIES = [
-  {
-    id: 'demo-1',
-    title: 'Dvoetažni Luksuzni Stan - Skenderija',
-    type: 'Stan',
-    price: 345000,
-    city: 'Sarajevo',
-    address: 'Podgaj',
-    bedrooms: 3,
-    bathrooms: 2,
-    area_sqm: 115,
-    images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'],
-  },
-  {
-    id: 'demo-2',
-    title: 'Moderna Vila sa Bazenom & Baštom',
-    type: 'Kuća',
-    price: 680000,
-    city: 'Sarajevo',
-    address: 'Ilidža',
-    bedrooms: 5,
-    bathrooms: 4,
-    area_sqm: 320,
-    images: ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'],
-  },
-  {
-    id: 'demo-3',
-    title: 'Penthouse sa Pogledom na Grad',
-    type: 'Penthouse',
-    price: 490000,
-    city: 'Sarajevo',
-    address: 'Marijin Dvor',
-    bedrooms: 4,
-    bathrooms: 3,
-    area_sqm: 165,
-    images: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80'],
-  },
-  {
-    id: 'demo-4',
-    title: 'Novogradnja Dvosoban Stan - Grbavica',
-    type: 'Stan',
-    price: 215000,
-    city: 'Sarajevo',
-    address: 'Grbavica',
-    bedrooms: 2,
-    bathrooms: 1,
-    area_sqm: 68,
-    images: ['https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80'],
-  },
-]
+
 
 export default function DashboardHome() {
   const t = useTranslations('dashboard')
@@ -192,10 +143,10 @@ export default function DashboardHome() {
 
         const totalVal = props.reduce((acc, p) => acc + (Number(p.price) || 0), 0)
         setCounts({
-          properties: props.length || DEMO_PROPERTIES.length,
+          properties: props.length,
           leads: leads.length,
           activeDeals: deals.filter(d => ['qualified', 'proposal', 'negotiation'].includes(d.stage)).length,
-          totalPortfolioValue: totalVal || 1730000,
+          totalPortfolioValue: totalVal,
         })
 
         // Lead stage distribution
@@ -210,7 +161,7 @@ export default function DashboardHome() {
         })
         setLeadStages(stages)
 
-        // Process property images or fallback to high-res photography
+        // Process property images
         if (recentPropsResp.data && recentPropsResp.data.length > 0) {
           const processed = recentPropsResp.data.map((p, idx) => {
             const hasImg = Array.isArray(p.images) && p.images.length > 0 && typeof p.images[0] === 'string'
@@ -221,10 +172,7 @@ export default function DashboardHome() {
           })
           setRecentProperties(processed)
         } else {
-          setRecentProperties(DEMO_PROPERTIES.map((p, idx) => ({
-            ...p,
-            displayImage: p.images[0],
-          })))
+          setRecentProperties([])
         }
 
         if (recentLeadsResp.data) setRecentLeads(recentLeadsResp.data)

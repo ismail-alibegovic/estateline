@@ -151,7 +151,7 @@ export default function LeadsPage() {
       if (data && data.length > 0) {
         setLeads(data as Lead[])
       } else {
-        setLeads(DEMO_LEADS)
+        setLeads([])
       }
     }
     setLoading(false)
