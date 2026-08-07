@@ -163,7 +163,7 @@ export default async function OrgMicrosite({ params }: { params: { subdomain: st
             return (
               <article
                 key={p.id}
-                className="border rounded-lg overflow-hidden bg-[var(--ms-card)] hover:shadow-md transition-shadow flex flex-col"
+                className="border rounded-lg overflow-hidden bg-[var(--ms-card)] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col"
                 style={{ borderColor: theme.border }}
               >
                 <div className="relative aspect-[4/3] bg-[#eee4d1] flex items-center justify-center overflow-hidden">
