@@ -418,7 +418,14 @@ export default function PropertiesPage() {
       {/* Grid View */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((p, idx) => {
-          const coverImage = p.images?.[0] || FALLBACK_PROPERTY_IMAGES[idx % FALLBACK_PROPERTY_IMAGES.length]
+          const getImageUrl = (images: any) => {
+            if (!Array.isArray(images) || images.length === 0) return null
+            const first = images[0]
+            if (typeof first === 'string') return first
+            if (typeof first === 'object' && first !== null && first.url) return first.url
+            return null
+          }
+          const coverImage = getImageUrl(p.images) || FALLBACK_PROPERTY_IMAGES[idx % FALLBACK_PROPERTY_IMAGES.length]
 
           return (
             <div
