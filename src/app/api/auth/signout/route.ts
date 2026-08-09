@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createRouteClient } from '@/lib/auth'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const SITE_URL = 'https://estateline-sprypine.zocomputer.io'
 
 export async function POST() {
-  const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  const supabase = createRouteClient()
   await supabase.auth.signOut()
-  return NextResponse.json({ success: true })
+
+  return NextResponse.redirect(new URL('/en/login', SITE_URL), { status: 303 })
 }

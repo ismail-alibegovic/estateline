@@ -1,4 +1,6 @@
 #!/bin/bash
 set -e
-npm run build
+if [ ! -d .next ]; then
+  npm run build
+fi
 npm run start
