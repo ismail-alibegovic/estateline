@@ -526,9 +526,10 @@ export default function DashboardHome() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {recentProperties.map((prop, idx) => (
-                <div
+                <Link
                   key={prop.id || idx}
-                  className="border border-gray-200/70 rounded-3xl overflow-hidden hover:border-[#C9963B] transition-all bg-white group shadow-sm flex flex-col justify-between"
+                  href={`/${locale}/dashboard/properties/${prop.id}`}
+                  className="border border-gray-200/70 rounded-3xl overflow-hidden hover:border-[#C9963B] transition-all bg-white group shadow-sm flex flex-col justify-between block"
                 >
                   {/* Image Header with Unsplash High-Res Fallback */}
                   <div className="h-44 bg-gray-100 relative overflow-hidden">
@@ -577,7 +578,7 @@ export default function DashboardHome() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

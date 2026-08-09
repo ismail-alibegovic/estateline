@@ -132,36 +132,46 @@ export default function PropertiesPage() {
     if (!form.title.trim()) return
     setSaving(true)
 
-    const newProp: PropertyItem = {
-      id: `prop-${Date.now()}`,
+    if (!orgId) {
+      toast('Organizacija nije pronađena — kontaktirajte podršku.', 'error')
+      setSaving(false)
+      return
+    }
+
+    const supabase = createBrowserClient()
+    const { data: inserted, error: insertErr } = await supabase.from('properties').insert({
+      organization_id: orgId,
       title: form.title,
       type: form.type,
       price: parseFloat(form.price) || 150000,
-      status: 'active',
       city: form.city || 'Sarajevo',
       address: form.address || '',
       bedrooms: parseInt(form.bedrooms) || 2,
       bathrooms: parseInt(form.bathrooms) || 1,
       area_size: parseFloat(form.area_size) || 70,
-      description: form.description,
-      notes: form.notes,
-      images: [form.cover_image_url || FALLBACK_PROPERTY_IMAGES[0]],
+      status: 'active',
+      description: form.description || '',
+    }).select().single()
+
+    if (insertErr) {
+      toast(`Greška pri dodavanju: ${insertErr.message}`, 'error')
+      setSaving(false)
+      return
     }
 
-    if (orgId) {
-      const supabase = createBrowserClient()
-      await supabase.from('properties').insert({
-        organization_id: orgId,
-        title: form.title,
-        type: form.type,
-        price: parseFloat(form.price) || 150000,
-        city: form.city || 'Sarajevo',
-        address: form.address || '',
-        bedrooms: parseInt(form.bedrooms) || 2,
-        bathrooms: parseInt(form.bathrooms) || 1,
-        area_size: parseFloat(form.area_size) || 70,
-        status: 'active',
-      })
+    const newProp: PropertyItem = {
+      id: inserted.id,
+      title: inserted.title,
+      type: inserted.type || 'Stan',
+      price: inserted.price || 0,
+      status: inserted.status || 'active',
+      city: inserted.city || 'Sarajevo',
+      address: inserted.address || '',
+      bedrooms: inserted.bedrooms || 0,
+      bathrooms: inserted.bathrooms || 0,
+      area_sqm: inserted.area_size || 0,
+      description: inserted.description || '',
+      images: inserted.images || [],
     }
 
     setProperties(prev => [newProp, ...prev])
@@ -258,48 +268,14 @@ export default function PropertiesPage() {
 
       const data = await res.json()
 
-      if (res.ok && data.imported_count !== undefined) {
-        toast(`Uspješno uvezeno ${data.imported_count || 1} nekretnina sa OLX.ba!`)
+      if (res.ok && data.success) {
+        const count = data.importedCount || 0
+        toast(count > 0
+          ? `Uspješno uvezeno ${count} nekretnina sa OLX.ba!`
+          : 'Nema novih nekretnina za uvoz sa OLX.ba.')
         loadData()
       } else {
-        const fakeTitle = olxUrl.includes('artikal') || olxUrl.includes('oglas')
-          ? 'Nekretnina sa OLX.ba (Uvezeno)'
-          : 'Atraktivan Stan na Skenderiji - OLX Import'
-
-        const newProperty: PropertyItem = {
-          id: `olx-${Date.now()}`,
-          title: fakeTitle,
-          type: 'Stan',
-          price: 185000,
-          status: 'active',
-          city: 'Sarajevo',
-          address: 'Centar, Sarajevo',
-          bedrooms: 3,
-          bathrooms: 2,
-          area_size: 85,
-          description: `Nekretnina uvezena direktno sa OLX.ba linka: ${olxUrl}`,
-          notes: 'Uvezeno putem OLX sinkronizacije.',
-          images: [FALLBACK_PROPERTY_IMAGES[0]],
-        }
-
-        if (orgId) {
-          const supabase = createBrowserClient()
-          await supabase.from('properties').insert({
-            organization_id: orgId,
-            title: fakeTitle,
-            type: 'Stan',
-            price: 185000,
-            city: 'Sarajevo',
-            address: 'Centar, Sarajevo',
-            bedrooms: 3,
-            bathrooms: 2,
-            area_size: 85,
-            status: 'active',
-          })
-        }
-
-        setProperties(prev => [newProperty, ...prev])
-        toast('Nekretnina je uspješno uvezena sa OLX.ba!')
+        toast(data.error || 'Neuspješan uvoz sa OLX-a. Provjerite URL.', 'error')
       }
     } catch (err) {
       toast('Došlo je do greške prilikom uvoza sa OLX-a', 'error')
