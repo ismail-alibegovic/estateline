@@ -174,9 +174,9 @@ export default function PropertiesPage() {
       images: inserted.images || [],
     }
 
-    setProperties(prev => [newProp, ...prev])
     toast('Nova nekretnina je dodana!')
     setIsAddOpen(false)
+    loadData()
     setForm({ title: '', type: 'Stan', price: '', city: 'Sarajevo', address: '', bedrooms: '2', bathrooms: '1', area_size: '70', description: '', notes: '', cover_image_url: '' })
     setSaving(false)
   }
