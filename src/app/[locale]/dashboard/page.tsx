@@ -164,10 +164,10 @@ export default function DashboardHome() {
         // Process property images
         if (recentPropsResp.data && recentPropsResp.data.length > 0) {
           const processed = recentPropsResp.data.map((p, idx) => {
-            const hasImg = Array.isArray(p.images) && p.images.length > 0 && typeof p.images[0] === 'string'
+            const hasImg = Array.isArray(p.images) && p.images.length > 0 && typeof p.images[0] === 'string' || typeof p.images[0].url === 'string'
             return {
               ...p,
-              displayImage: hasImg ? p.images[0] : FALLBACK_PROPERTY_IMAGES[idx % FALLBACK_PROPERTY_IMAGES.length],
+              displayImage: hasImg ? typeof p.images[0] === 'string' ? p.images[0] : p.images[0].url : FALLBACK_PROPERTY_IMAGES[idx % FALLBACK_PROPERTY_IMAGES.length],
             }
           })
           setRecentProperties(processed)
