@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const hostname = request.headers.get('host') || ''
 
-  // Explicitly bypass API and static resource files before any rewrites
+  // Skip API, static, and file requests
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/_next') || url.pathname.includes('.')) {
     return NextResponse.next()
   }
@@ -53,9 +53,13 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    let user = null
+    try {
+      const { data } = await supabase.auth.getUser()
+      user = data.user
+    } catch (_) {
+      // Supabase unreachable — proceed without user
+    }
 
     if (!user) {
       const matchedLocale =
@@ -66,21 +70,19 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Clean the host name by removing ports
   const cleanHost = hostname.split(':')[0]
-
   let subdomain = ''
 
   if (cleanHost === 'localhost' || cleanHost === '127.0.0.1') {
-    // Local dev: No subdomain rewrite
     subdomain = ''
   } else if (cleanHost.endsWith('.localhost')) {
-    // Local dev subdomains (e.g. agency.localhost)
     subdomain = cleanHost.replace('.localhost', '')
   } else {
-    // Production domains
     const mainDomains = ['estateline.ba', 'estateline.io', 'getestateline.com']
-    const isMainDomain = mainDomains.some(d => cleanHost === d || cleanHost.endsWith('.' + d))
+    const platformDomains = ['.zocomputer.io', '.zo.computer']
+    const isMainDomain =
+      mainDomains.some(d => cleanHost === d || cleanHost.endsWith('.' + d)) ||
+      platformDomains.some(d => cleanHost.endsWith(d))
 
     if (isMainDomain) {
       for (const d of mainDomains) {
@@ -90,12 +92,10 @@ export async function middleware(request: NextRequest) {
         }
       }
     } else {
-      // Custom white-labeled domain mapping
       subdomain = cleanHost
     }
   }
 
-  // Rewrite to subdomain path if detected
   if (subdomain && subdomain !== 'www') {
     const isApiOrStatic =
       url.pathname.startsWith('/api') ||
@@ -108,11 +108,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Otherwise, run internationalization middleware
   return intlMiddleware(request)
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|.*\\..*)*)'],
+  matcher: ['/:path*'],
 }
-
