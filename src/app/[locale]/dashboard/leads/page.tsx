@@ -35,61 +35,6 @@ const STAGE_LABELS: Record<string, { bs: string; en: string; color: string; bg: 
   converted: { bs: '5. Prodano ✓', en: '5. Closed Won ✓', color: '#059669', bg: '#ECFDF5' },
 }
 
-const DEMO_LEADS: Lead[] = [
-  {
-    id: 'demo-lead-1',
-    first_name: 'Emir',
-    last_name: 'Hadžić',
-    email: 'emir.hadzic@email.com',
-    phone: '+387 61 222 333',
-    stage: 'new',
-    status: 'new',
-    source: 'OLX.ba',
-    budget_min: 120000,
-    budget_max: 180000,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-lead-2',
-    first_name: 'Belma',
-    last_name: 'Čolić',
-    email: 'belma.colic@email.com',
-    phone: '+387 62 444 555',
-    stage: 'contacted',
-    status: 'contacted',
-    source: 'Preporuka',
-    budget_min: 250000,
-    budget_max: 350000,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-lead-3',
-    first_name: 'Mirza',
-    last_name: 'Selimović',
-    email: 'mirza.s@email.com',
-    phone: '+387 61 777 888',
-    stage: 'qualified',
-    status: 'qualified',
-    source: 'Web forma',
-    budget_min: 150000,
-    budget_max: 220000,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-lead-4',
-    first_name: 'Alma',
-    last_name: 'Begić',
-    email: 'alma.b@email.com',
-    phone: '+387 63 999 000',
-    stage: 'negotiation',
-    status: 'negotiation',
-    source: 'Direktno',
-    budget_min: 300000,
-    budget_max: 450000,
-    created_at: new Date().toISOString(),
-  },
-]
-
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function LeadsPage() {
@@ -207,7 +152,7 @@ export default function LeadsPage() {
       }
     } else {
       const newLead: Lead = {
-        id: `demo-${Date.now()}`,
+        id: crypto.randomUUID(),
         first_name: form.first_name,
         last_name: form.last_name || null,
         email: form.email || null,

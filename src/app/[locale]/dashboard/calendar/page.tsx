@@ -24,44 +24,6 @@ interface CalendarEvent {
   notes?: string
 }
 
-const DEMO_CALENDAR_EVENTS: CalendarEvent[] = [
-  {
-    id: 'e-1',
-    title: 'Obilazak Stana na Skenderiji',
-    start: new Date(new Date().setHours(14, 0, 0, 0)),
-    end: new Date(new Date().setHours(15, 0, 0, 0)),
-    type: 'viewing',
-    client_name: 'Emir Hadžić',
-    location: 'Podgaj 14, Sarajevo',
-    notes: 'Kupac traži trosoban stan sa garažom.',
-  },
-  {
-    id: 'e-2',
-    title: 'Potpisivanje Predugovora kod Notara',
-    start: new Date(new Date().setHours(16, 30, 0, 0)),
-    end: new Date(new Date().setHours(17, 30, 0, 0)),
-    type: 'meeting',
-    client_name: 'Belma Čolić & Denis Kovačević',
-    location: 'Notarska Kancelarija Kovačević',
-    notes: 'Uplata kapare 10%.',
-  },
-  {
-    id: 'e-3',
-    title: 'Telefonski Poziv - Produženje Zakupa',
-    start: new Date(Date.now() + 86400000),
-    end: new Date(Date.now() + 86400000 + 1800000),
-    type: 'call',
-    client_name: 'Lejla Muminović',
-  },
-  {
-    id: 'e-4',
-    title: 'Uvoz novih oglasa sa OLX.ba',
-    start: new Date(Date.now() + 86400000 * 2),
-    end: new Date(Date.now() + 86400000 * 2 + 3600000),
-    type: 'task',
-  },
-]
-
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function CalendarPage() {

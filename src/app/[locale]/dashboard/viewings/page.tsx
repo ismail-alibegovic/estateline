@@ -19,45 +19,6 @@ interface Viewing {
   leads?: { first_name: string; last_name: string | null; phone?: string } | null
 }
 
-const DEMO_VIEWINGS: Viewing[] = [
-  {
-    id: 'demo-viewing-1',
-    property_id: 'p1',
-    contact_id: 'c1',
-    lead_id: null,
-    scheduled_at: new Date(Date.now() + 3600000 * 2).toISOString(),
-    status: 'confirmed',
-    notes: 'Kupac dolazi sa suprugom, traže trosoban stan.',
-    duration_minutes: 45,
-    properties: { title: 'Dvoetažni Luksuzni Stan - Skenderija', city: 'Sarajevo' },
-    contacts: { first_name: 'Emir', last_name: 'Hadžić', phone: '+387 61 222 333' },
-  },
-  {
-    id: 'demo-viewing-2',
-    property_id: 'p2',
-    contact_id: null,
-    lead_id: 'l2',
-    scheduled_at: new Date(Date.now() + 3600000 * 5).toISOString(),
-    status: 'scheduled',
-    notes: 'Obilazak kuće i bašte sa klijentom.',
-    duration_minutes: 60,
-    properties: { title: 'Moderna Porodična Vila sa Bazenom', city: 'Sarajevo' },
-    leads: { first_name: 'Belma', last_name: 'Čolić', phone: '+387 62 444 555' },
-  },
-  {
-    id: 'demo-viewing-3',
-    property_id: 'p3',
-    contact_id: 'c3',
-    lead_id: null,
-    scheduled_at: new Date(Date.now() + 86400000).toISOString(),
-    status: 'completed',
-    notes: 'Završen pregled, klijent šalje ponudu u ponedjeljak.',
-    duration_minutes: 30,
-    properties: { title: 'Penthouse sa Pogledom na Grad', city: 'Sarajevo' },
-    contacts: { first_name: 'Mirza', last_name: 'Selimović', phone: '+387 61 777 888' },
-  },
-]
-
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function ViewingsPage() {
@@ -130,7 +91,7 @@ export default function ViewingsPage() {
 
     const scheduled_at = new Date(`${newViewing.date}T${newViewing.time}`).toISOString()
     const item: Viewing = {
-      id: `demo-${Date.now()}`,
+      id: crypto.randomUUID(),
       property_id: 'p1',
       contact_id: null,
       lead_id: null,

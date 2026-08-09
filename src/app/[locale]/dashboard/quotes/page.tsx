@@ -18,33 +18,6 @@ interface QuoteItem {
   created_at: string
 }
 
-const DEMO_QUOTES: QuoteItem[] = [
-  {
-    id: 'quote-1',
-    title: 'Službena Ponuda - Stan Skenderija',
-    client_name: 'Emir Hadžić',
-    property_title: 'Dvoetažni Stan na Skenderiji (Podgaj 14)',
-    property_price: 345000,
-    agency_fee_pct: 3.0,
-    notary_fee_est: 1200,
-    total_investment: 356550,
-    status: 'sent',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'quote-2',
-    title: 'Agencijska Ponuda - Vila Ilidža',
-    client_name: 'Belma Čolić',
-    property_title: 'Moderna Porodična Vila sa Bazenom',
-    property_price: 680000,
-    agency_fee_pct: 3.0,
-    notary_fee_est: 2500,
-    total_investment: 702900,
-    status: 'accepted',
-    created_at: new Date().toISOString(),
-  },
-]
-
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function QuotesPage() {

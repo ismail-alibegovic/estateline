@@ -18,33 +18,6 @@ interface InvoiceItem {
   created_at: string
 }
 
-const DEMO_INVOICES: InvoiceItem[] = [
-  {
-    id: 'inv-1',
-    number: 'INV-2026-104',
-    client_name: 'Emir Hadžić',
-    title: 'Agencijska Provizija za Stan na Skenderiji',
-    subtotal: 10350,
-    tax: 1759.5,
-    grand_total: 12109.5,
-    status: 'paid',
-    due_date: '10. Aug 2026',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'inv-2',
-    number: 'INV-2026-105',
-    client_name: 'Belma Čolić',
-    title: 'Agencijska Provizija za Vilu na Ilidži',
-    subtotal: 20400,
-    tax: 3468,
-    grand_total: 23868,
-    status: 'pending',
-    due_date: '25. Aug 2026',
-    created_at: new Date().toISOString(),
-  },
-]
-
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function InvoicesPage() {

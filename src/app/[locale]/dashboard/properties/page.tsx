@@ -207,7 +207,7 @@ export default function PropertiesPage() {
       notes: form.notes,
     }
 
-    if (orgId && !selectedProp.id.startsWith('demo-')) {
+    if (orgId) {
       const supabase = createBrowserClient()
       await supabase.from('properties').update({
         title: form.title,
@@ -236,7 +236,7 @@ export default function PropertiesPage() {
 
   const deleteProperty = async (id: string) => {
     if (!confirm('Da li ste sigurni da želite obrisati ovu nekretninu iz ponude?')) return
-    if (orgId && !id.startsWith('demo-')) {
+    if (orgId) {
       const supabase = createBrowserClient()
       await supabase.from('properties').delete().eq('id', id)
     }

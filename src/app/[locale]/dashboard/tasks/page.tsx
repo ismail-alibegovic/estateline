@@ -20,45 +20,6 @@ interface Task {
   property_id?: string | null
 }
 
-const DEMO_TASKS: Task[] = [
-  {
-    id: 'demo-task-1',
-    title: 'Pripremi kupoprodajni ugovor za stan na Skenderiji',
-    description: 'Provjeriti zk izvadak u sudu i kontaktirati notara Denisa Kovačevića.',
-    status: 'in_progress',
-    priority: 'high',
-    due_date: new Date(Date.now() + 86400000).toISOString(),
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-task-2',
-    title: 'Pozovi vlasnika stana na Ilidži radi produženja ugovora',
-    description: 'Provjeriti novu cijenu i uslove izdavanja sa vlasnicom Lejlom Muminović.',
-    status: 'todo',
-    priority: 'medium',
-    due_date: new Date(Date.now() + 172800000).toISOString(),
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-task-3',
-    title: 'Ažuriraj ponudu nekretnina na OLX.ba profilu',
-    description: 'Uvoz novih slika i ažuriranje cijena novogradnje na Grbavici.',
-    status: 'completed',
-    priority: 'low',
-    due_date: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-task-4',
-    title: 'Pošalji ponudu stana klijentu Emiru Hadžiću',
-    description: 'Poslati e-mail sa 3 opcije dvosobnih stanova u centru.',
-    status: 'todo',
-    priority: 'high',
-    due_date: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-  },
-]
-
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function TasksPage() {
@@ -145,7 +106,7 @@ export default function TasksPage() {
       }
     } else {
       const newTask: Task = {
-        id: `demo-${Date.now()}`,
+        id: crypto.randomUUID(),
         title: newTitle,
         description: newDesc || null,
         status: 'todo',

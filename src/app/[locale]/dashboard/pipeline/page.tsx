@@ -24,49 +24,6 @@ const STAGES = [
   { id: 'closed_won', label: '5. Prodano (Završeno)', color: '#059669', bg: '#ECFDF5' },
 ] as const
 
-const DEMO_DEALS: DealItem[] = [
-  {
-    id: 'deal-1',
-    title: 'Kupoprodaja Dvoetažnog Stana',
-    contact_name: 'Emir Hadžić',
-    property_title: 'Stan na Skenderiji (Podgaj 14)',
-    price: 345000,
-    stage: 'negotiation',
-    expected_date: '15. Aug 2026',
-    commission: 10350,
-  },
-  {
-    id: 'deal-2',
-    title: 'Zakup Poslovnog Prostora',
-    contact_name: 'Amra Hadžimuhović',
-    property_title: 'Poslovni Prostor Centar (120m²)',
-    price: 2500,
-    stage: 'viewing',
-    expected_date: '08. Aug 2026',
-    commission: 2500,
-  },
-  {
-    id: 'deal-3',
-    title: 'Prodaja Moderne Vile',
-    contact_name: 'Belma Čolić',
-    property_title: 'Porodična Vila na Ilidži',
-    price: 680000,
-    stage: 'under_contract',
-    expected_date: '20. Aug 2026',
-    commission: 20400,
-  },
-  {
-    id: 'deal-4',
-    title: 'Upit za Novogradnju',
-    contact_name: 'Haris Dizdarević',
-    property_title: 'Dvosoban Stan Grbavica',
-    price: 215000,
-    stage: 'new',
-    expected_date: '30. Aug 2026',
-    commission: 6450,
-  },
-]
-
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function KanbanPage() {

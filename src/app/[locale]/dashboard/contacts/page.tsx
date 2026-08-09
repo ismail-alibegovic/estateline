@@ -26,53 +26,6 @@ const TYPE_LABELS: Record<string, { bs: string; color: string; bg: string }> = {
   other: { bs: 'Ostalo', color: '#6B7280', bg: '#F3F4F6' },
 }
 
-const DEMO_CONTACTS: ContactRow[] = [
-  {
-    id: 'demo-contact-1',
-    first_name: 'Haris',
-    last_name: 'Dizdarević',
-    email: 'haris.d@email.com',
-    phone: '+387 61 111 222',
-    type: 'client',
-    city: 'Sarajevo',
-    company: 'IT Solutions',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-contact-2',
-    first_name: 'Lejla',
-    last_name: 'Muminović',
-    email: 'lejla.m@email.com',
-    phone: '+387 62 333 444',
-    type: 'owner',
-    city: 'Sarajevo',
-    company: 'Vlasnik stana Podgaj 14',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-contact-3',
-    first_name: 'Denis',
-    last_name: 'Kovačević',
-    email: 'denis.k@email.com',
-    phone: '+387 61 555 666',
-    type: 'vendor',
-    city: 'Sarajevo',
-    company: 'Notarska Kancelarija Kovačević',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-contact-4',
-    first_name: 'Amra',
-    last_name: 'Hadžimuhović',
-    email: 'amra.h@email.com',
-    phone: '+387 63 777 888',
-    type: 'tenant',
-    city: 'Sarajevo',
-    company: 'Zakupac poslovnog prostora',
-    created_at: new Date().toISOString(),
-  },
-]
-
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function ContactsPage() {
@@ -165,7 +118,7 @@ export default function ContactsPage() {
       }
     } else {
       const newContact: ContactRow = {
-        id: `demo-${Date.now()}`,
+        id: crypto.randomUUID(),
         first_name: form.first_name,
         last_name: form.last_name || null,
         email: form.email || null,
