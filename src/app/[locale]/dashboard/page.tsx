@@ -581,7 +581,7 @@ export default function DashboardHome() {
                       </div>
                       <div className="flex items-center gap-1.5 ml-auto font-bold text-gray-900">
                         <Move size={14} className="text-gray-400" />
-                        <span>{prop.area_sqm || 65} m²</span>
+                        <span>{prop.area_size || 65} m²</span>
                       </div>
                     </div>
                   </div>

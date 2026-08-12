@@ -169,7 +169,7 @@ export default function PropertiesPage() {
       address: inserted.address || '',
       bedrooms: inserted.bedrooms || 0,
       bathrooms: inserted.bathrooms || 0,
-      area_sqm: inserted.area_size || 0,
+      area_size: inserted.area_size || 0,
       description: inserted.description || '',
       images: inserted.images || [],
     }
