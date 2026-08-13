@@ -4,7 +4,9 @@ Live: https://estateline-sprypine.zocomputer.io
 Repo: github.com/ismail-alibegovic/estateline
 Supabase: production project (BS/HR/SR/EN i18n, RLS, 48 API routes)
 
-## ✅ Completed this session (commits 2b5aa10, 08475b1, 587f115)
+## ✅ Completed in 2026-08-13 sessions
+
+### Session 1 (commits 2b5aa10, 08475b1, 587f115, 0d1a007)
 
 | Area | Action | Status |
 |------|--------|--------|
@@ -13,6 +15,25 @@ Supabase: production project (BS/HR/SR/EN i18n, RLS, 48 API routes)
 | CI block (4 days red) | react-leaflet@5 peer-depends on React 19; project pins React 18. Pinned react-leaflet@^4.2.1 (React-18 compatible, API unchanged) + Node 18→20 + `npm ci --legacy-peer-deps` | Pushed (code only) |
 | Public marketing landing | `/[locale]` was a redirect to `/dashboard`. Built bilingual hero + 8-module grid + 3-tier pricing + CTA + footer. Brand-styled. Static-prerendered. | Live, screenshots verified |
 | Billing UX | Upgrade buttons now POST /api/billing/checkout and redirect to Stripe URL. Mock fallback for missing STRIPE_SECRET_KEY. Real live usage meters (not static placeholders). | Pushed, live |
+
+### Session 2 (commit 754ba8e)
+
+| Area | Action | Status |
+|------|--------|--------:|
+| Onboarding wizard — broken Step 2 (Team invite) | Step 2 collected an email but `handleCompleteOnboarding` never sent it. Now calls the existing `/api/organizations/members/add-existing` POST (graceful `failed` status if user doesn't exist on the platform yet, `skipped` if email invalid). Runs in `Promise.allSettled` so the wizard completes even if the invite fails. | Fixed, pushed |
+| Onboarding wizard — broken Step 4 (First property) | Step 4 collected title/price but `handleCompleteOnboarding` never wrote them. Now calls the existing `/api/properties` POST with auto-slugified title, default city 'Sarajevo' if blank, default currency 'BAM'. Same `Promise.allSettled` wrapper. | Fixed, pushed |
+| Onboarding wizard — dead Step 1 fields | Step 1 collected agency address/phone, but `organizations` has no such columns — the data was silently dropped. UI removed. | Fixed, pushed |
+| Onboarding wizard — Bosnian-only | Added a self-contained inline `dict = { en: {...}, bs: {...} }` keyed off the `locale` param — keeps the wizard isolated from the main `useTranslations` i18n dict, no key-parity impact. | Fixed, pushed |
+
+### Session 3 (this commit)
+
+| Area | Action | Status |
+|------|--------|--------:|
+| Dashboard home — fake agenda | `Današnji Obilasci` card hardcoded two viewings ("Emir Hadžić 14:00", "Belma Čolić 16:30") and a `3 zakazana` badge — regardless of real data. Replaced with real fetch (`todayViewings` from the existing `/viewings` query), filtered to today in the user's tz, plus a dashed amber empty-state CTA when zero viewings. Removed all hardcoded names/phone numbers. | Fixed, pushed |
+| Contacts — missing empty state | Contacts grid had no empty state when 0 contacts existed — just rendered a bare `[]` container. Added a dashed amber CTA card (same shape as the existing `properties` empty state) with an `Add Contact` button that opens the existing modal. | Fixed, pushed |
+| Leads — weak top-level empty state | Top-level kanban only had a tiny per-stage `Nema klijenata u ovoj fazi` line. Added a branded top-level empty card prompting the user to add their first lead. | Fixed, pushed |
+| i18n parity | Added 26 new keys per locale across `dashboard`/`contacts`/`leads` for the new empty-state copy. Both BS + EN dict `check:i18n` green. | Fixed, pushed |
+|
 
 ## ⚠️ One **manual action** Ismail must do (cannot be done from here)
 
