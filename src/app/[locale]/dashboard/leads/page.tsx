@@ -277,6 +277,32 @@ export default function LeadsPage() {
         </div>
       </div>
 
+      {/* Top-level empty state — brand-new agency has no leads yet */}
+      {filteredLeads.length === 0 && !loading && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-3xl border-2 border-dashed border-[#C9963B]/40 p-10 text-center space-y-5 shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-[#C9963B] flex items-center justify-center mx-auto border border-amber-200">
+            <User size={28} />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}>
+              {locale === 'bs' ? 'Upišite svoju prvu stranku' : 'Capture your first lead'}
+            </h3>
+            <p className="text-xs text-gray-600">
+              {locale === 'bs'
+                ? 'Dodajte potencijalnog kupca ili prodavca i pokrenite vaš prodajni pipeline.'
+                : 'Add your first buyer or seller and start moving them through your pipeline.'}
+            </p>
+          </div>
+          <button
+            onClick={() => setIsOpen(true)}
+            className="px-6 py-3 bg-[#C9963B] hover:bg-[#b88328] text-white font-bold text-xs rounded-xl shadow-lg transition-all"
+          >
+            <Plus size={14} className="inline mr-1" />
+            {locale === 'bs' ? 'Dodaj prvog klijenta' : 'Add first lead'}
+          </button>
+        </div>
+      )}
+
       {/* Kanban Board View */}
       {viewMode === 'board' ? (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5 overflow-x-auto pb-6">

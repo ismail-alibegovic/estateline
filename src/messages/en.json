@@ -118,7 +118,24 @@
     "lastActivity": "Last Activity",
     "updates": "updates",
     "latestEntries": "latest entries",
-    "overview": "OVERVIEW"
+    "overview": "OVERVIEW",
+    "emptyTitle": "Start by adding your first property",
+    "emptyDesc": "You're all set up. Add a property or invite a teammate to fill out your CRM.",
+    "emptyCta": "Add first property",
+    "emptyPropertiesTitle": "List Your First Property",
+    "emptyPropertiesBody": "Add a listing manually or pull your existing OLX.ba portfolio in one click — photos, price, and details arrive automatically.",
+    "emptyLeadsTitle": "Connect Your Lead Channels",
+    "emptyLeadsBody": "Embed the public lead-form, sync a portal, or add prospects manually. Each inquiry lands in your pipeline, organized by stage.",
+    "quickAddProperty": "Add Property",
+    "quickAddLead": "Add Lead",
+    "quickAddContact": "Add Contact",
+    "quickAddViewing": "Schedule Viewing",
+    "agenda": "Today's Viewings",
+    "noViewings": "No viewings scheduled for today.",
+    "noViewingsCta": "Schedule a viewing from the calendar.",
+    "viewingsScheduled": "{count} scheduled",
+    "callClient": "Call Client",
+    "callLabel": "Client"
   },
   "properties": {
     "title": "Properties",
@@ -142,7 +159,14 @@
     "stageQualified": "Qualified",
     "stageUnqualified": "Unqualified",
     "stageConverted": "Converted",
-    "stageLost": "Lost"
+    "stageLost": "Lost",
+    "emptyTitle": "No leads yet",
+    "emptyDesc": "Leads from your public lead form and OLX sync will land here. Add one manually to get started.",
+    "emptyCta": "Add first lead",
+    "emptyStage": "No leads in this stage",
+    "emptyCtaTitle": "Capture Your First Inquiry",
+    "emptyCtaBody": "Add a lead manually, import from a portal, or embed the public lead-form on your site — every prospect lands here, organized by stage.",
+    "emptyCtaAction": "Add First Lead"
   },
   "contacts": {
     "title": "Contacts",
@@ -152,7 +176,13 @@
     "email": "Email",
     "phone": "Phone",
     "type": "Type",
-    "city": "City"
+    "city": "City",
+    "emptyTitle": "No contacts yet",
+    "emptyDesc": "Your address book is empty. Add clients, owners, tenants, or vendors to keep track.",
+    "emptyCta": "Add first contact",
+    "emptyCtaTitle": "Build Your Agency Address Book",
+    "emptyCtaBody": "Add your first client, property owner, notary, or vendor. Estateline keeps everyone one click away from a WhatsApp message or listing.",
+    "emptyCtaAction": "Add First Contact"
   },
   "viewings": {
     "title": "Viewings",

@@ -248,7 +248,24 @@ export default function ContactsPage() {
 
       {/* Grid List of Contacts */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.map((c) => {
+        {filtered.map((c) => {        {filtered.length === 0 && (
+          <div className="col-span-full bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-3xl border-2 border-dashed border-[#C9963B]/40 p-10 text-center space-y-5 shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 text-[#C9963B] flex items-center justify-center mx-auto border border-amber-200">
+              <Users size={28} />
+            </div>
+            <div className="space-y-1 max-w-md mx-auto">
+              <h3 className="text-xl font-bold text-gray-900">{t('emptyCtaTitle')}</h3>
+              <p className="text-xs text-gray-600">{t('emptyCtaBody')}</p>
+            </div>
+            <button
+              onClick={() => setIsOpen(true)}
+              className="px-6 py-3 bg-[#C9963B] hover:bg-[#b88328] text-white font-bold text-xs rounded-xl shadow-lg transition-all"
+            >
+              <Plus size={14} className="inline -mt-0.5 mr-1" />
+              {t('addContact')}
+            </button>
+          </div>
+        )}
           const typeMeta = TYPE_LABELS[c.type] || TYPE_LABELS.client
           const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase() || 'K'
           return (

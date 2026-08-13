@@ -87,6 +87,7 @@ export default function DashboardHome() {
   const [recentProperties, setRecentProperties] = useState<any[]>([])
   const [recentLeads, setRecentLeads] = useState<any[]>([])
   const [recentComms, setRecentComms] = useState<any[]>([])
+  const [todayViewings, setTodayViewings] = useState<any[]>([])
   const [activities, setActivities] = useState<ActivityItem[]>([])
 
   const toast = (msg: string) => {
@@ -126,7 +127,8 @@ export default function DashboardHome() {
           recentPropsResp,
           recentLeadsResp,
           commsResp,
-          actResp
+          actResp,
+          viewingsResp
         ] = await Promise.all([
           supabase.from('properties').select('id, price, status').eq('organization_id', orgData.id),
           supabase.from('leads').select('id, stage, budget').eq('organization_id', orgData.id),
@@ -135,6 +137,7 @@ export default function DashboardHome() {
           supabase.from('leads').select('id, first_name, last_name, stage, budget, updated_at, created_at, properties(title)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(5),
           supabase.from('communications').select('id, type, title, summary, scheduled_at, created_at, contacts(first_name, last_name)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(4),
           supabase.from('activity_log').select('id, type, description, created_at, users(full_name)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(5),
+          supabase.from('viewings').select('id, scheduled_at, status, notes, feedback, properties:property_id(title, address, city), contacts:contact_id(first_name, last_name, phone), leads:lead_id(first_name, last_name)').eq('organization_id', orgData.id).order('scheduled_at', { ascending: true }).limit(20),
         ])
 
         const props = propsResp.data || []
@@ -185,6 +188,26 @@ export default function DashboardHome() {
         if (recentLeadsResp.data) setRecentLeads(recentLeadsResp.data)
         if (commsResp.data) setRecentComms(commsResp.data)
         if (actResp.data) setActivities(actResp.data as ActivityItem[])
+
+        // Filter viewings to today (in user's tz Europe/Sarajevo)
+        const allViewings = viewingsResp.data || []
+        const now = new Date()
+        const todayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD
+        const today = allViewings.filter(v => {
+          if (!v.scheduled_at) return false
+          try {
+            const d = new Date(v.scheduled_at)
+            // Compare by YYYY-MM-DD in this tz via UTC offset trick:
+            // server is UTC; user tz is Europe/Sarajevo (UTC+1 winter / +2 summer)
+            // To get 'today' in the user's tz, format using their offset:
+            const tzOffsetMin = -now.getTimezoneOffset() // minutes ahead of UTC
+            const userLocal = new Date(d.getTime() + tzOffsetMin * 60000)
+            return userLocal.toISOString().slice(0, 10) === todayStr
+          } catch {
+            return false
+          }
+        })
+        setTodayViewings(today)
       }
     }
     setLoading(false)
@@ -658,31 +681,55 @@ export default function DashboardHome() {
                 <h3 className="font-bold text-gray-900 text-base">Današnji Obilasci</h3>
               </div>
               <span className="text-xs font-bold text-[#C9963B] bg-amber-50 px-2 py-0.5 rounded-full">
-                3 zakazana
+                {todayViewings.length} {locale === 'bs' ? 'zakazana' : 'scheduled'}
               </span>
             </div>
 
             <div className="space-y-3">
-              <div className="p-3.5 bg-[#FAF8F5] border border-amber-200/70 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-900">Obilazak Stana na Skenderiji</span>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">14:00</span>
+              {todayViewings.length > 0 ? todayViewings.map((v) => {
+                const propLabel = v.properties?.title || (locale === 'bs' ? 'Nekretnina' : 'Property')
+                const contact = v.contacts || v.leads
+                const who = contact ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() : ''
+                const time = v.scheduled_at ? new Date(v.scheduled_at).toLocaleTimeString(locale === 'bs' ? 'bs-BA' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : ''
+                const phone = contact?.phone
+                const isConfirmed = v.status === 'confirmed'
+                return (
+                  <div
+                    key={v.id}
+                    className={`p-3.5 bg-[#FAF8F5] border rounded-2xl space-y-2 ${isConfirmed ? 'border-amber-200/70' : 'border-gray-200/70'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-900 truncate pr-2">{propLabel}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${isConfirmed ? 'text-amber-800 bg-amber-100' : 'text-gray-700 bg-gray-200'}`}>
+                        {time}
+                      </span>
+                    </div>
+                    {who && (
+                      <p className="text-xs text-gray-500">
+                        {locale === 'bs' ? 'Klijent' : 'Client'}: {who}
+                      </p>
+                    )}
+                    {phone && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <a href={`tel:${phone}`} className="text-[11px] font-bold text-[#C9963B] flex items-center gap-1 hover:underline">
+                          <Phone size={12} /> {locale === 'bs' ? 'Pozovi Kupca' : 'Call Client'}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )
+              }) : (
+                <div className="py-8 text-center space-y-2 border border-dashed border-gray-200 rounded-2xl">
+                  <Calendar size={24} className="text-gray-300 mx-auto" />
+                  <p className="text-xs text-gray-400">
+                    {locale === 'bs' ? 'Danas nema zakazanih obilazaka.' : 'No viewings scheduled today.'}
+                  </p>
+                  <Link href={`/${locale}/dashboard/calendar`} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#C9963B] hover:underline">
+                    {locale === 'bs' ? 'Zakaži obilazak' : 'Schedule a viewing'}
+                    <ArrowRight size={12} />
+                  </Link>
                 </div>
-                <p className="text-xs text-gray-500">Kupac: Emir Hadžić (Stan 75m²)</p>
-                <div className="flex items-center gap-2 pt-1">
-                  <a href="tel:+38761000000" className="text-[11px] font-bold text-[#C9963B] flex items-center gap-1 hover:underline">
-                    <Phone size={12} /> Pozovi Kupca
-                  </a>
-                </div>
-              </div>
-
-              <div className="p-3.5 bg-[#FAF8F5] border border-gray-200/70 rounded-2xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-900">Potpisivanje Predugovora</span>
-                  <span className="text-[10px] font-bold text-gray-700 bg-gray-200 px-2 py-0.5 rounded-md">16:30</span>
-                </div>
-                <p className="text-xs text-gray-500">Klijent: Belma Čolić (Kancelarija)</p>
-              </div>
+              )}
             </div>
           </div>
 
