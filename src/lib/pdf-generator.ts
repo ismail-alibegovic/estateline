@@ -1,4 +1,15 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { PDFDocument, rgb } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
+import { DEJAVU_SANS_BASE64, DEJAVU_SANS_BOLD_BASE64 } from './fonts-data'
+
+function b64ToBytes(b64: string): Uint8Array {
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
+}
 
 export interface ContractFieldMapping {
   placeholder: string
@@ -7,33 +18,26 @@ export interface ContractFieldMapping {
 }
 
 export interface SystemVariables {
-  // Contact / Client
   client_name?: string
   client_email?: string
   client_phone?: string
   client_address?: string
-  client_id_number?: string
-
-  // Property
-  property_title?: string
+  client_jmbg?: string
+  client_lk_number?: string
+  property_name?: string
   property_address?: string
   property_city?: string
   property_price?: string
   property_type?: string
   property_area?: string
-
-  // Deal / Transaction
-  deal_value?: string
-  deposit_amount?: string
-  closing_date?: string
-  agency_commission?: string
-
-  // Agency / Org
+  contract_value?: string
+  contract_deposit?: string
+  contract_deadline?: string
+  contract_commission?: string
   agency_name?: string
   agency_address?: string
-  agency_tax_id?: string
-  agency_phone?: string
-  agency_email?: string
+  agency_jib?: string
+  [key: string]: string | undefined
 }
 
 export const SYSTEM_FIELDS_OPTIONS = [
@@ -41,140 +45,129 @@ export const SYSTEM_FIELDS_OPTIONS = [
   { value: 'client_email', label: 'Klijent: Email' },
   { value: 'client_phone', label: 'Klijent: Telefon' },
   { value: 'client_address', label: 'Klijent: Adresa / JMBG' },
-  { value: 'client_id_number', label: 'Klijent: Broj Lične Karte' },
-  { value: 'property_title', label: 'Nekretnina: Naziv' },
+  { value: 'client_lk_number', label: 'Klijent: Broj Lične Karte' },
+  { value: 'property_name', label: 'Nekretnina: Naziv' },
   { value: 'property_address', label: 'Nekretnina: Adresa' },
   { value: 'property_city', label: 'Nekretnina: Grad' },
   { value: 'property_price', label: 'Nekretnina: Cijena' },
   { value: 'property_type', label: 'Nekretnina: Tip' },
   { value: 'property_area', label: 'Nekretnina: Površina (m²)' },
-  { value: 'deal_value', label: 'Ugovor: Ukupna Vrijednost' },
-  { value: 'deposit_amount', label: 'Ugovor: Iznos Kapare' },
-  { value: 'closing_date', label: 'Ugovor: Rok / Datum Zatvaranja' },
-  { value: 'agency_commission', label: 'Ugovor: Agencijska Provizija' },
+  { value: 'contract_value', label: 'Ugovor: Vrijednost' },
+  { value: 'contract_deposit', label: 'Ugovor: Iznos Kapare' },
+  { value: 'contract_deadline', label: 'Ugovor: Rok Realizacije' },
+  { value: 'contract_commission', label: 'Ugovor: Provizija Agencije' },
   { value: 'agency_name', label: 'Agencija: Naziv' },
   { value: 'agency_address', label: 'Agencija: Adresa' },
-  { value: 'agency_tax_id', label: 'Agencija: JIB / ID Broj' },
+  { value: 'agency_jib', label: 'Agencija: JIB / ID Broj' },
 ]
 
-/**
- * Scan raw text for placeholders matching `${placeholder}` or `{{placeholder}}`.
- */
-export function extractPlaceholders(text: string): string[] {
+const SYSTEM_LABELS: Record<string, string> = {}
+SYSTEM_FIELDS_OPTIONS.forEach((f) => {
+  SYSTEM_LABELS[f.value] = f.label
+})
+
+export function extractPlaceholders(template: string): string[] {
+  const regex = /\{\{([^}]+)\}\}/g
   const matches = new Set<string>()
-  const regex = /(\$\{([^}]+)\})|(\{\{([^}]+)\}\})/g
   let match
-  while ((match = regex.exec(text)) !== null) {
-    const p = match[2] || match[4]
-    if (p && p.trim()) {
-      matches.add(p.trim())
-    }
+  while ((match = regex.exec(template)) !== null) {
+    matches.add(match[1].trim())
   }
   return Array.from(matches)
 }
 
-/**
- * Generate a PDF document from populated template content.
- */
 export async function generateContractPdf(
   title: string,
   content: string,
   systemVars: SystemVariables
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create()
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+  pdfDoc.registerFontkit(fontkit)
 
-  let page = pdfDoc.addPage([595.28, 841.89]) // A4
+  const fontBytes = b64ToBytes(DEJAVU_SANS_BASE64)
+  const fontBoldBytes = b64ToBytes(DEJAVU_SANS_BOLD_BASE64)
+
+  const font = await pdfDoc.embedFont(fontBytes)
+  const fontBold = await pdfDoc.embedFont(fontBoldBytes)
+
+  let page = pdfDoc.addPage([595.28, 841.89])
   const { width, height } = page.getSize()
   const margin = 50
 
   let y = height - margin
 
-  // Brand Header
   const agencyName = systemVars.agency_name || 'Estateline Real Estate'
   page.drawText(agencyName.toUpperCase(), {
     x: margin,
     y: y - 10,
     size: 14,
     font: fontBold,
-    color: rgb(0.788, 0.588, 0.231), // #C9963B Gold accent
+    color: rgb(0.788, 0.588, 0.231),
   })
 
-  page.drawText('SLUŽBENI DOKUMENT / CONTRACT', {
-    x: width - margin - 180,
-    y: y - 10,
-    size: 9,
-    font: fontBold,
-    color: rgb(0.4, 0.4, 0.4),
-  })
+  y -= 50
 
-  y -= 30
-  page.drawLine({
-    start: { x: margin, y },
-    end: { x: width - margin, y },
-    thickness: 1,
-    color: rgb(0.85, 0.82, 0.75),
-  })
-
-  y -= 40
-
-  // Document Title
   page.drawText(title, {
     x: margin,
     y,
     size: 18,
     font: fontBold,
-    color: rgb(0.06, 0.09, 0.16),
+    color: rgb(0.1, 0.1, 0.1),
   })
 
   y -= 35
 
-  // Replace placeholders in content
-  let populatedText = content
-  Object.entries(systemVars).forEach(([key, val]) => {
-    if (val !== undefined && val !== null) {
-      const p1 = `\${${key}}`
-      const p2 = `{{${key}}}`
-      populatedText = populatedText.split(p1).join(val).split(p2).join(val)
-    }
+  const lineY = y + 5
+  page.drawLine({
+    start: { x: margin, y: lineY },
+    end: { x: width - margin, y: lineY },
+    thickness: 1,
+    color: rgb(0.788, 0.588, 0.231),
   })
 
-  // Format paragraphs
-  const paragraphs = populatedText.split('\n')
-  const fontSize = 10
-  const lineHeight = 16
+  y -= 25
 
-  for (const paragraph of paragraphs) {
-    if (!paragraph.trim()) {
-      y -= lineHeight
+  const lines = content.split('\n')
+  const fontSize = 10.5
+  const lineHeight = 18
+
+  const headerPattern = /^(I{1,5}[.)]\s|[\d]+[.)]\s|[A-ZČĆŠĐŽ]{2,})/
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    if (y < margin + 30) {
+      page = pdfDoc.addPage([595.28, 841.89])
+      y = height - margin
+    }
+
+    if (line.trim() === '') {
+      y -= 8
       continue
     }
 
-    // Split text into wrapped lines
-    const words = paragraph.split(' ')
+    const isHeader = headerPattern.test(line.trim())
+    const currentFont = isHeader ? fontBold : font
+    const currentSize = isHeader ? 12 : fontSize
+    const currentColor = isHeader ? rgb(0.1, 0.1, 0.1) : rgb(0.25, 0.25, 0.25)
+
+    const words = line.split(' ')
     let currentLine = ''
 
     for (const word of words) {
       const testLine = currentLine ? `${currentLine} ${word}` : word
-      const testWidth = font.widthOfTextAtSize(testLine, fontSize)
+      const testWidth = currentFont.widthOfTextAtSize(testLine, currentSize)
 
-      if (testWidth > width - margin * 2) {
+      if (testWidth > width - margin * 2 && currentLine) {
         page.drawText(currentLine, {
           x: margin,
           y,
-          size: fontSize,
-          font,
-          color: rgb(0.15, 0.15, 0.15),
+          size: currentSize,
+          font: currentFont,
+          color: currentColor,
         })
         y -= lineHeight
         currentLine = word
-
-        // Add new page if page boundary is reached
-        if (y < margin + 100) {
-          page = pdfDoc.addPage([595.28, 841.89])
-          y = height - margin
-        }
       } else {
         currentLine = testLine
       }
@@ -184,79 +177,70 @@ export async function generateContractPdf(
       page.drawText(currentLine, {
         x: margin,
         y,
-        size: fontSize,
-        font,
-        color: rgb(0.15, 0.15, 0.15),
+        size: currentSize,
+        font: currentFont,
+        color: currentColor,
       })
       y -= lineHeight
     }
-
-    if (y < margin + 100) {
-      page = pdfDoc.addPage([595.28, 841.89])
-      y = height - margin
-    }
   }
 
-  // Signature Block
-  if (y < margin + 120) {
+  y -= 20
+
+  if (y < 80) {
     page = pdfDoc.addPage([595.28, 841.89])
     y = height - margin
   }
 
-  y -= 40
+  const footerY = y
   page.drawLine({
-    start: { x: margin, y },
-    end: { x: width - margin, y },
+    start: { x: margin, y: footerY },
+    end: { x: width - margin, y: footerY },
     thickness: 0.5,
-    color: rgb(0.8, 0.8, 0.8),
+    color: rgb(0.788, 0.588, 0.231),
   })
 
-  y -= 30
-  // Left: Agency signature
-  page.drawText('ZA AGENCIJU / FOR AGENCY:', {
+  y -= 20
+
+  page.drawText('Potpis Prodavca: _________________________', {
+    x: margin,
+    y,
+    size: 10,
+    font,
+    color: rgb(0.3, 0.3, 0.3),
+  })
+
+  page.drawText('Potpis Kupca: ___________________________', {
+    x: width / 2,
+    y,
+    size: 10,
+    font,
+    color: rgb(0.3, 0.3, 0.3),
+  })
+
+  y -= 25
+
+  const date = new Date().toLocaleDateString('bs-BA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+
+  page.drawText(`Datum: ${date}`, {
     x: margin,
     y,
     size: 9,
-    font: fontBold,
-    color: rgb(0.3, 0.3, 0.3),
-  })
-  page.drawLine({
-    start: { x: margin, y: y - 40 },
-    end: { x: margin + 180, y: y - 40 },
-    thickness: 1,
-    color: rgb(0.6, 0.6, 0.6),
-  })
-  page.drawText('M.P. / Potpis ovlaštenog lica', {
-    x: margin,
-    y: y - 52,
-    size: 8,
     font,
     color: rgb(0.5, 0.5, 0.5),
   })
 
-  // Right: Client signature
-  const rightX = width - margin - 180
-  page.drawText('KLIJENT / CLIENT:', {
-    x: rightX,
+  page.drawText('Estateline — Vaš Partner u Nekretninama', {
+    x: width - margin - 200,
     y,
     size: 9,
-    font: fontBold,
-    color: rgb(0.3, 0.3, 0.3),
-  })
-  page.drawLine({
-    start: { x: rightX, y: y - 40 },
-    end: { x: rightX + 180, y: y - 40 },
-    thickness: 1,
-    color: rgb(0.6, 0.6, 0.6),
-  })
-  page.drawText('Vlastoručni potpis kupca/prodavca', {
-    x: rightX,
-    y: y - 52,
-    size: 8,
     font,
     color: rgb(0.5, 0.5, 0.5),
   })
 
-  const pdfBytes = await pdfDoc.save()
-  return pdfBytes
+  return pdfDoc.save()
 }
