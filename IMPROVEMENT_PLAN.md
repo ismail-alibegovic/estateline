@@ -1,46 +1,41 @@
-# Estateline — Improvement Plan (post-81598e7 audit)
+# Estateline — Verified Status & Remaining Plan
 
-Status: `81598e7` (GitHub remote) — DOBAR KOD, NEVERIFIKOVAN. Lokalno: `45da362`.
-Boje: warm cream prestige — zadržano. Nema purple/tech-dark.
+Status: `71dad89` on GitHub master, deployed on Zo service `estateline`.
+Live: https://estateline-sprypine.zocomputer.io
+Last verified: 2026-08-16 22:57 UTC / 2026-08-17 00:57 Europe/Sarajevo.
 
-## 1. Sync & Build (prioritet: blokira sve)
-- `git pull origin master` → primeni `81598e7` lokalno
-- `bun install` → zavisnosti (`pdf-lib`, `recharts`, `lucide-react`)
-- `bun run build` → proveri 0 TypeScript grešaka (SOUL: verifikuj, ne veruj izveštaju)
+## Verified done
 
-## 2. Vizuelna verifikacija (SOUL.md: visual verification first)
-- Otvoriti `https://sprypine.zo.space/estateline` i lokalno `localhost:3000`
-- Proveriti: `dashboard/page.tsx`, `dashboard/reports/page.tsx`, `dashboard/onboarding/page.tsx`
-- Screenshot svake stranice → sačuvati u `/home/workspace/estateline/verification/`
+- Build passes: Next.js 14 production build, 87 pages, 48 API routes.
+- Service restarted after build via Zo service `svc_2PzJuRJA_6I`.
+- Public routes verified: `/`, `/en/login`, `/en/signup`, `/en/forgot-password`, `/en/reset-password`.
+- Auth middleware verified: dashboard routes redirect unauthenticated users and load after login with `test@estateline.ba`.
+- Dashboard QA verified in browser: dashboard, properties, leads, reports, pipeline settings, document templates.
+- Dashboard schema bugs fixed:
+  - home metrics now use `leads.budget_min/budget_max` and `deals.price`, not removed `budget/amount` columns.
+  - reports no longer selects missing `leads.budget`.
+- PDF template generator verified:
+  - `POST /api/documents/generate` returns `200 OK` with `application/pdf`.
+  - Unicode Bosnian/Croatian/Serbian characters `č ć š đ ž Č Ć Š Đ Ž` work through embedded DejaVu Sans fonts.
+  - Output verified as valid PDF 1.7, ~791 KB.
+- Hourly / 6h Estateline automations are inactive.
 
-## 3. PDF Ugovor Editor (`file 'src/lib/pdf-generator.ts'`)
-- Test: upload ugovora (`Ugovor o Posredovanju...`) u `templates/page.tsx`
-- Proveriti: `extractPlaceholders()` detektuje `${client_name}`, `${property_price}` itd.
-- Test generisanja: `POST /api/documents/generate` sa realnim `deal_id` iz Supabase
-- Verifikovati izlazni PDF (A4, brand stil, potpisni blok)
+## Known open items
 
-## 4. Auth Middleware (`file 'src/middleware.ts'`)
-- Proveriti: neautorizovan korisnik na `/dashboard` → redirect na `/login`
-- Proveriti: `forgot-password/page.tsx` i `reset-password/page.tsx` funkcionišu
-- Ako middleware ne blokira → popraviti pre deploy-a
+1. `.github/workflows/ci.yml` is modified locally but not pushed because the connected GitHub OAuth token lacks `workflow` scope.
+   - Change: Node 18 → Node 20, `npm ci` → `npm ci --legacy-peer-deps`.
+   - To push it manually: refresh GitHub auth with workflow scope, then commit and push this file.
+2. Build still emits non-blocking warnings:
+   - `next-intl` config warning: `env._next_intl_trailing_slash` expected string.
+   - `next-intl` deprecated `locale` parameter in `getRequestConfig`.
+   - Sentry recommends moving `sentry.client.config.ts` to `instrumentation-client.ts`.
+   - Several `<img>` lint warnings where `next/image` could be used.
+3. Payment/email/SMS/AI integrations still depend on real environment secrets.
+4. Full Playwright E2E remains separate from this browser smoke QA.
 
-## 5. Pipeline Settings (`file 'src/app/[locale]/dashboard/settings/pipeline/page.tsx'`)
-- Proveriti: stage-ovi se čuvaju u `organizations.pipeline_stages`
-- Proveriti: `DEFAULT_STAGES` (5 faza) se učitava iz baze, ne hardcoded
+## Next practical work
 
-## 6. Uklanjanje DEMO podataka (prethodni commit `45da362` nije uklonio)
-- `grep -rn "DEMO_" src/app/[locale]/dashboard/` → ukloniti sve `DEMO_PROPS`, `DEMO_CONTACTS`
-- Zamena realnim `createBrowserClient` pozivima (već urađeno u `81598e7` — proveriti)
-
-## 7. Recharts BI (`file 'src/app/[locale]/dashboard/reports/page.tsx'`)
-- Proveriti: `BarChart`, `AreaChart` renderuju bez grešaka
-- Proveriti: `useCurrency()` kontekst radi (formatiranje cena)
-- Ako podaci prazni → dodati fallback poruku, ne praznu kartu
-
-## 8. Dokumentacija i deploy
-- Ažurirati `README.md` sa novim funkcionalnostima (PDF editor, pipeline settings, reports)
-- `CHECKLIST.md`: označiti sve što je zaista testirano (ne pretpostavljati)
-- Deploy: `zo space` restart (`service-doctor estateline`) nakon pull-a
-
-## Sledeći korak (čeka eksplicitnu instrukciju)
-`git pull origin master` — da počnem? Ili proveriti specifičan fajl (PDF, middleware, reports) prvo?
+1. Fix the remaining warnings in small isolated commits.
+2. Refresh GitHub workflow scope and push `.github/workflows/ci.yml`.
+3. Add production env secrets for Stripe, Resend, Twilio/WhatsApp, Gemini, and Upstash if the app is moving to sale/demo mode.
+4. Run full Playwright suite against seeded test data.

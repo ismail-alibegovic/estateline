@@ -4,6 +4,17 @@ Live: https://estateline-sprypine.zocomputer.io
 Repo: github.com/ismail-alibegovic/estateline
 Supabase: production project (BS/HR/SR/EN i18n, RLS, 48 API routes)
 
+## ✅ Completed in 2026-08-16 / 2026-08-17 verification session
+
+| Area | Action | Status |
+|------|--------|--------|
+| Automations | Estateline hourly / 6h deployment automations confirmed inactive | Done |
+| PDF generator | Replaced StandardFonts-only PDF generation with embedded DejaVu Sans + fontkit so `č/ć/š/đ/ž` render correctly | Fixed, pushed |
+| Template PDF API | Verified `POST /api/documents/generate` returns valid PDF 1.7 with Unicode content | Verified live |
+| Dashboard home | Fixed Supabase selects using removed `budget` / `amount` fields | Fixed, pushed |
+| Reports | Removed missing `leads.budget` select causing Supabase 400 on reports page | Fixed, pushed |
+| Authenticated browser QA | Verified login, dashboard, properties, leads, reports, pipeline settings, document templates | Verified live |
+
 ## ✅ Completed in 2026-08-13 sessions
 
 ### Session 1 (commits 2b5aa10, 08475b1, 587f115, 0d1a007)
@@ -37,7 +48,7 @@ Supabase: production project (BS/HR/SR/EN i18n, RLS, 48 API routes)
 
 ## ⚠️ One **manual action** Ismail must do (cannot be done from here)
 
-**Push the modified `.github/workflows/ci.yml`** — gh CLI token lacks the `workflow` OAuth scope, so I can't commit workflow files. The `ci.yml` change is staged locally:
+**Push the modified `.github/workflows/ci.yml`** — gh CLI token lacks the `workflow` OAuth scope, so I can't commit workflow files. The `ci.yml` change is modified locally but not pushed:
 
 ```bash
 cd /home/workspace/estateline
