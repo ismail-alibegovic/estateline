@@ -50,7 +50,7 @@ export default function ReportsDashboardPage() {
         // Fetch real RPC analytics
         const [agentResp, leadsResp, dealsResp] = await Promise.all([
           supabase.from('users').select('id, full_name'),
-          supabase.from('leads').select('id, stage, budget').eq('organization_id', oid),
+          supabase.from('leads').select('id, stage').eq('organization_id', oid),
           supabase.from('deals').select('id, stage, price, commission_amount').eq('organization_id', oid),
         ])
 
