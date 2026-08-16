@@ -131,10 +131,10 @@ export default function DashboardHome() {
           viewingsResp
         ] = await Promise.all([
           supabase.from('properties').select('id, price, status').eq('organization_id', orgData.id),
-          supabase.from('leads').select('id, stage, budget').eq('organization_id', orgData.id),
-          supabase.from('deals').select('id, stage, amount').eq('organization_id', orgData.id),
+          supabase.from('leads').select('id, stage, budget_min, budget_max').eq('organization_id', orgData.id),
+          supabase.from('deals').select('id, stage, price').eq('organization_id', orgData.id),
           supabase.from('properties').select('*').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(4),
-          supabase.from('leads').select('id, first_name, last_name, stage, budget, updated_at, created_at, properties(title)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(5),
+          supabase.from('leads').select('id, first_name, last_name, stage, budget_min, budget_max, updated_at, created_at, properties(title)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(5),
           supabase.from('communications').select('id, type, title, summary, scheduled_at, created_at, contacts(first_name, last_name)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(4),
           supabase.from('activity_log').select('id, type, description, created_at, users(full_name)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(5),
           supabase.from('viewings').select('id, scheduled_at, status, notes, feedback, properties:property_id(title, address, city), contacts:contact_id(first_name, last_name, phone), leads:lead_id(first_name, last_name)').eq('organization_id', orgData.id).order('scheduled_at', { ascending: true }).limit(20),
@@ -646,7 +646,7 @@ export default function DashboardHome() {
                     </div>
                     <div>
                       <p className="font-semibold text-sm text-gray-900">{lead.first_name} {lead.last_name}</p>
-                      <p className="text-xs text-gray-400">Budžet: <b className="text-gray-700">{lead.budget ? formatPrice(lead.budget) : 'Po dogovoru'}</b></p>
+                      <p className="text-xs text-gray-400">Budžet: <b className="text-gray-700">{lead.budget_min || lead.budget_max ? `${lead.budget_min ? formatPrice(lead.budget_min) : '0 KM'} – ${lead.budget_max ? formatPrice(lead.budget_max) : '∞'}` : 'Po dogovoru'}</b></p>
                     </div>
                   </div>
 
