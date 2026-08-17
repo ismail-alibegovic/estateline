@@ -13,6 +13,7 @@ import {
   CheckCircle2, Sparkles, AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface ActivityItem {
   id: string
@@ -563,9 +564,12 @@ export default function DashboardHome() {
                 >
                   {/* Image Header with Unsplash High-Res Fallback */}
                   <div className="h-44 bg-gray-100 relative overflow-hidden">
-                    <img
+                    <Image
                       src={prop.displayImage || FALLBACK_PROPERTY_IMAGES[idx % FALLBACK_PROPERTY_IMAGES.length]}
                       alt={prop.title}
+                      fill
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                      unoptimized
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       onError={(e) => {
                         e.currentTarget.src = FALLBACK_PROPERTY_IMAGES[idx % FALLBACK_PROPERTY_IMAGES.length]
@@ -815,4 +819,3 @@ export default function DashboardHome() {
     </div>
   )
 }
-

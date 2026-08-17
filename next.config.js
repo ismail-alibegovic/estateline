@@ -23,8 +23,14 @@ const nextConfig = {
   },
 }
 
+const nextIntlConfig = withNextIntl(nextConfig)
+nextIntlConfig.env = {
+  ...nextIntlConfig.env,
+  _next_intl_trailing_slash: 'false',
+}
+
 module.exports = withSentryConfig(
-  withNextIntl(nextConfig),
+  nextIntlConfig,
   {
     silent: true,
     org: 'estateline',

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useCurrency } from '@/components/CurrencyContext'
@@ -172,9 +173,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         >
           <Link href={`/${locale}/dashboard`} className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden group">
             <div className="shrink-0 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-              <img
+              <Image
                 src="/logo-icon.png"
                 alt="EstateLine"
+                width={32}
+                height={32}
                 className="w-8 h-8 object-contain drop-shadow-[0_2px_6px_rgba(201,150,59,0.3)]"
                 style={{ mixBlendMode: 'multiply' }}
               />

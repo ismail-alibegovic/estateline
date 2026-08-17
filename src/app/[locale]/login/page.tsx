@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Building2, ShieldCheck, Sparkles, TrendingUp, Lock, Mail } from 'lucide-react'
 
 export default function LoginPage() {
@@ -76,9 +77,11 @@ export default function LoginPage() {
 
         {/* Top Brand Logo */}
         <div className="relative z-10 flex items-center gap-4">
-          <img
+          <Image
             src="/logo-icon.png"
             alt="EstateLine"
+            width={48}
+            height={48}
             className="w-12 h-12 object-contain drop-shadow-[0_4px_16px_rgba(201,150,59,0.5)]"
           />
           <div>
@@ -145,9 +148,11 @@ export default function LoginPage() {
         {/* Top Language Switcher Bar */}
         <div className="flex justify-between items-center w-full max-w-md mx-auto mb-6">
           <div className="lg:hidden flex items-center gap-3">
-            <img
+            <Image
               src="/logo-icon.png"
               alt="EstateLine"
+              width={36}
+              height={36}
               className="w-9 h-9 object-contain drop-shadow-[0_2px_8px_rgba(201,150,59,0.3)]"
             />
             <span

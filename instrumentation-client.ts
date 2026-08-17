@@ -9,3 +9,5 @@ Sentry.init({
     return beforeSendSentry(event)
   },
 })
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

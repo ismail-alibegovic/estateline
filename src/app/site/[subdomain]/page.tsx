@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
 import { NextRequest } from 'next/server'
+import Image from 'next/image'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { resolveHostIdentifier } from '@/lib/domain-helpers'
 import type { Database } from '@/lib/supabase'
@@ -126,7 +127,7 @@ export default async function OrgMicrosite({ params }: { params: { subdomain: st
         <div className="max-w-6xl mx-auto px-6 py-10">
           <div className="flex items-center gap-4">
             {org_.logo_url && (
-              <img src={org_.logo_url} alt={`${org_.name} logo`} className="h-12 w-12 rounded-full object-cover" />
+              <Image src={org_.logo_url} alt={`${org_.name} logo`} width={48} height={48} unoptimized className="h-12 w-12 rounded-full object-cover" />
             )}
             <div>
               <p className="text-[0.7rem] uppercase tracking-[0.22em] text-[var(--ms-muted)] font-sans">Aktuelne nekretnine · Listings</p>
@@ -168,7 +169,7 @@ export default async function OrgMicrosite({ params }: { params: { subdomain: st
               >
                 <div className="relative aspect-[4/3] bg-[#eee4d1] flex items-center justify-center overflow-hidden">
                   {img !== '/api/placeholder/600/400' ? (
-                    <img src={img} alt={p.title} className="absolute inset-0 w-full h-full object-cover" />
+                    <Image src={img} alt={p.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" unoptimized className="object-cover" />
                   ) : (
                     <span className="text-[#b39a78] font-sans text-sm">No image</span>
                   )}

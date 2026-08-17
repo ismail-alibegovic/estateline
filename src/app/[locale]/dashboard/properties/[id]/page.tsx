@@ -5,6 +5,7 @@ import { createBrowserClient } from '@/lib/supabase'
 import { useCurrency } from '@/components/CurrencyContext'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   ArrowLeft, Building2, MapPin, BedDouble, Bath,
   Ruler, Calendar, Tag, Edit2, Check, X as XIcon,
@@ -285,9 +286,12 @@ export default function PropertyDetailPage() {
           <div className="border-b border-border bg-black/5 dark:bg-black/45">
             {/* Main Image Slider */}
             <div className="relative aspect-[16/9] sm:aspect-[21/9] w-full overflow-hidden flex items-center justify-center bg-black/95">
-              <img
+              <Image
                 src={propertyImages[activeImgIdx]}
                 alt={`${property.title} - Photo ${activeImgIdx + 1}`}
+                fill
+                sizes="100vw"
+                unoptimized
                 className="w-full h-full object-contain"
               />
 
@@ -329,9 +333,12 @@ export default function PropertyDetailPage() {
                         : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
                   >
-                    <img
+                    <Image
                       src={img}
                       alt={`Thumbnail ${idx + 1}`}
+                      fill
+                      sizes="80px"
+                      unoptimized
                       className="w-full h-full object-cover"
                     />
                   </button>

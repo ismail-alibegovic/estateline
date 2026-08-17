@@ -10,6 +10,7 @@ import {
   LayoutGrid, List, Bed, Bath, Move, Search, Filter, CheckCircle2, X
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface PropertyItem {
   id: string
@@ -434,9 +435,12 @@ export default function PropertiesPage() {
             >
               {/* Image & Price Header */}
               <div className="h-48 bg-gray-100 relative overflow-hidden">
-                <img
+                <Image
                   src={coverImage}
                   alt={p.title}
+                  fill
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  unoptimized
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute top-3 left-3 bg-gray-900/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">
