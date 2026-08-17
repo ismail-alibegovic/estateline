@@ -1,12 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
+import { requireSupabaseAdminEnv, requireSupabasePublicEnv } from './env'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const { url: supabaseUrl, anonKey: supabaseAnonKey } = requireSupabasePublicEnv()
 
 // Browser client (uses anon key — RLS enforced).
 // Returned untyped (SupabaseClient) so client pages can issue plain
@@ -20,6 +17,8 @@ export function createBrowserClient(): SupabaseClient {
 // Reserved for: auth/signup (atomic user+org RPC). Every other server
 // route must use createRouteClient() from src/lib/auth.ts instead.
 export function createAdminClient(): SupabaseClient {
+  const { serviceRoleKey: supabaseServiceKey } = requireSupabaseAdminEnv()
+
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,

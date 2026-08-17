@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { resolveHostIdentifier } from '@/lib/domain-helpers'
 import type { Database } from '@/lib/supabase'
+import { requireSupabasePublicEnv } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,11 +68,10 @@ export default async function OrgMicrosite({ params }: { params: { subdomain: st
   const { identifier, isCustomDomain } = resolveHostIdentifier(host, params.subdomain)
   const slug = identifier
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    { cookies: { get: () => '', set: () => {}, remove: () => {} } }
-  )
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = requireSupabasePublicEnv()
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: { get: () => '', set: () => {}, remove: () => {} },
+  })
 
   let orgRaw: any[] | null = null
   let orgErr: any = null

@@ -2,11 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from './supabase'
+import { requireSupabasePublicEnv } from './env'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+const { url: supabaseUrl, anonKey: supabaseAnonKey } = requireSupabasePublicEnv()
 
 /**
  * SSR client bound to the caller's cookies. RLS is enforced: a user can

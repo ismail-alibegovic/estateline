@@ -2,6 +2,7 @@ import createMiddleware from 'next-intl/middleware'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { requireSupabasePublicEnv } from './lib/env'
 
 const defaultLocale = 'en'
 const locales = ['en', 'bs']
@@ -26,10 +27,10 @@ export async function middleware(request: NextRequest) {
 
   if (isDashboardPath) {
     let responseWithCookies = NextResponse.next()
+    const { url: supabaseUrl, anonKey: supabaseAnonKey } = requireSupabasePublicEnv()
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      supabaseUrl,
+      supabaseAnonKey,
       {
         cookies: {
           get(name: string) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { supabaseEnv } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,8 +17,8 @@ export async function GET(request: Request, { params }: { params: { org_id: stri
     return NextResponse.json({ error: 'Missing Organization ID' }, { status: 400 })
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl = supabaseEnv.url
+  const supabaseServiceKey = supabaseEnv.serviceRoleKey
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required Supabase environment variables in JSON feed route')

@@ -5,6 +5,14 @@ const withNextIntl = createNextIntlPlugin('./src/i18n.ts')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL:
+      process.env.ESTATELINE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY:
+      process.env.ESTATELINE_SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  },
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'localhost:3939'],
@@ -29,4 +37,3 @@ module.exports = withSentryConfig(
     disableLogger: true,
   }
 )
-

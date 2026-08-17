@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { requireSupabasePublicEnv } from '@/lib/env'
 
 export async function POST(req: NextRequest) {
   const rl = await checkRateLimit(req, 10, 60 * 1000)
@@ -16,9 +17,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Create a Supabase client with anon key — this is a public endpoint
+    const { url: supabaseUrl, anonKey: supabaseAnonKey } = requireSupabasePublicEnv()
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseUrl,
+      supabaseAnonKey,
       { cookies: { get: () => '', set: () => {}, remove: () => {} } }
     )
 
