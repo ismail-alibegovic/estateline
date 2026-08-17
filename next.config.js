@@ -18,6 +18,9 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000', 'localhost:3939'],
     },
   },
+  images: {
+    unoptimized: true,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
