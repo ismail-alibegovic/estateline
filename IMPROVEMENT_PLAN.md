@@ -1,8 +1,8 @@
 # Estateline — Verified Status & Remaining Plan
 
-Status: `71dad89` on GitHub master, deployed on Zo service `estateline`.
+Status: `a085bbf` locally committed, deployed on Zo service `estateline`.
 Live: https://estateline-sprypine.zocomputer.io
-Last verified: 2026-08-16 22:57 UTC / 2026-08-17 00:57 Europe/Sarajevo.
+Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
 
 ## Verified done
 
@@ -19,23 +19,28 @@ Last verified: 2026-08-16 22:57 UTC / 2026-08-17 00:57 Europe/Sarajevo.
   - Unicode Bosnian/Croatian/Serbian characters `č ć š đ ž Č Ć Š Đ Ž` work through embedded DejaVu Sans fonts.
   - Output verified as valid PDF 1.7, ~791 KB.
 - Hourly / 6h Estateline automations are inactive.
+- Prefixed Zo Secrets supported for Supabase:
+  - `ESTATELINE_SUPABASE_URL`
+  - `ESTATELINE_SUPABASE_ANON_KEY`
+  - `ESTATELINE_SUPABASE_SERVICE_ROLE_KEY`
+- Production warning cleanup completed:
+  - `next-intl` trailing-slash env is normalized to a string without changing URL behavior.
+  - `getRequestConfig` uses `requestLocale`, not the deprecated `locale` parameter.
+  - Sentry client config moved to `instrumentation-client.ts` with router transition instrumentation.
+  - App `<img>` lint warnings replaced with `next/image`.
 
 ## Known open items
 
 1. `.github/workflows/ci.yml` is modified locally but not pushed because the connected GitHub OAuth token lacks `workflow` scope.
    - Change: Node 18 → Node 20, `npm ci` → `npm ci --legacy-peer-deps`.
    - To push it manually: refresh GitHub auth with workflow scope, then commit and push this file.
-2. Build still emits non-blocking warnings:
-   - `next-intl` config warning: `env._next_intl_trailing_slash` expected string.
-   - `next-intl` deprecated `locale` parameter in `getRequestConfig`.
-   - Sentry recommends moving `sentry.client.config.ts` to `instrumentation-client.ts`.
-   - Several `<img>` lint warnings where `next/image` could be used.
+2. Build still emits one non-blocking Edge-runtime warning from `@supabase/ssr` in middleware. It is currently retained because middleware performs real Supabase auth validation before dashboard render.
 3. Payment/email/SMS/AI integrations still depend on real environment secrets.
 4. Full Playwright E2E remains separate from this browser smoke QA.
 
 ## Next practical work
 
-1. Fix the remaining warnings in small isolated commits.
+1. Push `a085bbf` warning cleanup to GitHub.
 2. Refresh GitHub workflow scope and push `.github/workflows/ci.yml`.
 3. Add production env secrets for Stripe, Resend, Twilio/WhatsApp, Gemini, and Upstash if the app is moving to sale/demo mode.
 4. Run full Playwright suite against seeded test data.

@@ -9,11 +9,13 @@ Supabase: production project (BS/HR/SR/EN i18n, RLS, 48 API routes)
 | Area | Action | Status |
 |------|--------|--------|
 | Automations | Estateline hourly / 6h deployment automations confirmed inactive | Done |
+| Supabase secrets | Added support for project-prefixed Zo secrets: `ESTATELINE_SUPABASE_URL`, `ESTATELINE_SUPABASE_ANON_KEY`, `ESTATELINE_SUPABASE_SERVICE_ROLE_KEY` | Fixed, pushed |
 | PDF generator | Replaced StandardFonts-only PDF generation with embedded DejaVu Sans + fontkit so `č/ć/š/đ/ž` render correctly | Fixed, pushed |
 | Template PDF API | Verified `POST /api/documents/generate` returns valid PDF 1.7 with Unicode content | Verified live |
 | Dashboard home | Fixed Supabase selects using removed `budget` / `amount` fields | Fixed, pushed |
 | Reports | Removed missing `leads.budget` select causing Supabase 400 on reports page | Fixed, pushed |
 | Authenticated browser QA | Verified login, dashboard, properties, leads, reports, pipeline settings, document templates | Verified live |
+| Build warnings | Removed `next-intl` config/deprecation warnings, Sentry client-config rename warning, and app `<img>` lint warnings | Fixed locally, verified live |
 
 ## ✅ Completed in 2026-08-13 sessions
 
@@ -62,7 +64,7 @@ Without this, the next push won't trigger CI green (CI runs will keep failing on
 
 ## 🔴 Required to actually collect money (backend env — currently dormant)
 
-`.env.local` has ONLY `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Every integration below has working code + UI but no credentials set:
+Supabase is configured through prefixed Estateline secrets. Every integration below has working code + UI but still needs real credentials before sale/demo mode:
 
 | Service | Env vars to set in .env.local | What breaks without |
 |---------|------------------------------|---------------------|
@@ -76,7 +78,6 @@ Set these in `/home/workspace/estateline/.env.local` then `update_user_service` 
 
 ## 🟡 Pre-sale polish (UX, not blockers)
 
-- 1 ESLint warning: `src/app/site/[subdomain]/page.tsx` uses `<img>`. Convert to `<Image />` from `next/image` (the page renders embedded agency landing pages — `<img>` lets the remote URL load without Next's image optimizer).
 - Signup flow ends on `/dashboard` onboarding — verify the onboarding wizard completes end-to-end with real Supabase auth (couldn't verify because no test user existed + auth signup would create trash rows).
 - Forgot-password / reset-password pages exist but pinkie-swear untested.
 - Recommended: run `npm run test:e2e` locally with `BASE_URL=http://localhost:3000` after checkout (Playwright suite, ~5 min). Couldn't run here because needs a seeded test DB.
@@ -85,7 +86,7 @@ Set these in `/home/workspace/estateline/.env.local` then `update_user_service` 
 
 - 48 API routes, 11 unit-test files, RLS isolation e2e test present
 - Service uptime: 15+ days continuous; auto-restarts on crash (supervisord-user)
-- Build: ~3 min, ~155 KB First Load JS shared bundle
+- Build: ~3 min, ~158 KB First Load JS shared bundle
 - i18n: BS + EN with full key parity
 - Sentry wired (`@sentry/nextjs`), PII redaction in `src/lib/sentry-pii.ts`
 - Dependency hygiene: react-leaflet downgrade removed 18 unnecessary transitive packages
