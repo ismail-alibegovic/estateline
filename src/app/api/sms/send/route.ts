@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
+import { integrationEnv } from '@/lib/integration-env'
 import { maskPhone } from '@/lib/redact'
 import twilio from 'twilio'
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID
-const authToken = process.env.TWILIO_AUTH_TOKEN
-const fromNumber = process.env.TWILIO_FROM_NUMBER
+const accountSid = integrationEnv.twilioAccountSid
+const authToken = integrationEnv.twilioAuthToken
+const fromNumber = integrationEnv.twilioFromNumber
 
 const twilioClient = accountSid && authToken ? twilio(accountSid, authToken) : null
 

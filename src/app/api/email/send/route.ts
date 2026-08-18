@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
+import { integrationEnv } from '@/lib/integration-env'
 import { maskEmail } from '@/lib/redact'
 import { Resend } from 'resend'
 
-const resendApiKey = process.env.RESEND_API_KEY
+const resendApiKey = integrationEnv.resendApiKey
 const resend = resendApiKey ? new Resend(resendApiKey) : null
 
 export const dynamic = 'force-dynamic'
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { subject, html } = renderTemplate(template || 'custom', payload)
-  const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev'
+  const fromEmail = integrationEnv.emailFrom || 'onboarding@resend.dev'
 
   let resendId: string | null = null
 

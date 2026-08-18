@@ -1,3 +1,5 @@
+import { integrationEnv } from './integration-env'
+
 export interface PropertyDescriptionInput {
   title: string
   type: string
@@ -57,12 +59,12 @@ export interface MatchResult {
 
 /**
  * Generates an SEO-rich, attractive property description.
- * Uses Gemini REST API if GEMINI_API_KEY is defined; falls back to structured template engine.
+ * Uses Gemini REST API if configured; falls back to structured template engine.
  */
 export async function generatePropertyDescription(
   params: PropertyDescriptionInput
 ): Promise<DescriptionResult> {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY
+  const apiKey = integrationEnv.geminiApiKey
 
   if (apiKey) {
     try {

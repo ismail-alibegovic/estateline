@@ -44,6 +44,13 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
   - Playwright skips local `webServer` startup when `BASE_URL` targets the live service.
   - live E2E passes against `https://estateline-sprypine.zocomputer.io`: 2/2 tests.
   - DB-level migration/RLS/RPC scripts now support `ESTATELINE_DATABASE_URL` fallback, but still require the real Postgres connection string.
+- Project-prefixed integration secrets supported:
+  - Stripe: `ESTATELINE_STRIPE_SECRET_KEY`, `ESTATELINE_STRIPE_WEBHOOK_SECRET`, `ESTATELINE_STRIPE_PRICE_*`.
+  - Email: `ESTATELINE_RESEND_API_KEY`, `ESTATELINE_EMAIL_FROM`.
+  - SMS/WhatsApp: `ESTATELINE_TWILIO_*`, `ESTATELINE_WHATSAPP_VERIFY_TOKEN`.
+  - AI: `ESTATELINE_GEMINI_API_KEY`.
+  - Rate limiting: `ESTATELINE_UPSTASH_REDIS_REST_URL`, `ESTATELINE_UPSTASH_REDIS_REST_TOKEN`.
+  - authenticated live smoke verified billing mock fallback, billing portal fallback, and AI rule-engine fallback.
 
 ## Known open items
 
@@ -58,5 +65,5 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
 
 1. Push `a085bbf` warning cleanup to GitHub.
 2. Refresh GitHub workflow scope and push `.github/workflows/ci.yml`.
-3. Add production env secrets for Stripe, Resend, Twilio/WhatsApp, Gemini, and Upstash if the app is moving to sale/demo mode.
+3. Add real values for the documented `ESTATELINE_*` integration secrets if the app is moving to sale/demo mode.
 4. Add `ESTATELINE_DATABASE_URL` for DB-level migration/RLS/RPC smoke tests.

@@ -20,6 +20,7 @@ Supabase: production project (BS/HR/SR/EN i18n, RLS, 48 API routes)
 | Onboarding E2E | Verified controlled signup → onboarding → first listing → dashboard flow with throwaway Supabase rows cleaned up | Verified live |
 | Password reset | Added Supabase recovery-session hydration from `#access_token` reset links, kept `/api/auth/callback` as PKCE fallback, and hardened forgot-password response handling | Fixed, verified live |
 | Automated tests | Unit tests, env parity, i18n parity, and live Playwright E2E pass; Playwright config works with system Chromium/live `BASE_URL` | Fixed, verified live |
+| Project-prefixed integrations | Stripe, Resend/email, Twilio/SMS, WhatsApp, Gemini, and Upstash now support `ESTATELINE_*` env names; authenticated fallback smoke passed | Fixed, verified live |
 
 ## ✅ Completed in 2026-08-13 sessions
 
@@ -72,11 +73,11 @@ Supabase is configured through prefixed Estateline secrets. Every integration be
 
 | Service | Env vars to set in .env.local | What breaks without |
 |---------|------------------------------|---------------------|
-| Payments | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_AGENCY`, `STRIPE_WEBHOOK_SECRET` | Upgrade buttons return mock URL; no real charges |
-| Email | `RESEND_API_KEY`, `EMAIL_FROM` | No welcome/invoice/report emails send |
-| SMS/WhatsApp | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `WHATSAPP_VERIFY_TOKEN` | WhatsApp inbound webhook + automated replies silent |
-| AI | `GEMINI_API_KEY` | Property-description generator + AI matchmaking non-functional |
-| Rate limiting | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Falls back to in-memory limiter (no cross-instance protection) |
+| Payments | `ESTATELINE_STRIPE_SECRET_KEY`, `ESTATELINE_STRIPE_PRICE_STARTER`, `ESTATELINE_STRIPE_PRICE_PRO`, `ESTATELINE_STRIPE_PRICE_AGENCY`, `ESTATELINE_STRIPE_WEBHOOK_SECRET` | Upgrade buttons return mock URL; no real charges |
+| Email | `ESTATELINE_RESEND_API_KEY`, `ESTATELINE_EMAIL_FROM` | No welcome/invoice/report emails send |
+| SMS/WhatsApp | `ESTATELINE_TWILIO_ACCOUNT_SID`, `ESTATELINE_TWILIO_AUTH_TOKEN`, `ESTATELINE_TWILIO_FROM_NUMBER`, `ESTATELINE_WHATSAPP_VERIFY_TOKEN` | WhatsApp inbound webhook + automated replies silent |
+| AI | `ESTATELINE_GEMINI_API_KEY` | Property-description generator falls back to rule engine |
+| Rate limiting | `ESTATELINE_UPSTASH_REDIS_REST_URL`, `ESTATELINE_UPSTASH_REDIS_REST_TOKEN` | Falls back to in-memory limiter (no cross-instance protection) |
 | DB smoke tests | `ESTATELINE_DATABASE_URL` or `DATABASE_URL` | Migration/RLS/RPC scripts cannot run |
 
 Set these in `/home/workspace/estateline/.env.local` then `update_user_service` (no code change needed).

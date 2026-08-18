@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
+import { integrationEnv } from '@/lib/integration-env'
 import { normalizeWhatsApp } from '@/lib/whatsapp'
 import { maskPhone } from '@/lib/redact'
 
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
   const token = searchParams.get('hub.verify_token')
   const challenge = searchParams.get('hub.challenge')
 
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || 'default_verify_token'
+  const verifyToken = integrationEnv.whatsappVerifyToken || 'default_verify_token'
 
   if (mode === 'subscribe' && token === verifyToken) {
     console.log('WhatsApp Webhook verified successfully.')

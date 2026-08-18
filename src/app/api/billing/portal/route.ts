@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase'
+import { hasRealStripeSecret, integrationEnv } from '@/lib/integration-env'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'mock_stripe_key', {
+const stripe = new Stripe(integrationEnv.stripeSecretKey || 'mock_stripe_key', {
   apiVersion: '2023-10-16' as any,
 })
 
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     let customerId = ctx.org.stripe_customer_id
 
     // If no stripe customer ID is attached to the organization, create one now
-    if (!customerId && process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('mock')) {
+    if (!customerId && hasRealStripeSecret()) {
       const customer = await stripe.customers.create({
         email: ctx.user.email,
         name: ctx.org.name,

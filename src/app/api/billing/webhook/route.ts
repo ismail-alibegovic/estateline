@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
+import { integrationEnv } from '@/lib/integration-env'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'mock_stripe_key', {
+const stripe = new Stripe(integrationEnv.stripeSecretKey || 'mock_stripe_key', {
   apiVersion: '2023-10-16' as any,
 })
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
+const webhookSecret = integrationEnv.stripeWebhookSecret || ''
 
 export async function POST(request: Request) {
   const body = await request.text()

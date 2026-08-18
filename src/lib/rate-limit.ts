@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { integrationEnv } from './integration-env'
 
 interface RateLimitStore {
   count: number
@@ -35,8 +36,8 @@ export async function checkRateLimit(
   const now = Date.now()
 
   // Try Upstash Redis if configured
-  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
-  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
+  const upstashUrl = integrationEnv.upstashRedisRestUrl
+  const upstashToken = integrationEnv.upstashRedisRestToken
 
   if (upstashUrl && upstashToken) {
     try {
