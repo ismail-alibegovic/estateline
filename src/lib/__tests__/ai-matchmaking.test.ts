@@ -1,8 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { generatePropertyDescription, calculatePropertyLeadMatches } from '../ai-service'
 
 describe('AI Service & Matchmaking', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('generates fallback property description with rule engine', async () => {
+    vi.stubEnv('ESTATELINE_GEMINI_API_KEY', '')
+    vi.stubEnv('GEMINI_API_KEY', '')
+    vi.stubEnv('GOOGLE_GENERATIVE_AI_API_KEY', '')
+
     const result = await generatePropertyDescription({
       title: 'Luksuzan stan u centru',
       type: 'Stan',
