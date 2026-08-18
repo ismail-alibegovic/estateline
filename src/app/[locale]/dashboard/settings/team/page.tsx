@@ -9,8 +9,7 @@ interface TeamMember {
   role: string
   is_primary: boolean
   users: {
-    first_name: string
-    last_name: string | null
+    full_name: string | null
     email: string
   }
 }
@@ -48,7 +47,7 @@ export default function TeamSettingsPage() {
       setOrgId(member.organization_id)
       const { data: team } = await supabase
         .from('organization_members')
-        .select('id, role, is_primary, users(first_name, last_name, email)')
+        .select('id, role, is_primary, users(full_name, email)')
         .eq('organization_id', member.organization_id)
       
       if (team) setMembers(team as any[])
@@ -118,7 +117,7 @@ export default function TeamSettingsPage() {
                 <li key={m.id} className="p-4 flex items-center justify-between hover:bg-muted/10 transition-colors">
                   <div className="space-y-1">
                     <p className="font-semibold text-sm">
-                      {m.users?.first_name} {m.users?.last_name || ''}
+                      {m.users?.full_name || m.users?.email}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Mail size={12} /> {m.users?.email}

@@ -24,10 +24,11 @@ export default function ProfileSettingsPage() {
 
     setEmail(user.email || '')
 
-    const { data: u } = await supabase.from('users').select('first_name, last_name').eq('auth_id', user.id).single()
+    const { data: u } = await supabase.from('users').select('full_name').eq('auth_id', user.id).single()
     if (u) {
-      setFirstName(u.first_name || '')
-      setLastName(u.last_name || '')
+      const parts = (u.full_name || '').split(' ')
+      setFirstName(parts[0] || '')
+      setLastName(parts.slice(1).join(' ') || '')
     }
     setLoading(false)
   }
@@ -45,8 +46,7 @@ export default function ProfileSettingsPage() {
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        first_name: firstName,
-        last_name: lastName
+        full_name: (firstName + ' ' + lastName).trim()
       })
       .eq('auth_id', user.id)
 
