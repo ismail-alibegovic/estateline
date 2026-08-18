@@ -52,18 +52,35 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
   - Rate limiting: `ESTATELINE_UPSTASH_REDIS_REST_URL`, `ESTATELINE_UPSTASH_REDIS_REST_TOKEN`.
   - authenticated live smoke verified billing mock fallback, billing portal fallback, and AI rule-engine fallback.
 
+## Verified done (2026-08-19 session)
+
+- Homepage redesigned to match login/dashboard brand system (navy gradient, Cormorant serif, gold accent).
+- Integrations status page: `/api/integrations/status` reads real backend env states; settings/integrations UI shows connected/missing grid.
+- Public lead form production polish: `/lead-form` locale-agnostic (middleware-excluded), query-param embed flow (`?org=` / `?property=`), API validates org slug + property ownership, BCS diacritic-safe slug input, Suspense-wrapped (no CSR deopt).
+- Dashboard analytics widgets: pipeline bars now dynamic from real lead stage counts; property status distribution widget added; monthly revenue computed from closed deals this month (no hardcoded values); OLX sync timestamp from activity log.
+- Settings/profile schema fix: uses `users.full_name` instead of non-existent `first_name/last_name` columns.
+- Settings/team schema fix: same `full_name` correction for `organization_members` join.
+- Viewings page empty state added (locale-aware).
+- Gemini AI integration live: model upgraded from dead `gemini-1.5-flash` to `gemini-3.6-flash`; `start-prod.sh` exports `.env.local` so `next start` process sees `ESTATELINE_*` secrets.
+- Full dashboard QA: all 19 pages pass with 0 console errors and 0 failed requests.
+- All changes pushed to GitHub master through `67e64b0`.
+
 ## Known open items
 
 1. `.github/workflows/ci.yml` is modified locally but not pushed because the connected GitHub OAuth token lacks `workflow` scope.
    - Change: Node 18 → Node 20, `npm ci` → `npm ci --legacy-peer-deps`.
    - To push it manually: refresh GitHub auth with workflow scope, then commit and push this file.
-2. Build still emits one non-blocking Edge-runtime warning from `@supabase/ssr` in middleware. It is currently retained because middleware performs real Supabase auth validation before dashboard render.
-3. Payment/email/SMS/AI integrations still depend on real environment secrets.
-4. Full Playwright E2E remains separate from this browser smoke QA.
+2. Build still emits one non-blocking Edge-runtime warning from `@supabase/ssr` in middleware. Retained because middleware performs real Supabase auth validation before dashboard render.
+3. Payment/email/SMS integrations still depend on real environment secrets (Stripe/Resend/Twilio/Upstash).
+4. `ESTATELINE_DATABASE_URL` needed for DB-level migration/RLS/RPC smoke tests.
+5. `.env.local` is gitignored and contains real prefixed secrets; it must be present on the server for `next start` to see them.
 
 ## Next practical work
 
-1. Push `a085bbf` warning cleanup to GitHub.
-2. Refresh GitHub workflow scope and push `.github/workflows/ci.yml`.
-3. Add real values for the documented `ESTATELINE_*` integration secrets if the app is moving to sale/demo mode.
-4. Add `ESTATELINE_DATABASE_URL` for DB-level migration/RLS/RPC smoke tests.
+1. Refresh GitHub workflow scope and push `.github/workflows/ci.yml`.
+2. Add real values for `ESTATELINE_STRIPE_*`, `ESTATELINE_RESEND_*`, `ESTATELINE_TWILIO_*`, `ESTATELINE_UPSTASH_*` if moving to sale/demo mode.
+3. Add `ESTATELINE_DATABASE_URL` for DB-level smoke tests.
+4. Lead detail page (`/dashboard/leads/[id]`) — currently leads only have a list page with inline stage management.
+5. CSV/Excel export for properties and leads list pages.
+6. Bulk actions (select + delete/archive) on properties and leads.
+7. Activity timeline component as a reusable dashboard widget.
