@@ -5,8 +5,42 @@ import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import {
   RefreshCw, CheckCircle2, AlertCircle, Copy, Check, Link as LinkIcon,
-  ExternalLink, Layers, Database, Sparkles, Building2, ShieldCheck, ArrowUpRight
+  ExternalLink, Layers, Database, Sparkles, Building2, ShieldCheck, ArrowUpRight,
+  CreditCard, Mail, MessageSquare, GaugeCircle
 } from 'lucide-react'
+
+type IntegrationStatus = {
+  key: string
+  label: string
+  description: string
+  status: 'connected' | 'partial' | 'missing'
+  configured: string[]
+  missing: string[]
+}
+
+type IntegrationStatusResponse = {
+  success: boolean
+  checked_at: string
+  organization: { id: string; name: string }
+  summary: { connected: number; partial: number; missing: number }
+  integrations: IntegrationStatus[]
+}
+
+const integrationIcons: Record<string, typeof Database> = {
+  supabase: Database,
+  gemini: Sparkles,
+  stripe: CreditCard,
+  email: Mail,
+  sms: MessageSquare,
+  'rate-limit': GaugeCircle,
+  'database-url': ShieldCheck,
+}
+
+const statusMeta = {
+  connected: { label: 'Connected', className: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  partial: { label: 'Partial', className: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+  missing: { label: 'Missing', className: 'bg-gray-50 text-gray-500 border-gray-200', dot: 'bg-gray-400' },
+}
 
 export default function IntegrationsPage() {
   const tNav = useTranslations('nav')
@@ -28,6 +62,8 @@ export default function IntegrationsPage() {
   const [syncResult, setSyncResult] = useState<any>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [stats, setStats] = useState<any>(null)
+  const [systemStatus, setSystemStatus] = useState<IntegrationStatusResponse | null>(null)
+  const [systemStatusError, setSystemStatusError] = useState<string | null>(null)
 
   const loadOrgData = async () => {
     const supabase = createBrowserClient()
@@ -55,7 +91,6 @@ export default function IntegrationsPage() {
       setOrg(orgObj)
       setOlxUrl(orgObj.olx_profile_url || '')
 
-      // Fetch OLX sync status stats
       try {
         const statsRes = await fetch('/api/sync/olx')
         if (statsRes.ok) {
@@ -64,6 +99,16 @@ export default function IntegrationsPage() {
         }
       } catch (err) {
         console.error('Failed to load stats:', err)
+      }
+
+      try {
+        const statusRes = await fetch('/api/integrations/status', { headers: { Accept: 'application/json' } })
+        const statusData = await statusRes.json()
+        if (!statusRes.ok) throw new Error(statusData.error || 'Status provjera nije uspjela')
+        setSystemStatus(statusData)
+        setSystemStatusError(null)
+      } catch (err: any) {
+        setSystemStatusError(err.message || 'Status provjera nije uspjela')
       }
     }
     setLoading(false)
@@ -184,6 +229,82 @@ export default function IntegrationsPage() {
           </div>
         </div>
       </header>
+
+      <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="rounded-3xl border border-gray-200/70 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="page-eyebrow mb-1">SYSTEM STATUS</p>
+              <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-display), serif' }}>
+                Runtime konfiguracija
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-gray-500">
+                Prikazuje koje integracije trenutni Estateline servis stvarno vidi. Ključevi se nikad ne prikazuju.
+              </p>
+            </div>
+            {systemStatus && (
+              <div className="rounded-2xl bg-[#F5F1EB] px-4 py-3 text-right">
+                <p className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-display), serif' }}>{systemStatus.summary.connected}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">connected</p>
+              </div>
+            )}
+          </div>
+
+          {systemStatusError ? (
+            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+              {systemStatusError}
+            </div>
+          ) : systemStatus ? (
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-emerald-50 p-4 text-center">
+                <p className="text-2xl font-bold text-emerald-700">{systemStatus.summary.connected}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/70">ready</p>
+              </div>
+              <div className="rounded-2xl bg-amber-50 p-4 text-center">
+                <p className="text-2xl font-bold text-amber-700">{systemStatus.summary.partial}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700/70">partial</p>
+              </div>
+              <div className="rounded-2xl bg-gray-50 p-4 text-center">
+                <p className="text-2xl font-bold text-gray-700">{systemStatus.summary.missing}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">missing</p>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 h-20 animate-pulse rounded-2xl bg-gray-100" />
+          )}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(systemStatus?.integrations || []).map((item) => {
+            const Icon = integrationIcons[item.key] || Layers
+            const meta = statusMeta[item.status]
+            return (
+              <div key={item.key} className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F5F1EB] text-[#C9963B]">
+                      <Icon size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-900">{item.label}</h3>
+                      <p className="mt-1 text-xs leading-5 text-gray-500">{item.description}</p>
+                    </div>
+                  </div>
+                  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${meta.className}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                    {meta.label}
+                  </span>
+                </div>
+                {item.missing.length > 0 && (
+                  <p className="mt-3 rounded-xl bg-gray-50 px-3 py-2 text-[11px] leading-5 text-gray-500">
+                    Missing: {item.missing.join(', ')}
+                  </p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
 
       {/* Main OLX Integration Card */}
       <section className="bg-white rounded-3xl border border-gray-200/70 p-6 sm:p-8 shadow-sm space-y-6 relative overflow-hidden">
