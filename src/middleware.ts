@@ -12,8 +12,13 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const hostname = request.headers.get('host') || ''
 
-  // Skip API, static, and file requests
-  if (url.pathname.startsWith('/api') || url.pathname.startsWith('/_next') || url.pathname.includes('.')) {
+  // Skip API, static, file, and public lead-form (embeddable, locale-agnostic)
+  if (
+    url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/_next') ||
+    url.pathname.startsWith('/lead-form') ||
+    url.pathname.includes('.')
+  ) {
     return NextResponse.next()
   }
 
