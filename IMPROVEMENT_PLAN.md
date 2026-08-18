@@ -1,6 +1,6 @@
 # Estateline — Verified Status & Remaining Plan
 
-Status: `a085bbf` locally committed, deployed on Zo service `estateline`.
+Status: latest `master` plus signup/onboarding polish, deployed on Zo service `estateline`.
 Live: https://estateline-sprypine.zocomputer.io
 Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
 
@@ -28,6 +28,10 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
   - `getRequestConfig` uses `requestLocale`, not the deprecated `locale` parameter.
   - Sentry client config moved to `instrumentation-client.ts` with router transition instrumentation.
   - App `<img>` lint warnings replaced with `next/image`.
+- Signup/onboarding conversion flow verified:
+  - signup now auto-generates a clean URL slug from the agency name, including BCS diacritic normalization.
+  - successful signup routes new agencies to `/dashboard/onboarding`, not straight to the dashboard.
+  - controlled live E2E verified signup → onboarding → first listing → dashboard, with throwaway Supabase rows cleaned up.
 
 ## Known open items
 

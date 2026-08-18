@@ -7,9 +7,18 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Building2, ShieldCheck, Sparkles, TrendingUp, User, Mail, Lock } from 'lucide-react'
 
+function createOrgSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48)
+}
+
 export default function SignupPage() {
   const t = useTranslations('auth')
-  const tCommon = useTranslations('common')
   const router = useRouter()
   const params = useParams()
   const pathname = usePathname()
@@ -34,7 +43,19 @@ export default function SignupPage() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    const { name, value } = e.target
+    setFormData(prev => {
+      if (name === 'orgName') {
+        const nextSlug = prev.orgSlug ? prev.orgSlug : createOrgSlug(value)
+        return { ...prev, orgName: value, orgSlug: nextSlug }
+      }
+
+      if (name === 'orgSlug') {
+        return { ...prev, orgSlug: createOrgSlug(value) }
+      }
+
+      return { ...prev, [name]: value }
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +77,7 @@ export default function SignupPage() {
         return
       }
 
-      router.push(`/${locale}/dashboard`)
+      router.push(`/${locale}/dashboard/onboarding`)
     } catch {
       setError('An unexpected error occurred')
     } finally {
@@ -337,7 +358,6 @@ export default function SignupPage() {
                       value={formData.orgSlug}
                       onChange={handleChange}
                       placeholder={t('orgSlugPlaceholder') || 'my-agency'}
-                      pattern="[a-z0-9-]+"
                       className="flex-1 px-3.5 py-3 bg-transparent text-gray-900 text-sm focus:outline-none"
                       required
                     />
