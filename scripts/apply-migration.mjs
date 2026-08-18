@@ -11,10 +11,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../.env.local') });
 
 const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'vlkasfskndcmbrbbdvzd';
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SERVICE_KEY = process.env.ESTATELINE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SERVICE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required — refusing to run without it.');
+  throw new Error('ESTATELINE_SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_ROLE_KEY environment variable is required — refusing to run without it.');
 }
 
 const SQL = `

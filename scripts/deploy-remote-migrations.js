@@ -3,9 +3,9 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.ESTATELINE_DATABASE_URL || process.env.DATABASE_URL;
 if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is required — refusing to run without it.');
+  throw new Error('ESTATELINE_DATABASE_URL or DATABASE_URL environment variable is required — refusing to run without it.');
 }
 
 function splitStatements(sql) {

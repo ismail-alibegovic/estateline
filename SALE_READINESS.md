@@ -19,6 +19,7 @@ Supabase: production project (BS/HR/SR/EN i18n, RLS, 48 API routes)
 | Signup conversion | Auto-generates clean agency slugs, redirects successful signup to onboarding, and removes invalid browser `pattern` regex warning | Fixed, verified live |
 | Onboarding E2E | Verified controlled signup → onboarding → first listing → dashboard flow with throwaway Supabase rows cleaned up | Verified live |
 | Password reset | Added Supabase recovery-session hydration from `#access_token` reset links, kept `/api/auth/callback` as PKCE fallback, and hardened forgot-password response handling | Fixed, verified live |
+| Automated tests | Unit tests, env parity, i18n parity, and live Playwright E2E pass; Playwright config works with system Chromium/live `BASE_URL` | Fixed, verified live |
 
 ## ✅ Completed in 2026-08-13 sessions
 
@@ -76,6 +77,7 @@ Supabase is configured through prefixed Estateline secrets. Every integration be
 | SMS/WhatsApp | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `WHATSAPP_VERIFY_TOKEN` | WhatsApp inbound webhook + automated replies silent |
 | AI | `GEMINI_API_KEY` | Property-description generator + AI matchmaking non-functional |
 | Rate limiting | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Falls back to in-memory limiter (no cross-instance protection) |
+| DB smoke tests | `ESTATELINE_DATABASE_URL` or `DATABASE_URL` | Migration/RLS/RPC scripts cannot run |
 
 Set these in `/home/workspace/estateline/.env.local` then `update_user_service` (no code change needed).
 

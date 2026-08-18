@@ -37,6 +37,13 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
   - reset-password page hydrates Supabase recovery sessions from implicit `#access_token` links before calling `updateUser`.
   - `/api/auth/callback` handles PKCE-style `?code=` auth links as a fallback.
   - controlled live E2E verified recovery link → reset page → password update → login with the new password, with throwaway auth user cleaned up.
+- Automated test infrastructure verified:
+  - unit tests pass: 28/28.
+  - `check:env` and `check:i18n` pass.
+  - Playwright uses system Chromium when bundled browsers are unavailable.
+  - Playwright skips local `webServer` startup when `BASE_URL` targets the live service.
+  - live E2E passes against `https://estateline-sprypine.zocomputer.io`: 2/2 tests.
+  - DB-level migration/RLS/RPC scripts now support `ESTATELINE_DATABASE_URL` fallback, but still require the real Postgres connection string.
 
 ## Known open items
 
@@ -52,4 +59,4 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
 1. Push `a085bbf` warning cleanup to GitHub.
 2. Refresh GitHub workflow scope and push `.github/workflows/ci.yml`.
 3. Add production env secrets for Stripe, Resend, Twilio/WhatsApp, Gemini, and Upstash if the app is moving to sale/demo mode.
-4. Run full Playwright suite against seeded test data.
+4. Add `ESTATELINE_DATABASE_URL` for DB-level migration/RLS/RPC smoke tests.

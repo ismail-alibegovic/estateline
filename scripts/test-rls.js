@@ -52,9 +52,9 @@ function splitStatements(sql) {
 }
 
 async function run() {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = process.env.ESTATELINE_DATABASE_URL || process.env.DATABASE_URL;
   if (!connectionString) {
-    console.error('DATABASE_URL environment variable is missing.');
+    console.error('ESTATELINE_DATABASE_URL or DATABASE_URL environment variable is missing.');
     process.exit(1);
   }
 
