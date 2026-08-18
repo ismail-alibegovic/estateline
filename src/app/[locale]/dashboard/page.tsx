@@ -90,6 +90,9 @@ export default function DashboardHome() {
   const [recentComms, setRecentComms] = useState<any[]>([])
   const [todayViewings, setTodayViewings] = useState<any[]>([])
   const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [propertyStatusCounts, setPropertyStatusCounts] = useState({ active: 0, sold: 0, rented: 0, off_market: 0 })
+  const [monthlyRevenue, setMonthlyRevenue] = useState({ count: 0, value: 0 })
+  const [lastOlxSync, setLastOlxSync] = useState<string | null>(null)
 
   const toast = (msg: string) => {
     setToastMessage(msg)
@@ -132,8 +135,8 @@ export default function DashboardHome() {
           viewingsResp
         ] = await Promise.all([
           supabase.from('properties').select('id, price, status').eq('organization_id', orgData.id),
-          supabase.from('leads').select('id, stage, budget_min, budget_max').eq('organization_id', orgData.id),
-          supabase.from('deals').select('id, stage, price').eq('organization_id', orgData.id),
+          supabase.from('leads').select('id, stage, budget_min, budget_max, created_at').eq('organization_id', orgData.id),
+          supabase.from('deals').select('id, stage, price, created_at').eq('organization_id', orgData.id),
           supabase.from('properties').select('*').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(4),
           supabase.from('leads').select('id, first_name, last_name, stage, budget_min, budget_max, updated_at, created_at, properties(title)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(5),
           supabase.from('communications').select('id, type, title, summary, scheduled_at, created_at, contacts(first_name, last_name)').eq('organization_id', orgData.id).order('created_at', { ascending: false }).limit(4),
@@ -164,6 +167,36 @@ export default function DashboardHome() {
           else if (s === 'converted') stages.converted++
         })
         setLeadStages(stages)
+
+        // Property status distribution
+        const statusCounts = { active: 0, sold: 0, rented: 0, off_market: 0 }
+        props.forEach(p => {
+          const s = (p.status || 'active').toLowerCase()
+          if (s === 'active' || s === 'for_sale' || s === 'available') statusCounts.active++
+          else if (s === 'sold' || s === 'closed') statusCounts.sold++
+          else if (s === 'rented' || s === 'for_rent') statusCounts.rented++
+          else statusCounts.off_market++
+        })
+        setPropertyStatusCounts(statusCounts)
+
+        // Monthly revenue from converted deals this month
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+        const monthlyClosed = deals.filter(d =>
+          ['closed', 'won', 'converted'].includes((d.stage || '').toLowerCase()) &&
+          new Date(d.created_at || 0) >= monthStart
+        )
+        setMonthlyRevenue({
+          count: monthlyClosed.length,
+          value: monthlyClosed.reduce((acc, d) => acc + (Number(d.price) || 0), 0),
+        })
+
+        // Last OLX sync from activity log
+        if (actResp.data) {
+          const olxActivity = (actResp.data as ActivityItem[]).find(a =>
+            (a.type || '').toLowerCase().includes('olx') || (a.description || '').toLowerCase().includes('olx')
+          )
+          if (olxActivity) setLastOlxSync(olxActivity.created_at)
+        }
 
         // Process property images
         if (recentPropsResp.data && recentPropsResp.data.length > 0) {
@@ -259,6 +292,31 @@ export default function DashboardHome() {
     month: 'long',
     year: 'numeric',
   })
+
+  // COMPUTE DYNAMIC PIPELINE BAR PERCENTAGES (add before return statement, after dateFormatted)
+  const totalLeads = leadStages.new + leadStages.contacted + leadStages.viewing + leadStages.negotiation + leadStages.converted
+  const pipePct = (count: number) => totalLeads > 0 ? Math.round((count / totalLeads) * 100) : 0
+  const pipelineBars = {
+    new: pipePct(leadStages.new),
+    contacted: pipePct(leadStages.contacted),
+    viewing: pipePct(leadStages.viewing),
+    negotiation: pipePct(leadStages.negotiation),
+    converted: pipePct(leadStages.converted),
+  }
+
+  // Relative time helper for OLX sync
+  const relativeTime = (iso: string | null) => {
+    if (!iso) return null
+    const diff = Date.now() - new Date(iso).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return locale === 'bs' ? 'Upravo sada' : 'Just now'
+    if (mins < 60) return locale === 'bs' ? `Prije ${mins} min` : `${mins} min ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return locale === 'bs' ? `Prije ${hours} h` : `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return locale === 'bs' ? `Prije ${days} d` : `${days}d ago`
+  }
+  const olxSyncLabel = relativeTime(lastOlxSync) || (locale === 'bs' ? 'Nije sinhronizovano' : 'Not synced yet')
 
   return (
     <div className="w-full space-y-8 pb-12 font-sans animate-fade-in">
@@ -419,7 +477,7 @@ export default function DashboardHome() {
               <h3 className="text-lg font-bold text-gray-900">Povezano ✓</h3>
             </div>
             <p className="text-xs text-gray-500 mt-2 font-medium">
-              Zadnji uvoz: <b className="text-gray-900">Prije 12 minuta</b>
+              Zadnji uvoz: <b className="text-gray-900">{olxSyncLabel}</b>
             </p>
           </div>
         </div>
@@ -462,7 +520,7 @@ export default function DashboardHome() {
               </span>
             </div>
             <div className="h-1.5 w-full bg-amber-200/60 rounded-full overflow-hidden">
-              <div className="h-full bg-[#C9963B]" style={{ width: '60%' }} />
+              <div className="h-full bg-[#C9963B]" style={{ width: `${pipelineBars.new}%` }} />
             </div>
             <p className="text-[11px] text-gray-500 font-medium">Novi kupci sa OLX-a i web forme</p>
           </div>
@@ -476,7 +534,7 @@ export default function DashboardHome() {
               </span>
             </div>
             <div className="h-1.5 w-full bg-blue-200/60 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-600" style={{ width: '75%' }} />
+              <div className="h-full bg-blue-600" style={{ width: `${pipelineBars.contacted}%` }} />
             </div>
             <p className="text-[11px] text-gray-500 font-medium">Obavljen telefonski poziv</p>
           </div>
@@ -490,7 +548,7 @@ export default function DashboardHome() {
               </span>
             </div>
             <div className="h-1.5 w-full bg-purple-200/60 rounded-full overflow-hidden">
-              <div className="h-full bg-purple-600" style={{ width: '40%' }} />
+              <div className="h-full bg-purple-600" style={{ width: `${pipelineBars.viewing}%` }} />
             </div>
             <p className="text-[11px] text-gray-500 font-medium">Potvrđen termin pregleda</p>
           </div>
@@ -504,7 +562,7 @@ export default function DashboardHome() {
               </span>
             </div>
             <div className="h-1.5 w-full bg-amber-300/60 rounded-full overflow-hidden">
-              <div className="h-full bg-[#C9963B]" style={{ width: '85%' }} />
+              <div className="h-full bg-[#C9963B]" style={{ width: `${pipelineBars.negotiation}%` }} />
             </div>
             <p className="text-[11px] text-amber-800 font-medium">Predana zvanična ponuda</p>
           </div>
@@ -518,12 +576,47 @@ export default function DashboardHome() {
               </span>
             </div>
             <div className="h-1.5 w-full bg-emerald-200/60 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-600" style={{ width: '100%' }} />
+              <div className="h-full bg-emerald-600" style={{ width: `${pipelineBars.converted}%` }} />
             </div>
             <p className="text-[11px] text-emerald-700 font-medium">Ugovor potpisan ✓</p>
           </div>
         </div>
       </section>
+
+          {/* SECTION 3b: PROPERTY STATUS DISTRIBUTION */}
+          <section className="bg-white rounded-3xl border border-gray-200/70 p-6 sm:p-8 shadow-sm">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">
+              {locale === 'bs' ? 'Nekretnine po statusu' : 'Properties by status'}
+            </h3>
+            <p className="text-xs text-gray-500 mb-5">
+              {locale === 'bs' ? 'Distribucija portfolija agencije' : 'Agency portfolio distribution'}
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { key: 'active', label: locale === 'bs' ? 'Aktivne' : 'Active', color: '#C9963B', bg: 'bg-amber-50' },
+                { key: 'sold', label: locale === 'bs' ? 'Prodane' : 'Sold', color: '#059669', bg: 'bg-emerald-50' },
+                { key: 'rented', label: locale === 'bs' ? 'Iznajmljene' : 'Rented', color: '#2563EB', bg: 'bg-blue-50' },
+                { key: 'off_market', label: locale === 'bs' ? 'Van ponude' : 'Off market', color: '#6B7280', bg: 'bg-gray-50' },
+              ].map(({ key, label, color, bg }) => {
+                const total = propertyStatusCounts.active + propertyStatusCounts.sold + propertyStatusCounts.rented + propertyStatusCounts.off_market
+                const count = propertyStatusCounts[key as keyof typeof propertyStatusCounts]
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                return (
+                  <div key={key} className={`${bg} rounded-2xl p-4 space-y-2 border border-gray-100`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-600">{label}</span>
+                      <span className="text-lg font-bold" style={{ color }}>{count}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/60 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-medium">{pct}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
 
       {/* ═══════════════════════════════════════════════════════════
           SECTION 4: TWO COLUMN WORKSPACE (Properties + Agenda)
@@ -772,7 +865,7 @@ export default function DashboardHome() {
             </Link>
           </div>
 
-          {/* Monthly Target Card */}
+          {/* This Month Summary Card */}
           <div
             className="rounded-3xl p-6 text-white space-y-4 shadow-lg relative overflow-hidden"
             style={{
@@ -780,20 +873,37 @@ export default function DashboardHome() {
             }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">Cilj Agencije za Jul</span>
-              <span className="text-xs font-bold bg-white/10 px-2.5 py-1 rounded-full text-amber-300">78% Ostvareno</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">
+                {locale === 'bs' ? 'Ostvareno ovaj mjesec' : 'Closed this month'}
+              </span>
+              <span className="text-xs font-bold bg-white/10 px-2.5 py-1 rounded-full text-amber-300">
+                {monthlyRevenue.count} {locale === 'bs' ? 'poslova' : 'deals'}
+              </span>
             </div>
 
             <div>
-              <h4 className="text-2xl font-bold">{formatPrice(15600)}</h4>
-              <p className="text-xs text-gray-400 mt-0.5">Mjesečni cilj provizije: {formatPrice(20000)}</p>
+              <h4 className="text-2xl font-bold">{formatPrice(monthlyRevenue.value)}</h4>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {locale === 'bs' ? 'Ukupna vrijednost zatvorenih poslova' : 'Total value of closed deals'}
+              </p>
             </div>
 
             <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#C9963B] rounded-full" style={{ width: '78%' }} />
+              <div
+                className="h-full bg-[#C9963B] rounded-full transition-all duration-500"
+                style={{ width: `${monthlyRevenue.count > 0 ? '100%' : '0%'}` }}
+              />
             </div>
 
-            <p className="text-[11px] text-gray-400">Preostalo još €4,400 do ostvarenja mjesečnog bonusa agencije.</p>
+            <p className="text-[11px] text-gray-400">
+              {monthlyRevenue.count > 0
+                ? locale === 'bs'
+                  ? `Prosječna vrijednost: ${formatPrice(monthlyRevenue.value / monthlyRevenue.count)}`
+                  : `Average deal: ${formatPrice(monthlyRevenue.value / monthlyRevenue.count)}`
+                : locale === 'bs'
+                  ? 'Još nema zatvorenih poslova ovog mjeseca.'
+                  : 'No closed deals yet this month.'}
+            </p>
           </div>
         </div>
       </div>
