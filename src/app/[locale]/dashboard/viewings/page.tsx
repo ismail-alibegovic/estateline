@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Plus, X, Calendar, Clock, User, Building2, CheckCircle2, MapPin, Phone } from 'lucide-react'
 
 interface Viewing {
@@ -22,6 +22,7 @@ interface Viewing {
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function ViewingsPage() {
+  const locale = useLocale()
   const t = useTranslations('viewings')
   const [viewings, setViewings] = useState<Viewing[]>([])
   const [loading, setLoading] = useState(true)
@@ -221,6 +222,23 @@ export default function ViewingsPage() {
             </div>
           )
         })}
+
+        {viewings.length === 0 && !loading && (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 rounded-full bg-gray-100 mx-auto mb-4 flex items-center justify-center">
+              <Calendar size={28} className="text-gray-300" />
+            </div>
+            <p className="text-gray-400 font-medium text-sm">
+              {locale === 'bs' ? 'Nema zakazanih obilazaka' : 'No viewings scheduled'}
+            </p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="mt-4 text-xs font-semibold text-[#C9963B] hover:underline"
+            >
+              {locale === 'bs' ? '+ Zakazi prvi obilazak' : '+ Schedule your first viewing'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modal Schedule Viewing */}
