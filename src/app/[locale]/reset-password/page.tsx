@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Lock, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { createBrowserClient } from '@/lib/supabase'
 
 export default function ResetPasswordPage() {
   const params = useParams()
@@ -15,6 +16,33 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
+
+  useEffect(() => {
+    const hydrateRecoverySession = async () => {
+      const supabase = createBrowserClient()
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+
+        if (error) {
+          setError('Link za promjenu lozinke nije validan ili je istekao.')
+        } else {
+          window.history.replaceState(null, '', window.location.pathname)
+        }
+      }
+
+      setSessionReady(true)
+    }
+
+    void hydrateRecoverySession()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,6 +59,11 @@ export default function ResetPasswordPage() {
     setError('')
 
     try {
+      if (!sessionReady) {
+        setError('Provjera linka je još u toku. Pokušajte ponovo za nekoliko sekundi.')
+        return
+      }
+
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,7 +149,7 @@ export default function ResetPasswordPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !sessionReady}
               className="w-full py-3.5 px-4 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white font-semibold text-sm transition-all shadow-md shadow-slate-900/10 disabled:opacity-50"
             >
               {loading ? 'Spremanje...' : 'Spremi novu lozinku'}

@@ -32,6 +32,11 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
   - signup now auto-generates a clean URL slug from the agency name, including BCS diacritic normalization.
   - successful signup routes new agencies to `/dashboard/onboarding`, not straight to the dashboard.
   - controlled live E2E verified signup → onboarding → first listing → dashboard, with throwaway Supabase rows cleaned up.
+- Password reset flow verified:
+  - forgot-password endpoint returns the same success response even when Supabase rejects a provider-specific email, avoiding account/error leakage.
+  - reset-password page hydrates Supabase recovery sessions from implicit `#access_token` links before calling `updateUser`.
+  - `/api/auth/callback` handles PKCE-style `?code=` auth links as a fallback.
+  - controlled live E2E verified recovery link → reset page → password update → login with the new password, with throwaway auth user cleaned up.
 
 ## Known open items
 

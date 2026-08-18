@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireSupabasePublicEnv } from '@/lib/env'
+import { maskEmail } from '@/lib/redact'
 
 export async function POST(request: Request) {
   try {
@@ -31,15 +32,20 @@ export async function POST(request: Request) {
       }
     )
 
-    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://estateline-sprypine.zocomputer.io'
-    const redirectTo = `${origin}/${locale}/reset-password`
+    const safeLocale = locale === 'bs' ? 'bs' : 'en'
+    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://estateline-sprypine.zocomputer.io'
+    const redirectTo = `${origin}/${safeLocale}/reset-password`
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
     })
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      console.warn('Password reset request could not be sent:', {
+        email: maskEmail(email),
+        status: error.status,
+        message: error.message,
+      })
     }
 
     return NextResponse.json({

@@ -18,6 +18,7 @@ Supabase: production project (BS/HR/SR/EN i18n, RLS, 48 API routes)
 | Build warnings | Removed `next-intl` config/deprecation warnings, Sentry client-config rename warning, and app `<img>` lint warnings | Fixed locally, verified live |
 | Signup conversion | Auto-generates clean agency slugs, redirects successful signup to onboarding, and removes invalid browser `pattern` regex warning | Fixed, verified live |
 | Onboarding E2E | Verified controlled signup → onboarding → first listing → dashboard flow with throwaway Supabase rows cleaned up | Verified live |
+| Password reset | Added Supabase recovery-session hydration from `#access_token` reset links, kept `/api/auth/callback` as PKCE fallback, and hardened forgot-password response handling | Fixed, verified live |
 
 ## ✅ Completed in 2026-08-13 sessions
 
@@ -80,7 +81,7 @@ Set these in `/home/workspace/estateline/.env.local` then `update_user_service` 
 
 ## 🟡 Pre-sale polish (UX, not blockers)
 
-- Forgot-password / reset-password pages exist but pinkie-swear untested.
+- Payment/email/SMS/AI flows still require real production credentials before sale/demo mode.
 - Recommended: run `npm run test:e2e` locally with `BASE_URL=http://localhost:3000` after checkout (Playwright suite, ~5 min). Couldn't run here because needs a seeded test DB.
 
 ## 📊 Codebase health
