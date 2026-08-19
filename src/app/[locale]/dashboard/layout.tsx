@@ -27,6 +27,7 @@ import {
   Eye,
   Receipt,
 } from 'lucide-react'
+import NotificationBell from '@/components/NotificationBell'
 
 interface Session {
   user: { id: string; full_name: string | null; email: string } | null
@@ -329,16 +330,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
 
             {/* Notification Bell */}
-            <button
-              onClick={() => router.push(`/${locale}/dashboard/communications`)}
-              className="relative text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-lg hover:bg-gray-50"
-            >
-              <Bell size={20} />
-              <span
-                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-white"
-                style={{ background: '#EF4444' }}
-              />
-            </button>
+            <NotificationBell orgId={orgId} />
 
             {/* Separator */}
             <div className="w-px h-8 bg-gray-100" />
