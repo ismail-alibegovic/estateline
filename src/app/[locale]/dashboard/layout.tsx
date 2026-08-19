@@ -35,6 +35,7 @@ interface Session {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session>({ user: null, org: null })
+  const [orgId, setOrgId] = useState<string | null>(null)
   const pathname = usePathname()
   const params = useParams()
   const router = useRouter()
@@ -82,7 +83,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .eq('is_primary', true)
         .single()
       const org = (member as any)?.organizations
-      if (org) setSession((s) => ({ ...s, org }))
+      if (org) {
+        setSession((s) => ({ ...s, org }))
+        setOrgId(org.id)
+      }
     }
     load()
   }, [locale, router])

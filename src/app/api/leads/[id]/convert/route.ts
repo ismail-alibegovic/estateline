@@ -59,15 +59,18 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     // 3. Fetch property price if linked
-    let estimatedValue = 0
+    let propertyPrice = 0
     if (propertyId) {
-      const { data: prop } = await ctx.supabase
+      const { data: prop, error: propertyErr } = await ctx.supabase
         .from('properties')
         .select('price')
         .eq('id', propertyId)
         .eq('organization_id', ctx.org.id)
         .single()
-      if (prop) estimatedValue = prop.price || 0
+      if (propertyErr || !prop) {
+        return NextResponse.json({ error: 'Property not found' }, { status: 404 })
+      }
+      propertyPrice = Number(prop.price) || 0
     }
 
     // 4. Create deal
@@ -82,8 +85,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
         contact_id: contactId,
         lead_id: lead.id,
         property_id: propertyId,
-        estimated_value: estimatedValue,
-        commission_rate: 0.03,
+        price: propertyPrice || Number(lead.budget_max) || 0,
+        currency: 'BAM',
+        commission_pct: 3,
+        commission_amount: Math.round((propertyPrice || Number(lead.budget_max) || 0) * 0.03),
+        probability: 25,
       })
       .select('id, title')
       .single()
