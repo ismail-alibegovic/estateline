@@ -80,7 +80,7 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
 1. Refresh GitHub workflow scope and push `.github/workflows/ci.yml`.
 2. Add real values for `ESTATELINE_STRIPE_*`, `ESTATELINE_RESEND_*`, `ESTATELINE_TWILIO_*`, `ESTATELINE_UPSTASH_*` if moving to sale/demo mode.
 3. Add `ESTATELINE_DATABASE_URL` for DB-level smoke tests.
-4. Lead detail page (`/dashboard/leads/[id]`) — currently leads only have a list page with inline stage management.
-5. CSV/Excel export for properties and leads list pages.
-6. Bulk actions (select + delete/archive) on properties and leads.
-7. Activity timeline component as a reusable dashboard widget.
+4. Activity timeline component as a reusable dashboard widget.
+5. Real-time notifications (Supabase realtime subscriptions) for new leads and viewing reminders.
+6. Lead-to-deal conversion flow with automatic property linking.
+7. Advanced search/filter with saved views on properties and leads.
