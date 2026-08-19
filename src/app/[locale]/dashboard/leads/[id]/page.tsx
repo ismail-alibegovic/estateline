@@ -9,7 +9,7 @@ import {
   ArrowLeft, Mail, Phone, Building2, Edit2, Check, X as XIcon,
   Star, Tag, Calendar, MessageSquare, Eye, Trash2, Clock,
   TrendingUp, User, Phone as PhoneIcon, DollarSign, Activity,
-  Home, ChevronRight
+  Home, ChevronRight, Target, X
 } from 'lucide-react'
 
 const STAGE_COLORS: Record<string, string> = {
@@ -123,6 +123,11 @@ export default function LeadDetailPage() {
   const [tagInput, setTagInput] = useState('')
   const [editData, setEditData] = useState<Partial<LeadData>>({})
   const [editTags, setEditTags] = useState<string[]>([])
+  const [showConvertModal, setShowConvertModal] = useState(false)
+  const [converting, setConverting] = useState(false)
+  const [dealType, setDealType] = useState<'sale' | 'rental'>('sale')
+  const [dealProperty, setDealProperty] = useState<string>('')
+  const [orgProperties, setOrgProperties] = useState<{ id: string; title: string }[]>([])
   const { formatPrice } = useCurrency()
 
   const getInitials = (first: string, last?: string | null) => {
@@ -169,6 +174,16 @@ export default function LeadDetailPage() {
         setLead(ld as LeadData)
         setEditData(ld as LeadData)
         setEditTags((ld as any).tags || [])
+        // Fetch org properties for deal conversion dropdown
+        if ((ld as any).organization_id) {
+          const { data: props } = await supabase
+            .from('properties')
+            .select('id, title')
+            .eq('organization_id', (ld as any).organization_id)
+            .order('title', { ascending: true })
+            .limit(50)
+          if (props) setOrgProperties(props as { id: string; title: string }[])
+        }
 
         if ((ld as any).property_id) {
           const { data: prop } = await supabase
@@ -182,7 +197,33 @@ export default function LeadDetailPage() {
       if (comms) setCommunications(comms as Communication[])
       if (vws) setViewings(vws as Viewing[])
       if (acts) setActivity(acts as ActivityEntry[])
-      setLoading(false)
+
+      // Fetch org properties for convert modal
+      if (ld) {
+        const { data: orgId } = await supabase.rpc('get_user_org_id')
+        if (orgId) {
+          const { data: props } = await supabase
+            .from('properties')
+            .select('id, title')
+            .eq('organization_id', orgId)
+            .order('title', { ascending: true })
+          if (props) setOrgProperties(props as { id: string; title: string }[])
+        }
+      }
+
+      setLoading(false)      // Fetch org properties for convert modal
+      if (ld) {
+        const { data: orgId } = await supabase.from('leads').select('organization_id').eq('id', id).single()
+        if (orgId?.organization_id) {
+          const { data: props } = await supabase
+            .from('properties')
+            .select('id, title')
+            .eq('organization_id', orgId.organization_id)
+            .order('title', { ascending: true })
+            .limit(50)
+          if (props) setOrgProperties(props)
+        }
+      }
     }
     load()
   }, [id])
@@ -224,6 +265,29 @@ export default function LeadDetailPage() {
     } else {
       setDeleting(false)
       alert('Failed to delete lead: ' + error.message)
+    }
+  }
+  const handleConvertToDeal = async () => {
+    if (!lead) return
+    setConverting(true)
+    try {
+      const res = await fetch(`/api/leads/${id}/convert`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deal_type: dealType, property_id: dealProperty || null }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Conversion failed")
+      }
+      setShowConvertModal(false)
+      setLead({ ...lead, status: "won" })
+      alert(locale === "bs" ? "Lead je uspješno konvertovan u posao!" : "Lead successfully converted to deal!")
+      router.push(`/${locale}/dashboard/pipeline`)
+    } catch (e: any) {
+      alert("Conversion failed: " + e.message)
+    } finally {
+      setConverting(false)
     }
   }
 
@@ -289,7 +353,7 @@ export default function LeadDetailPage() {
                 onClick={() => { setEditMode(false); setEditData(lead); setEditTags(lead.tags || []) }}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors"
               >
-                <XIcon size={14} /> Cancel
+                <X size={14} /> {locale === 'bs' ? 'Otkaži' : 'Cancel'}
               </button>
               <button
                 onClick={handleSave}
@@ -301,6 +365,14 @@ export default function LeadDetailPage() {
             </>
           ) : (
             <div className="flex items-center gap-2">
+              {lead.status !== 'won' && lead.status !== 'junk' && (
+                <button
+                  onClick={() => setShowConvertModal(true)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-[#C9963B] text-white rounded-lg hover:bg-[#B8862B] transition-colors"
+                >
+                  <Target size={14} /> {locale === 'bs' ? 'Konvertuj u posao' : 'Convert to Deal'}
+                </button>
+              )}
               <button
                 onClick={() => setEditMode(true)}
                 className="flex items-center gap-1.5 px-4 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
@@ -823,6 +895,82 @@ export default function LeadDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Convert to Deal Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Target size={18} className="text-amber-600" />
+                </div>
+                <h3 className="font-display font-bold text-lg text-foreground">
+                  {locale === 'bs' ? 'Konvertuj u posao' : 'Convert to Deal'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowConvertModal(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-5">
+              {locale === 'bs'
+                ? `Ovo će kreirati novi kontakt i posao za ${lead?.first_name || ''} ${lead?.last_name || ''}, te označiti lead kao "won".`
+                : `This will create a new contact and deal for ${lead?.first_name || ''} ${lead?.last_name || ''}, and mark the lead as "won".`}
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  {locale === 'bs' ? 'Tip posla' : 'Deal Type'}
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground"
+                  value={dealType}
+                  onChange={e => setDealType(e.target.value as 'sale' | 'rental')}
+                >
+                  <option value="sale">{locale === 'bs' ? 'Prodaja' : 'Sale'}</option>
+                  <option value="rental">{locale === 'bs' ? 'Iznajmljivanje' : 'Rental'}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  {locale === 'bs' ? 'Nekretnina (opciono)' : 'Property (optional)'}
+                </label>
+                <select
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground"
+                  value={dealProperty}
+                  onChange={e => setDealProperty(e.target.value)}
+                >
+                  <option value="">{locale === 'bs' ? '— Bez nekretnine —' : '— No property —'}</option>
+                  {orgProperties.map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end mt-6">
+              <button
+                onClick={() => setShowConvertModal(false)}
+                className="px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+              >
+                {locale === 'bs' ? 'Otkaži' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleConvertToDeal}
+                disabled={converting}
+                className="px-4 py-2 text-sm bg-[#C9963B] text-white rounded-lg hover:bg-[#B8862B] transition-colors disabled:opacity-50"
+              >
+                {converting
+                  ? (locale === 'bs' ? 'Konvertujem…' : 'Converting…')
+                  : (locale === 'bs' ? 'Konvertuj' : 'Convert')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
