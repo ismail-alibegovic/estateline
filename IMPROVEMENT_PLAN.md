@@ -75,12 +75,15 @@ Last verified: 2026-08-17 08:05 UTC / 2026-08-17 10:05 Europe/Sarajevo.
 4. `ESTATELINE_DATABASE_URL` needed for DB-level migration/RLS/RPC smoke tests.
 5. `.env.local` is gitignored and contains real prefixed secrets; it must be present on the server for `next start` to see them.
 
-## Next practical work
+## Completed (2026-08-19 session)
 
-1. Refresh GitHub workflow scope and push `.github/workflows/ci.yml`.
+4. ✅ Activity timeline component as a reusable dashboard widget — `ActivityTimeline.tsx`, integrated into dashboard and lead detail.
+5. ✅ Real-time notifications — `NotificationBell.tsx` with Supabase realtime subscriptions for new leads and upcoming viewings.
+6. ✅ Lead-to-deal conversion flow with automatic property linking — `/api/leads/[id]/convert` endpoint + modal UI on lead detail.
+7. ✅ Advanced search/filter with saved views on properties and leads — price range, property type filter, lead source filter, `SavedViews.tsx` component with localStorage persistence.
+
+## Remaining (requires user credentials)
+
+1. Refresh GitHub workflow scope and push `.github/workflows/ci.yml` — blocked by missing `workflow` scope on GitHub token.
 2. Add real values for `ESTATELINE_STRIPE_*`, `ESTATELINE_RESEND_*`, `ESTATELINE_TWILIO_*`, `ESTATELINE_UPSTASH_*` if moving to sale/demo mode.
 3. Add `ESTATELINE_DATABASE_URL` for DB-level smoke tests.
-4. Activity timeline component as a reusable dashboard widget.
-5. Real-time notifications (Supabase realtime subscriptions) for new leads and viewing reminders.
-6. Lead-to-deal conversion flow with automatic property linking.
-7. Advanced search/filter with saved views on properties and leads.
