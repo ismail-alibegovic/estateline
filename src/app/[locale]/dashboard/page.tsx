@@ -5,12 +5,13 @@ import { useTranslations } from 'next-intl'
 import { createBrowserClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import { useCurrency } from '@/components/CurrencyContext'
+import { ActivityTimeline } from '@/components/ActivityTimeline'
 import {
   Building2, Users, ArrowUpRight, DollarSign, BarChart3,
   ArrowRight, MessageCircle, Briefcase, CheckCircle,
   TrendingUp, Plus, Calendar, RefreshCw, Phone, Mail,
   ExternalLink, Clock, ShieldCheck, MapPin, Bed, Bath, Move,
-  CheckCircle2, Sparkles, AlertCircle
+  CheckCircle2, Sparkles, AlertCircle, Activity
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -907,6 +908,35 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-3xl border border-gray-200/70 p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-[#C9963B]/10 text-[#C9963B] flex items-center justify-center font-bold">
+              <Activity size={18} />
+            </div>
+            <h3 className="font-bold text-gray-900 text-base">{locale === 'bs' ? 'Nedavna Aktivnost' : 'Recent Activity'}</h3>
+          </div>
+        </div>
+        <ActivityTimeline activities={activities} locale={locale} compact />
+      </div>
+      {/* Activity Timeline */}
+      <div className="bg-white rounded-3xl border border-gray-200/70 p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+              <Activity size={18} />
+            </div>
+            <h3 className="font-bold text-gray-900 text-base">{locale === 'bs' ? 'Aktivnosti' : 'Recent Activity'}</h3>
+          </div>
+        </div>
+        <ActivityTimeline activities={activities} locale={locale} maxItems={5} />
+      </div>
+
+      {/* Activity Timeline */}
+      <ActivityTimeline activities={activities} locale={locale} limit={5} />
+
       {showOLXModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
