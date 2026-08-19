@@ -550,15 +550,16 @@ export default function PropertiesPage() {
           const coverImage = getImageUrl(p.images) || FALLBACK_PROPERTY_IMAGES[idx % FALLBACK_PROPERTY_IMAGES.length]
 
           return (
-            <div
+            <Link
+              href={`/${locale}/dashboard/properties/${p.id}`}
               key={p.id}
-              className={`group relative bg-white rounded-3xl border ${selectedIds.has(p.id) ? 'border-[#C9963B] ring-2 ring-[#C9963B]/20' : 'border-gray-200/70'} overflow-hidden shadow-sm hover:shadow-md transition-all duration-200`}
+              className={`group relative bg-white rounded-3xl border ${selectedIds.has(p.id) ? 'border-[#C9963B] ring-2 ring-[#C9963B]/20' : 'border-gray-200/70'} overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer block`}
             >
               {bulkMode && (
                 <input
                   type="checkbox"
                   checked={selectedIds.has(p.id)}
-                  onChange={() => toggleSelect(p.id)}
+                  onChange={() => toggleSelect(p.id)} onClick={(e) => e.stopPropagation()}
                   className="absolute top-3 right-3 w-5 h-5 rounded border-gray-300 text-[#C9963B] focus:ring-[#C9963B] cursor-pointer z-10"
                 />
               )}
@@ -619,14 +620,14 @@ export default function PropertiesPage() {
                 {/* Actions: Edit, Note, Delete */}
                 <div className="flex items-center justify-between pt-1 gap-2">
                   <button
-                    onClick={() => openEditModal(p)}
+                    onClick={(e) => { e.stopPropagation(); openEditModal(p) }}
                     className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1"
                   >
                     <Edit3 size={14} /> Izmjeni
                   </button>
 
                   <button
-                    onClick={() => { setSelectedProp(p); setNoteInput(p.notes || ''); setIsNoteOpen(true); }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedProp(p); setNoteInput(p.notes || ''); setIsNoteOpen(true); }}
                     className="p-2 border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 rounded-xl transition-colors"
                     title="Dodaj agencijsku napomenu"
                   >
@@ -634,7 +635,7 @@ export default function PropertiesPage() {
                   </button>
 
                   <button
-                    onClick={() => deleteProperty(p.id)}
+                    onClick={(e) => { e.stopPropagation(); deleteProperty(p.id) }}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                     title="Ukloni nekretninu"
                   >
@@ -642,7 +643,7 @@ export default function PropertiesPage() {
                   </button>
                 </div>
               </div>
-            </div>
+            </Link>
           )
         })}
       </div>
