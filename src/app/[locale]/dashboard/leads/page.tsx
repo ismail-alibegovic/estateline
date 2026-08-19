@@ -9,7 +9,7 @@ import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { useCurrency } from '@/components/CurrencyContext'
 import {
   Plus, X, Search, Filter, Mail, Trash2, Phone, User,
-  Building2, LayoutGrid, List, CheckCircle2, DollarSign
+  Building2, LayoutGrid, List, CheckCircle2, DollarSign, Download
 } from 'lucide-react'
 
 type Lead = {
@@ -124,6 +124,35 @@ export default function LeadsPage() {
     }
   }
 
+  const exportLeadsCSV = () => {
+    if (leads.length === 0) return
+    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Stage', 'Status', 'Source', 'Budget Min', 'Budget Max', 'Requirements', 'Rating', 'Tags', 'Created At']
+    const rows = leads.map(l => [
+      l.first_name || '',
+      l.last_name || '',
+      l.email || '',
+      l.phone || '',
+      l.company || '',
+      l.stage || '',
+      l.status || '',
+      l.source || '',
+      l.budget_min || '',
+      l.budget_max || '',
+      (l.requirements || '').replace(/"/g, '""'),
+      l.rating || '',
+      Array.isArray(l.tags) ? l.tags.join('; ') : '',
+      l.created_at ? new Date(l.created_at).toLocaleDateString() : ''
+    ])
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `estateline-leads-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.first_name.trim()) return
@@ -229,6 +258,15 @@ export default function LeadsPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={exportLeadsCSV}
+            disabled={leads.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-gray-700 bg-gray-100 border border-gray-200 hover:bg-gray-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={15} />
+            <span>Izvoz CSV</span>
+          </button>
+
           <button
             onClick={() => setIsOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-white shadow-md transition-all duration-200"

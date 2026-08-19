@@ -7,7 +7,7 @@ import { useCurrency } from '@/components/CurrencyContext'
 import { useRouter, useParams } from 'next/navigation'
 import {
   Plus, RefreshCw, Building2, ExternalLink, MapPin, Edit3, Trash2, StickyNote,
-  LayoutGrid, List, Bed, Bath, Move, Search, Filter, CheckCircle2, X
+  LayoutGrid, List, Bed, Bath, Move, Search, Filter, CheckCircle2, X, Download
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -181,6 +181,35 @@ export default function PropertiesPage() {
     setForm({ title: '', type: 'Stan', price: '', city: 'Sarajevo', address: '', bedrooms: '2', bathrooms: '1', area_size: '70', description: '', notes: '', cover_image_url: '' })
     setSaving(false)
   }
+  const exportPropertiesCSV = () => {
+    const headers = ['Title', 'Type', 'Price', 'Status', 'City', 'Address', 'Bedrooms', 'Bathrooms', 'Area (sqm)', 'Description']
+    const rows = properties.map(p => [
+      p.title,
+      p.type,
+      p.price,
+      p.status,
+      p.city || '',
+      p.address || '',
+      p.bedrooms || '',
+      p.bathrooms || '',
+      p.area_size || '',
+      (p.description || '').replace(/[\n\r]/g, ' ')
+    ])
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => {
+        const s = String(cell ?? '')
+        return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s
+      }).join(','))
+      .join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `estateline-properties-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
 
   const openEditModal = (p: PropertyItem) => {
     setSelectedProp(p)
@@ -341,6 +370,14 @@ export default function PropertiesPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={exportPropertiesCSV}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm"
+          >
+            <Download size={15} />
+            <span>Izvoz CSV</span>
+          </button>
+
           <button
             onClick={() => setIsImportOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-[#C9963B] bg-amber-50 border border-amber-200/80 hover:bg-amber-100 transition-colors shadow-sm"
