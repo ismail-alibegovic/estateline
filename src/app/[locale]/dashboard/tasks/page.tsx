@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useLocale } from 'next-intl'
 import { createBrowserClient } from '@/lib/supabase'
 import {
   CheckSquare, Square, Plus, Search, Calendar,
@@ -23,6 +24,7 @@ interface Task {
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function TasksPage() {
+  const locale = useLocale()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
@@ -295,6 +297,16 @@ export default function TasksPage() {
             </button>
           </div>
         ))}
+        {filteredTasks.length === 0 && (
+          <div className="text-center py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+              <CheckSquare size={28} className="text-gray-300" />
+            </div>
+            <p className="text-gray-500 text-sm font-medium">
+              {locale === 'bs' ? 'Nema zadataka. Kreirajte novi zadatak da započnete.' : 'No tasks yet. Create a new task to get started.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Create Task Modal */}

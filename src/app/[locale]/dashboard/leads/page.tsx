@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { useCurrency } from '@/components/CurrencyContext'
 import {
@@ -339,9 +340,11 @@ export default function LeadsPage() {
                               {initials}
                             </div>
                             <div>
-                              <h4 className="font-bold text-sm text-gray-900 group-hover:text-[#C9963B] transition-colors">
-                                {lead.first_name} {lead.last_name || ''}
-                              </h4>
+                              <Link href={`/dashboard/leads/${lead.id}`} className="block">
+                                <h4 className="font-bold text-sm text-gray-900 group-hover:text-[#C9963B] transition-colors">
+                                  {lead.first_name} {lead.last_name || ''}
+                                </h4>
+                              </Link>
                               <span className="text-[10px] text-gray-400 font-medium">Izvor: {lead.source || 'OLX'}</span>
                             </div>
                           </div>
@@ -432,7 +435,7 @@ export default function LeadsPage() {
                         {(lead.first_name?.[0] || 'K').toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-bold text-gray-900">{lead.first_name} {lead.last_name}</p>
+                        <Link href={`/dashboard/leads/${lead.id}`} className="block"><p className="font-bold text-gray-900 hover:text-[#C9963B] transition-colors">{lead.first_name} {lead.last_name}</p></Link>
                         <p className="text-xs text-gray-400">{lead.email || 'Nema email'}</p>
                       </div>
                     </div>
