@@ -7,7 +7,7 @@ import { useCurrency } from '@/components/CurrencyContext'
 import { useRouter, useParams } from 'next/navigation'
 import {
   Plus, RefreshCw, Building2, ExternalLink, MapPin, Edit3, Trash2, StickyNote,
-  LayoutGrid, List, Bed, Bath, Move, Search, Filter, CheckCircle2, X, Download
+  LayoutGrid, List, Bed, Bath, Move, Search, Filter, CheckCircle2, X, Download, CheckSquare
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -53,6 +53,8 @@ export default function PropertiesPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkMode, setBulkMode] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
 
   // Modal States
@@ -210,6 +212,29 @@ export default function PropertiesPage() {
     URL.revokeObjectURL(url)
   }
 
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectAllProperties = () => setSelectedIds(new Set(filtered.map(p => p.id)))
+
+  const bulkDeleteProperties = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Obrisati ${selectedIds.size} nekretnina?`)) return
+    const supabase = createBrowserClient()
+    const { error } = await supabase.from('properties').delete().in('id', Array.from(selectedIds))
+    if (error) { toast(error.message, 'error'); return }
+    setProperties(prev => prev.filter(p => !selectedIds.has(p.id)))
+    setSelectedIds(new Set())
+    setBulkMode(false)
+    toast(`${selectedIds.size} nekretnina obrisano`)
+  }
 
   const openEditModal = (p: PropertyItem) => {
     setSelectedProp(p)
@@ -371,8 +396,19 @@ export default function PropertiesPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <button
+            onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()) }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors shadow-sm ${
+              bulkMode ? 'text-white bg-gray-900 border border-gray-800' : 'text-gray-700 bg-gray-100 border border-gray-200 hover:bg-gray-200'
+            }`}
+          >
+            <CheckSquare size={15} />
+            <span>{bulkMode ? 'Otkaži' : 'Odaberi'}</span>
+          </button>
+
+          <button
             onClick={exportPropertiesCSV}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors shadow-sm"
+            disabled={properties.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-gray-700 bg-gray-100 border border-gray-200 hover:bg-gray-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={15} />
             <span>Izvoz CSV</span>
@@ -468,8 +504,16 @@ export default function PropertiesPage() {
           return (
             <div
               key={p.id}
-              className="bg-white border border-gray-200/70 rounded-3xl overflow-hidden hover:border-[#C9963B] transition-all shadow-sm flex flex-col justify-between group"
+              className={`group relative bg-white rounded-3xl border ${selectedIds.has(p.id) ? 'border-[#C9963B] ring-2 ring-[#C9963B]/20' : 'border-gray-200/70'} overflow-hidden shadow-sm hover:shadow-md transition-all duration-200`}
             >
+              {bulkMode && (
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(p.id)}
+                  onChange={() => toggleSelect(p.id)}
+                  className="absolute top-3 right-3 w-5 h-5 rounded border-gray-300 text-[#C9963B] focus:ring-[#C9963B] cursor-pointer z-10"
+                />
+              )}
               {/* Image & Price Header */}
               <div className="h-48 bg-gray-100 relative overflow-hidden">
                 <Image
@@ -554,6 +598,19 @@ export default function PropertiesPage() {
           )
         })}
       </div>
+
+      {/* Bulk Action Bar */}
+      {bulkMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl border border-gray-800">
+          <span className="text-sm font-semibold">{selectedIds.size} odabrano</span>
+          <button onClick={selectAllProperties} className="text-xs text-gray-300 hover:text-white underline">Odaberi sve</button>
+          <button onClick={bulkDeleteProperties} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold transition-colors">
+            <Trash2 size={14} />
+            Obriši odabrano
+          </button>
+          <button onClick={() => { setBulkMode(false); setSelectedIds(new Set()) }} className="text-xs text-gray-400 hover:text-white">Odustani</button>
+        </div>
+      )}
 
       {/* Modal Import OLX */}
       {isImportOpen && (

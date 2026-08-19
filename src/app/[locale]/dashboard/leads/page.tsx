@@ -9,7 +9,7 @@ import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { useCurrency } from '@/components/CurrencyContext'
 import {
   Plus, X, Search, Filter, Mail, Trash2, Phone, User,
-  Building2, LayoutGrid, List, CheckCircle2, DollarSign, Download
+  Building2, LayoutGrid, List, CheckCircle2, DollarSign, Download, CheckSquare
 } from 'lucide-react'
 
 type Lead = {
@@ -122,6 +122,32 @@ export default function LeadsPage() {
       toast('Klijent je obrisan!')
       setLeads(prev => prev.filter(l => l.id !== id))
     }
+  }
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkMode, setBulkMode] = useState(false)
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectAllLeads = () => setSelectedIds(new Set(leads.map(l => l.id)))
+
+  const bulkDeleteLeads = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Obrisati ${selectedIds.size} klijenata?`)) return
+    const supabase = createBrowserClient()
+    const { error } = await supabase.from('leads').delete().in('id', Array.from(selectedIds))
+    if (error) { toast(error.message, 'error'); return }
+    setLeads(prev => prev.filter(l => !selectedIds.has(l.id)))
+    setSelectedIds(new Set())
+    setBulkMode(false)
+    toast(`${selectedIds.size} klijenata obrisano`)
   }
 
   const exportLeadsCSV = () => {
@@ -259,6 +285,16 @@ export default function LeadsPage() {
 
         <div className="flex items-center gap-3">
           <button
+            onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()) }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors shadow-sm ${
+              bulkMode ? 'text-white bg-gray-900 border border-gray-800' : 'text-gray-700 bg-gray-100 border border-gray-200 hover:bg-gray-200'
+            }`}
+          >
+            <CheckSquare size={15} />
+            <span>{bulkMode ? 'Otkaži' : 'Odaberi'}</span>
+          </button>
+
+          <button
             onClick={exportLeadsCSV}
             disabled={leads.length === 0}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-gray-700 bg-gray-100 border border-gray-200 hover:bg-gray-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -372,6 +408,15 @@ export default function LeadsPage() {
                         key={lead.id}
                         className="bg-[#FAF8F5] border border-gray-200/80 rounded-2xl p-4 space-y-3 hover:border-[#C9963B] transition-all shadow-sm group"
                       >
+                        {bulkMode && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(lead.id)}
+                            onChange={() => toggleSelect(lead.id)}
+                            className="absolute top-2 right-2 w-5 h-5 rounded border-gray-300 text-[#C9963B] focus:ring-[#C9963B] cursor-pointer"
+                            style={{ position: 'absolute', zIndex: 10 }}
+                          />
+                        )}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center border border-amber-200">
@@ -621,6 +666,19 @@ export default function LeadsPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Bulk Action Bar */}
+      {bulkMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl border border-gray-800">
+          <span className="text-sm font-semibold">{selectedIds.size} odabrano</span>
+          <button onClick={selectAllLeads} className="text-xs text-gray-300 hover:text-white underline">Odaberi sve</button>
+          <button onClick={bulkDeleteLeads} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold transition-colors">
+            <Trash2 size={14} />
+            Obriši odabrano
+          </button>
+          <button onClick={() => { setBulkMode(false); setSelectedIds(new Set()) }} className="text-xs text-gray-400 hover:text-white">Odustani</button>
         </div>
       )}
     </div>
