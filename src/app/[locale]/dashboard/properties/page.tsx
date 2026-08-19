@@ -52,6 +52,9 @@ export default function PropertiesPage() {
   const [orgId, setOrgId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [priceMin, setPriceMin] = useState('')
+  const [priceMax, setPriceMax] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkMode, setBulkMode] = useState(false)
@@ -346,7 +349,11 @@ export default function PropertiesPage() {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.address || '').toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesStatus && matchesSearch
+    const matchesType = typeFilter === 'all' || p.type === typeFilter
+    const price = p.price || 0
+    const matchesPriceMin = !priceMin || price >= parseFloat(priceMin)
+    const matchesPriceMax = !priceMax || price <= parseFloat(priceMax)
+    return matchesStatus && matchesSearch && matchesType && matchesPriceMin && matchesPriceMax
   })
 
   if (loading) {
@@ -451,6 +458,47 @@ export default function PropertiesPage() {
           </div>
 
           <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Type Filter */}
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-3 py-1.5 text-xs font-bold rounded-xl bg-gray-100 text-gray-600 border border-gray-200 focus:outline-none focus:border-[#C9963B]"
+            >
+              <option value="all">Svi tipovi</option>
+              <option value="apartment">Stan</option>
+              <option value="house">Kuća</option>
+              <option value="land">Zemljište</option>
+              <option value="commercial">Poslovni</option>
+            </select>
+
+            {/* Price Range */}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                placeholder="Min €"
+                value={priceMin}
+                onChange={(e) => setPriceMin(e.target.value)}
+                className="w-20 px-2 py-1.5 text-xs rounded-xl bg-gray-100 text-gray-600 border border-gray-200 focus:outline-none focus:border-[#C9963B]"
+              />
+              <span className="text-xs text-gray-400">—</span>
+              <input
+                type="number"
+                placeholder="Max €"
+                value={priceMax}
+                onChange={(e) => setPriceMax(e.target.value)}
+                className="w-20 px-2 py-1.5 text-xs rounded-xl bg-gray-100 text-gray-600 border border-gray-200 focus:outline-none focus:border-[#C9963B]"
+              />
+            </div>
+
+            {(priceMin || priceMax || typeFilter !== 'all') && (
+              <button
+                onClick={() => { setPriceMin(''); setPriceMax(''); setTypeFilter('all') }}
+                className="px-2.5 py-1.5 text-xs font-bold rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200"
+              >
+                ✕ Očisti
+              </button>
+            )}
+
             {(['all', 'active', 'sold', 'rented', 'draft'] as const).map(status => (
               <button
                 key={status}

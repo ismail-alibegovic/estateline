@@ -48,6 +48,8 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'board' | 'table'>('board')
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -228,11 +230,13 @@ export default function LeadsPage() {
     setSaving(false)
   }
 
-  const filteredLeads = search
-    ? leads.filter(l =>
+  const filteredLeads = leads.filter(l => {
+    const matchesSearch = !search ||
       `${l.first_name} ${l.last_name} ${l.email} ${l.phone}`.toLowerCase().includes(search.toLowerCase())
-    )
-    : leads
+    const matchesStatus = statusFilter === 'all' || l.status === statusFilter
+    const matchesSource = sourceFilter === 'all' || l.source === sourceFilter
+    return matchesSearch && matchesStatus && matchesSource
+  })
 
   const leadsByStage = Object.fromEntries(
     STAGES.map(s => [s, filteredLeads.filter(l => (l.stage || l.status) === s)])
@@ -328,6 +332,33 @@ export default function LeadsPage() {
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
           />
+        </div>
+
+        {/* Advanced Filters */}
+        <div className="flex items-center gap-2 shrink-0">
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#C9963B]"
+          >
+            <option value="all">Status: Svi</option>
+            <option value="open">Otvoreni</option>
+            <option value="won">Dobijeni</option>
+            <option value="lost">Izgubljeni</option>
+            <option value="junk">Odbačeni</option>
+          </select>
+          <select
+            value={sourceFilter}
+            onChange={e => setSourceFilter(e.target.value)}
+            className="px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#C9963B]"
+          >
+            <option value="all">Izvor: Svi</option>
+            <option value="website">Website</option>
+            <option value="olx">OLX</option>
+            <option value="referral">Preporuka</option>
+            <option value="walk_in">Walk-in</option>
+            <option value="phone">Telefon</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200 shrink-0">
