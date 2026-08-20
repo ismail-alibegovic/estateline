@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useCurrency } from '@/components/CurrencyContext'
+import ActivityTimeline from '@/components/ActivityTimeline'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
   ArrowLeft, Building2, MapPin, BedDouble, Bath,
   Ruler, Calendar, Tag, Edit2, Check, X as XIcon,
-  TrendingUp, Eye, ExternalLink, Globe, ChevronLeft, ChevronRight, Trash2
+  TrendingUp, Eye, ExternalLink, Globe, ChevronLeft, ChevronRight, Trash2, Printer, DollarSign
 } from 'lucide-react'
 import type { Database } from '@/lib/supabase'
 
@@ -55,6 +56,7 @@ export default function PropertyDetailPage() {
   const [syndications, setSyndications] = useState<Syndication[]>([])
   const [viewings, setViewings] = useState<Viewing[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
+  const [deals, setDeals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -117,6 +119,10 @@ export default function PropertyDetailPage() {
       if (syns) setSyndications(syns as Syndication[])
       if (vws) setViewings(vws as any)
       if (lds) setLeads(lds as Lead[])
+
+      supabase.from('deals').select('id,title,stage,price').eq('property_id', id).then(({ data: dls }) => {
+        if (dls) setDeals(dls as any)
+      })
       setLoading(false)
     }
     load()
@@ -144,6 +150,10 @@ export default function PropertyDetailPage() {
       setProperty(prev => prev ? { ...prev, ...editData, custom_fields: customValues } as any : prev)
       setEditMode(false)
     }
+  }
+
+  const handlePrint = () => {
+    window.print()
   }
 
   const handleDelete = async () => {
@@ -615,6 +625,9 @@ export default function PropertyDetailPage() {
             )}
           </div>
 
+          {/* Activity Timeline */}
+          <ActivityTimeline orgId={orgId || ""} />
+
           {/* Linked Leads */}
           {leads.length > 0 && (
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
@@ -697,6 +710,29 @@ export default function PropertyDetailPage() {
               })}
             </div>
           </div>
+
+          {/* Linked Deals */}
+          {deals.length > 0 && (
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <h2 className="font-display font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3">Deals</h2>
+              <div className="divide-y divide-border/60">
+                {deals.map(d => (
+                  <div key={d.id} className="flex items-center justify-between py-3.5 hover:bg-muted/10 transition-colors px-1 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <DollarSign size={14} className="text-[#C9963B] shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-800 leading-tight line-clamp-1">{d.title}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 capitalize">{d.stage}</p>
+                      </div>
+                    </div>
+                    {d.price && (
+                      <span className="text-xs font-bold text-foreground">{formatPrice(Number(d.price), 'fixed')}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Features */}
           {Array.isArray(property.features) && property.features.length > 0 && (

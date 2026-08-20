@@ -223,7 +223,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Settings */}
           <div className="mt-auto pt-2">
             {renderNavItem({
-              href: `/${locale}/dashboard/settings/profile`,
+              href: `/${locale}/dashboard/settings`,
               label: t('settings') || 'Settings',
               icon: <Settings size={18} />
             })}
