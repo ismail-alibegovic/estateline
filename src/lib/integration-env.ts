@@ -12,6 +12,7 @@ export const integrationEnv = {
   get twilioAuthToken() { return process.env.ESTATELINE_TWILIO_AUTH_TOKEN || process.env.TWILIO_AUTH_TOKEN },
   get twilioFromNumber() { return process.env.ESTATELINE_TWILIO_FROM_NUMBER || process.env.TWILIO_FROM_NUMBER },
   get whatsappVerifyToken() { return process.env.ESTATELINE_WHATSAPP_VERIFY_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN },
+  get whatsappAppSecret() { return process.env.ESTATELINE_WHATSAPP_APP_SECRET || process.env.WHATSAPP_APP_SECRET },
   get geminiApiKey() {
     return process.env.ESTATELINE_GEMINI_API_KEY ||
       process.env.GEMINI_API_KEY ||

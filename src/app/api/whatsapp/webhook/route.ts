@@ -3,11 +3,13 @@ import { createAdminClient } from '@/lib/supabase'
 import { integrationEnv } from '@/lib/integration-env'
 import { normalizeWhatsApp } from '@/lib/whatsapp'
 import { maskPhone } from '@/lib/redact'
+import { verifyChallengeToken, verifyMetaSignature } from '@/lib/whatsapp-security'
 
 export const dynamic = 'force-dynamic'
 
 /**
  * GET: Webhook verification from Meta Developer Console.
+ * Fails closed when WHATSAPP_VERIFY_TOKEN is not configured — no fallback token.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -15,10 +17,13 @@ export async function GET(request: Request) {
   const token = searchParams.get('hub.verify_token')
   const challenge = searchParams.get('hub.challenge')
 
-  const verifyToken = integrationEnv.whatsappVerifyToken || 'default_verify_token'
+  const verifyToken = integrationEnv.whatsappVerifyToken
+  if (!verifyToken) {
+    console.warn('WhatsApp webhook verification rejected: verify token is not configured')
+    return new Response('Forbidden', { status: 403 })
+  }
 
-  if (mode === 'subscribe' && token === verifyToken) {
-    console.log('WhatsApp Webhook verified successfully.')
+  if (mode === 'subscribe' && verifyChallengeToken(verifyToken, token)) {
     return new Response(challenge, { status: 200 })
   }
 
@@ -28,10 +33,26 @@ export async function GET(request: Request) {
 
 /**
  * POST: Incoming WhatsApp message payloads.
+ * The X-Hub-Signature-256 HMAC is verified against the raw request body
+ * before any JSON parsing or processing.
  */
 export async function POST(request: Request) {
+  const rawBody = await request.text()
+  const signatureHeader = request.headers.get('x-hub-signature-256')
+
+  const appSecret = integrationEnv.whatsappAppSecret
+  if (!appSecret) {
+    console.error('WhatsApp webhook rejected: app secret is not configured')
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+  }
+
+  if (!verifyMetaSignature(rawBody, signatureHeader, appSecret)) {
+    console.warn('WhatsApp webhook rejected: missing or invalid signature')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
-    const body = await request.json()
+    const body = JSON.parse(rawBody)
 
     // Inspect if this is a standard message update payload
     const entry = body.entry?.[0]
@@ -137,10 +158,10 @@ export async function POST(request: Request) {
       organization_id: targetOrg.id,
       type: 'note',
       description: `Inbound WhatsApp message from ${sender_name}: "${message_body.slice(0, 60)}${message_body.length > 60 ? '...' : ''}"`,
-      metadata: { 
-        action: 'messaged', 
-        channel: 'whatsapp_inbound', 
-        body: message_body 
+      metadata: {
+        action: 'messaged',
+        channel: 'whatsapp_inbound',
+        body: message_body
       },
       lead_id: lead!.id
     })
