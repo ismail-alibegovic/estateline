@@ -13,7 +13,7 @@
 | Area | Status | Evidence |
 |---|---|---|
 | CI workflow exists | DONE | `.github/workflows/ci.yml` — lint, typecheck, i18n/env parity, unit, RPC, migration smoke, RLS, Playwright E2E, build |
-| **CI green** | **FAILING** | All runs red since 2026-08-19. Root cause (verified in run 32431319704): commit `4c5cb42` reverted Node 20 → Node 18, but Playwright 1.62 requires Node ≥ 20 → `Install Playwright Browsers` step exits 1 before any check runs |
+| **CI green** | **BLOCKED — fix ready** | All runs red since 2026-08-19. Verified causes: (1) `4c5cb42` reverted Node 18→20, but Playwright 1.62 needs Node ≥ 20 → install step dies first; (2) after Node fix, `test:rpcs` runs before migrations on empty DB; (3) E2E runs before build so `next start` has no `.next`; (4) middleware requires Supabase env not present in CI. Full correction committed on branch `save/ci-node20` — blocked only by missing GitHub token `workflow` scope |
 | Unit tests | DONE | 11 suites in `src/lib/__tests__/` (`limits`, `commissions`, `webhooks`, `whatsapp`, `reports`, …), 28+ tests, passing locally |
 | DB-level RLS/RPC/migration tests | PARTIAL | Scripts exist (`scripts/test-rls.js`, `test-reporting-rpcs.js`, `migration-smoke-test.js`) but require a real Postgres `DATABASE_URL`; CI uses plain postgres:15 without Supabase extensions — these steps cannot fully validate Supabase behavior in CI |
 | E2E | PARTIAL | `e2e/rls-isolation.spec.ts` only; no auth/org/billing E2E flows |
@@ -36,10 +36,10 @@
 |---|---|---|
 | Checkout session | DONE | `src/app/api/billing/checkout/route.ts` — tier validated server-side against allowlist, price IDs server-side only, reuses stored customer |
 | Webhook signature verification | DONE | `src/app/api/billing/webhook/route.ts` — mandatory when `NODE_ENV=production` or secret present |
-| Webhook idempotency | **MISSING** | No event dedup table/check; Stripe retries re-process |
-| `invoice.paid` / `invoice.payment_failed` handlers | **MISSING** | Only `checkout.session.completed`, `customer.subscription.updated/deleted` handled |
-| Tier resolution from Stripe price (upgrade/downgrade) | PARTIAL | Webhook trusts `metadata.tier` set at checkout; a subscription changed via Stripe Portal keeps stale tier until next checkout |
-| Plan limits server-side | PARTIAL | `canAddAgent` enforced in `organizations/members/add-existing`, `canAddProperty` enforced in `properties` POST. **`canSendWhatsApp` defined + unit-tested but never called by any API route** — WhatsApp monthly cap unenforced |
+| Webhook idempotency | DONE (2026-08-23) | Migration `022_stripe_webhook_idempotency.sql` (`stripe_webhook_events`, PK `event_id`, RLS-deny + service-role writes); handler claims events via upsert-ignore before side effects |
+| `invoice.paid` / `invoice.payment_failed` handlers | DONE (2026-08-23) | `src/app/api/billing/webhook/route.ts` — maps `paid` → active, `payment_failed` → past_due by customer ID |
+| Tier resolution from Stripe price (upgrade/downgrade) | DONE (2026-08-23) | Webhook resolves tier from subscription price ID against configured plan price env vars when metadata absent; `unpaid` → past_due |
+| Plan limits server-side | DONE (2026-08-23) | `canAddAgent` enforced in members add-existing, `canAddProperty` in properties POST; monthly WhatsApp cap now enforced inside `sendWhatsAppTemplate` (`whatsapp-service.ts`) before Meta dispatch, counted from `activity_log` channel=whatsapp_outbound month-to-date |
 | Billing portal | DONE | `src/app/api/billing/portal/route.ts` |
 | Lifecycle E2E verification | BLOCKED BY EXTERNAL CONFIGURATION | Requires live Stripe keys + webhook endpoint |
 
@@ -127,5 +127,6 @@ Roadmap order retained except where code dependencies dictate:
 |---|---|---|---|---|
 | Audit | VERIFIED | this file | — | keep updated per phase |
 | 1. CI fix | IMPLEMENTED | `.github/workflows/ci.yml` (node 20) | watch next CI run | push requires workflow scope (GitHub App/manual) |
-| 2. Webhook hardening | IMPLEMENTED | `supabase/migrations/022_stripe_webhook_idempotency.sql`, `src/app/api/billing/webhook/route.ts` | manual payload tests | live Stripe verification |
-| 3. WhatsApp limit | IMPLEMENTED | `src/lib/whatsapp-service.ts` (enforcement centralized at dispatch point; callers unchanged) | typecheck + build green; no isolated unit test (function requires admin-client mock) | live Twilio verification |
+| 2. Webhook hardening | VERIFIED · pushed @ `d685d19` | migration `022` + webhook route rewrite (claim-before-process, price→tier resolution, invoice handlers) | typecheck/lint/build/unit all green locally; live Stripe run pending real keys | production webhook endpoint registration in Stripe dashboard |
+| 3. WhatsApp limit | VERIFIED · pushed @ `d685d19` | `whatsapp-service.ts` quota gate at dispatch | same local gate suite green; no isolated unit test (needs admin-client mock) | live Twilio/Meta verification |
+| 4. CI pipeline correction | IMPLEMENTED · parked on `save/ci-node20` | ci.yml: node 20 + reorder migrations→rls→rpcs + build before e2e + placeholder Supabase env for e2e | each failure mode addressed with repo evidence; end-to-end unverifiable without runner | ONE push after `gh auth refresh --scopes workflow`; also fixed 9 pre-existing typecheck errors blocking CI (commit `c9aa618`) |
