@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "check:i18n": "node scripts/check-i18n-parity.js",
     "check:env": "node scripts/check-env-parity.js",
+    "backup:storage": "node scripts/backup-supabase-storage.js",
     "db:generate": "npx drizzle-kit generate",
     "db:push": "npx drizzle-kit push"
   },

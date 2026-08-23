@@ -1,6 +1,6 @@
 # Estateline v1.0 Final Status
 
-_Final status date: 2026-08-23 · HEAD: `15e4f21` (`fix(security): prevent admin owner-role invitation escalation`) · Based on completed audit, verification, and production-configuration review._
+_Final status date: 2026-08-24 · Based on completed audit, verification, production-configuration review, and available-provider setup._
 
 ## 1. Final readiness
 
@@ -8,8 +8,8 @@ _Final status date: 2026-08-23 · HEAD: `15e4f21` (`fix(security): prevent admin
 |---|---:|---|
 | Feature completeness | 96% | Core v1.0 CRM lifecycle is implemented: signup, organization, billing hooks, team invitations, import, properties, contacts, leads, pipeline, viewings, deals, documents, commissions, reporting, export, deletion lifecycle, notifications, global search, and bulk actions. |
 | Technical readiness | 98% | Typecheck: 0 errors; unit tests: 85/85 passing; migration smoke: PASS; RLS: PASS; production build: PASS; Playwright critical tests: PASS. |
-| Production readiness | 82% | Code is launch-ready. Production launch still depends on provider credentials, backups/restore setup, purge scheduling, and the manual CI Node 20 change. |
-| Commercial readiness | 88% | Product flow is sufficient for first paying agencies after Stripe, email, WhatsApp/SMS, monitoring, backups, and portal onboarding are configured. |
+| Production readiness | 86% | Code is launch-ready. Purge scheduling and storage backup automation are configured. Production launch still depends on provider credentials, Supabase backup/PITR decisions, and GitHub workflow write permission for the CI Node 20 change. |
+| Commercial readiness | 89% | Product flow is sufficient for first paying agencies after Stripe, email, WhatsApp/Meta, monitoring, Supabase backup policy, and portal onboarding are configured. |
 
 ## 2. Code-level launch blockers
 
@@ -17,10 +17,12 @@ No remaining code-level launch blockers.
 
 ## 3. Manual repository task
 
-- Update `.github/workflows/ci.yml` manually:
+- BLOCKED — GitHub workflow write permission required.
+- Required repository change in `.github/workflows/ci.yml`:
   - Change `node-version: 18`
   - To `node-version: 20`
-- Reason: Playwright requires Node 20+. Current credentials cannot modify GitHub workflow files because they lack the `workflow` scope.
+- Verified attempted path: connected GitHub app Contents API returned 404 with OAuth scopes excluding `workflow`.
+- Reason: Playwright requires Node 20+. Current available GitHub credentials cannot modify `.github/workflows/*`.
 
 ## 4. External configuration required before launch
 
@@ -60,27 +62,36 @@ No remaining code-level launch blockers.
   - Set production environment/release values in hosting if release tracking is needed.
 
 - **Supabase backups / restore**
-  - Confirm automated database backups are enabled in Supabase.
-  - Decide whether daily backups are enough or PITR is required.
-  - Define restore owner, restore procedure, and expected recovery window.
+  - Supabase Management API confirms the project is `ACTIVE_HEALTHY` in `eu-central-1`.
+  - Management API reports `walg_enabled: true`.
+  - Management API reports `pitr_enabled: false`.
+  - Backups endpoint returned no listed backups at verification time.
+  - Decide whether daily/WAL-G backups are enough or PITR is required.
   - Perform one restore drill before onboarding paid customers.
 
 - **Storage backup strategy**
-  - Create a separate backup/sync plan for Supabase Storage objects.
-  - Include property images, documents, generated PDFs, signatures, avatars, and any uploaded files.
-  - Verify that restored database rows still point to recoverable files.
+  - Implemented `scripts/backup-supabase-storage.js`.
+  - Added `npm run backup:storage`.
+  - Added `docs/OPERATIONS_BACKUP_RUNBOOK.md`.
+  - Dry-run passed and currently reports no Storage buckets.
+  - Weekly Zo automation is scheduled for confirmed storage backups.
+  - Before customer uploads go live, verify backup artifacts after the first real bucket/object exists.
 
 - **Organization purge cron**
-  - Schedule `node scripts/purge-deleted-orgs.js --confirm`.
-  - Required env: `ESTATELINE_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, plus `SUPABASE_SERVICE_ROLE_KEY`.
-  - Run a dry-run first without `--confirm`.
-  - Add monitoring/alerting for failures.
+  - Dry-run completed successfully: no organizations due for deletion.
+  - Daily Zo automation is scheduled at 03:15 Europe/Sarajevo:
+    - `node scripts/purge-deleted-orgs.js --confirm`
+  - Automation is configured to stay silent on clean no-op runs and email on purge/failure.
 
 - **Portal feed onboarding/configuration**
-  - Provide production feed URLs to each enabled portal/account manager.
-  - Configure ingestion manually for OLX, Njuškalo, and Nekretnine.rs where the portal supports external feeds.
+  - Production feed endpoints verified against the deployed service for one existing organization:
+    - `/api/feeds/olx/[org_id]` returns XML.
+    - `/api/feeds/njuskalo/[org_id]` returns XML.
+    - `/api/feeds/nekretnine_rs/[org_id]` returns XML.
+    - `/api/feeds/json/[org_id]` returns JSON.
+  - Invalid organization ids return empty feeds, not records from another tenant.
+  - Provider-side onboarding remains required: submit the production feed URLs to each portal/account manager and configure ingestion schedules.
   - For OLX pull-import, configure the agency OLX profile/shop URL in the app.
-  - Treat official portal partnerships/API access as provider-side onboarding, not a code blocker.
 
 ### Optional / can be enabled later
 
@@ -91,7 +102,7 @@ No remaining code-level launch blockers.
 - **Upstash**
   - Configure `ESTATELINE_UPSTASH_REDIS_REST_URL` or `UPSTASH_REDIS_REST_URL`.
   - Configure `ESTATELINE_UPSTASH_REDIS_REST_TOKEN` or `UPSTASH_REDIS_REST_TOKEN`.
-  - Without Upstash, the app falls back to in-memory rate limiting, acceptable for single-instance launch but not ideal for multi-instance or high-traffic production.
+  - Without Upstash, the app falls back to in-memory rate limiting, acceptable for the current single-instance Zo service launch but not ideal for multi-instance or high-traffic production.
 
 - **Sentry source maps / release tracking**
   - Useful for debugging production errors, not a launch blocker if DSN capture is already configured.
@@ -103,7 +114,7 @@ No remaining code-level launch blockers.
 
 1. Consolidate stale planning/checklist docs into `/docs` and keep this file as the launch-status source of truth.
 2. Add deeper E2E coverage for billing portal, invitation acceptance, notifications, bulk actions, and document generation.
-3. Add production restore runbook with screenshots/steps after the first Supabase restore drill.
+3. Add screenshots/owner-specific steps to the production restore runbook after the first Supabase restore drill.
 4. Add stronger operational dashboards for portal feed health and failed outbound communications.
 5. Replace in-memory rate limiting with Upstash before scaling beyond one production instance.
 
