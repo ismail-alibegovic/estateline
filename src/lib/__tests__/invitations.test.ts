@@ -8,6 +8,7 @@ import {
   buildInvitationEmail,
   normalizeInviteEmail,
   isUniqueViolation,
+  canGrantInvitationRole,
   INVITATION_TTL_DAYS,
 } from '../invitations'
 
@@ -87,5 +88,26 @@ describe('isUniqueViolation', () => {
     expect(isUniqueViolation({ code: '23505' })).toBe(true)
     expect(isUniqueViolation({ code: '23503' })).toBe(false)
     expect(isUniqueViolation({})).toBe(false)
+  })
+})
+
+
+describe('canGrantInvitationRole', () => {
+  it('allows owners to grant all invitation roles', () => {
+    expect(canGrantInvitationRole('owner', 'owner')).toBe(true)
+    expect(canGrantInvitationRole('owner', 'admin')).toBe(true)
+    expect(canGrantInvitationRole('owner', 'agent')).toBe(true)
+    expect(canGrantInvitationRole('owner', 'viewer')).toBe(true)
+  })
+
+  it('prevents admins from granting owner access', () => {
+    expect(canGrantInvitationRole('admin', 'owner')).toBe(false)
+    expect(canGrantInvitationRole('admin', 'admin')).toBe(true)
+    expect(canGrantInvitationRole('admin', 'agent')).toBe(true)
+  })
+
+  it('prevents non-managers from granting any role', () => {
+    expect(canGrantInvitationRole('agent', 'agent')).toBe(false)
+    expect(canGrantInvitationRole('viewer', 'viewer')).toBe(false)
   })
 })

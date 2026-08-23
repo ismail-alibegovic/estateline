@@ -12,6 +12,7 @@ import {
   isUniqueViolation,
   INVITATION_ROLES,
   InvitationRole,
+  canGrantInvitationRole,
 } from '@/lib/invitations'
 import { Resend } from 'resend'
 
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
   if (!INVITATION_ROLES.includes(role))
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+  if (!canGrantInvitationRole(ctx.role, role))
+    return NextResponse.json({ error: 'Only organization owners can grant owner access' }, { status: 403 })
 
   const [{ count: memberCount }, { data: orgRow }] = await Promise.all([
     ctx.supabase

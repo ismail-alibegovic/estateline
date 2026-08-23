@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
 import { canAddAgent } from '@/lib/limits'
+import { canGrantInvitationRole, InvitationRole } from '@/lib/invitations'
 
 // ADD-EXISTING-USER-TO-ORG (not the real invite flow).
 //
@@ -25,10 +26,12 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
-    const role = typeof body.role === 'string' ? body.role : 'agent'
+    const role = (typeof body.role === 'string' ? body.role : 'agent') as InvitationRole
     if (!email) return NextResponse.json({ error: 'email required' }, { status: 400 })
     if (!['owner', 'admin', 'agent', 'viewer'].includes(role))
       return NextResponse.json({ error: 'invalid role' }, { status: 400 })
+    if (!canGrantInvitationRole(ctx.role, role))
+      return NextResponse.json({ error: 'Only organization owners can grant owner access' }, { status: 403 })
 
     const { data: targetUser } = await ctx.supabase
       .from('users')

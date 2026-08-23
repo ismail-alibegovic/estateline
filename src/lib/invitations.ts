@@ -6,6 +6,11 @@ export type InvitationStatus = 'pending' | 'accepted' | 'revoked' | 'expired'
 export const INVITATION_ROLES: InvitationRole[] = ['owner', 'admin', 'agent', 'viewer']
 export const INVITATION_TTL_DAYS = 7
 
+export function canGrantInvitationRole(actorRole: string, targetRole: InvitationRole): boolean {
+  if (targetRole === 'owner') return actorRole === 'owner'
+  return actorRole === 'owner' || actorRole === 'admin'
+}
+
 /** 64-char hex token from 32 random bytes. */
 export function generateInvitationToken(): string {
   return crypto.randomBytes(32).toString('hex')
