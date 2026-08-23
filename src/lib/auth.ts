@@ -38,7 +38,14 @@ export interface RouteContext {
   /** The authenticated user's profile row in `users`. */
   user: { id: string; auth_id: string; email: string; full_name: string | null }
   /** The user's primary organization. */
-  org: { id: string; name: string; slug: string; stripe_customer_id?: string | null }
+  org: {
+    id: string
+    name: string
+    slug: string
+    stripe_customer_id?: string | null
+    deletion_requested_at?: string | null
+    deletion_scheduled_for?: string | null
+  }
   /** The user's role in this org (owner | admin | agent | viewer). */
   role: 'owner' | 'admin' | 'agent' | 'viewer'
 }
@@ -51,7 +58,9 @@ export interface RouteContext {
  * replaces every prior `createAdminClient()` call: API routes must never
  * trust a client-supplied `org_id` and must never touch the service role.
  */
-export async function getRouteContext(): Promise<RouteContext | Response> {
+export async function getRouteContext(
+  options: { allowScheduledForDeletion?: boolean } = {}
+): Promise<RouteContext | Response> {
   const supabase = createRouteClient()
 
   const {
@@ -80,7 +89,9 @@ export async function getRouteContext(): Promise<RouteContext | Response> {
 
   const { data: membership } = await supabase
     .from('organization_members')
-    .select('role, organization_id, organizations(id, name, slug, stripe_customer_id)')
+    .select(
+      'role, organization_id, organizations(id, name, slug, stripe_customer_id, deletion_requested_at, deletion_scheduled_for)'
+    )
     .eq('user_id', profile.id)
     .eq('is_primary', true)
     .single()
@@ -92,11 +103,29 @@ export async function getRouteContext(): Promise<RouteContext | Response> {
     )
   }
 
+  // Deletion lifecycle read-only gate: once the grace period ends the org is
+  // frozen — every API route rejects until purge, except data-out paths that
+  // opt in via allowScheduledForDeletion (export + lifecycle management).
+  const orgRow = membership.organizations as unknown as RouteContext['org']
+  if (
+    !options.allowScheduledForDeletion &&
+    orgRow?.deletion_scheduled_for &&
+    new Date(orgRow.deletion_scheduled_for).getTime() <= Date.now()
+  ) {
+    return new Response(
+      JSON.stringify({
+        error:
+          'Organization is scheduled for deletion and read-only. Export your data or cancel the deletion in Settings > Data & Account.',
+        code: 'ORG_READ_ONLY',
+      }),
+      { status: 403, headers: { 'content-type': 'application/json' } },
+    )
+  }
+
   return {
     supabase,
     user: profile as RouteContext['user'],
-    // @ts-expect-error — join select returns a nested object
-    org: membership.organizations,
+    org: orgRow,
     role: membership.role as RouteContext['role'],
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
 import { integrationEnv } from '@/lib/integration-env'
 import { maskEmail } from '@/lib/redact'
+import { recordEmailOutcome } from '@/lib/email-log'
 import { Resend } from 'resend'
 
 const resendApiKey = integrationEnv.resendApiKey
@@ -95,6 +96,8 @@ export async function POST(req: NextRequest) {
   const { subject, html } = renderTemplate(template || 'custom', payload)
   const fromEmail = integrationEnv.emailFrom || 'onboarding@resend.dev'
 
+  const supabase = createRouteClient()
+
   let resendId: string | null = null
 
   // Send via Resend API if configured
@@ -109,6 +112,18 @@ export async function POST(req: NextRequest) {
       resendId = sent.data?.id || null
     } catch (err: any) {
       console.error('Resend Email Send Error:', err)
+      await recordEmailOutcome(supabase, {
+        organizationId: ctx.org.id,
+        userId: ctx.user.id,
+        recipient: to,
+        subject,
+        template: template || 'custom',
+        entityType: entity_type === 'lead' || entity_type === 'contact' ? entity_type : null,
+        entityId: entity_id || null,
+        providerMessageId: null,
+        status: 'failed',
+        errorMessage: err?.message || String(err),
+      })
       return NextResponse.json({ error: `Failed to send email: ${err.message}` }, { status: 500 })
     }
   } else {
@@ -116,7 +131,6 @@ export async function POST(req: NextRequest) {
   }
 
   // Log activity into activity_log with type = 'email'
-  const supabase = createRouteClient()
   const insertData: Record<string, any> = {
     organization_id: ctx.org.id,
     user_id: ctx.user.id,
@@ -143,6 +157,18 @@ export async function POST(req: NextRequest) {
   if (activityError) {
     console.error('Error logging email activity to activity_log:', activityError.message)
   }
+
+  await recordEmailOutcome(supabase, {
+    organizationId: ctx.org.id,
+    userId: ctx.user.id,
+    recipient: to,
+    subject,
+    template: template || 'custom',
+    entityType: entity_type === 'lead' || entity_type === 'contact' ? entity_type : null,
+    entityId: entity_id || null,
+    providerMessageId: resendId,
+    status: 'sent',
+  })
 
   return NextResponse.json(
     {

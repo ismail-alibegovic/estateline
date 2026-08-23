@@ -9,6 +9,7 @@ import {
   CreditCard,
   Tags,
   Plug,
+  Database,
   ArrowLeft,
 } from 'lucide-react'
 
@@ -19,6 +20,7 @@ const TABS = [
   { href: 'billing', label: 'Billing', icon: <CreditCard size={15} /> },
   { href: 'custom-fields', label: 'Custom Fields', icon: <Tags size={15} /> },
   { href: 'integrations', label: 'Integrations', icon: <Plug size={15} /> },
+  { href: 'data', label: 'Data & Account', icon: <Database size={15} /> },
 ]
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
