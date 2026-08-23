@@ -1,123 +1,130 @@
 # Estateline v1.0 Final Status
 
-_Final status date: 2026-08-24 · Based on completed audit, verification, production-configuration review, and available-provider setup._
+_Final status date: 2026-08-24 · Current launch state: READY AFTER PROVIDER ACCESS._
 
-## 1. Final readiness
+## Completed
 
-| Dimension | Readiness | Decision |
-|---|---:|---|
-| Feature completeness | 96% | Core v1.0 CRM lifecycle is implemented: signup, organization, billing hooks, team invitations, import, properties, contacts, leads, pipeline, viewings, deals, documents, commissions, reporting, export, deletion lifecycle, notifications, global search, and bulk actions. |
-| Technical readiness | 98% | Typecheck: 0 errors; unit tests: 85/85 passing; migration smoke: PASS; RLS: PASS; production build: PASS; Playwright critical tests: PASS. |
-| Production readiness | 86% | Code is launch-ready. Purge scheduling and storage backup automation are configured. Production launch still depends on provider credentials, Supabase backup/PITR decisions, and GitHub workflow write permission for the CI Node 20 change. |
-| Commercial readiness | 89% | Product flow is sufficient for first paying agencies after Stripe, email, WhatsApp/Meta, monitoring, Supabase backup policy, and portal onboarding are configured. |
+- Core v1.0 code remains complete: authentication, tenancy, RLS, properties, contacts, leads, deals, viewings, tasks, commissions, reports, import/export, deletion lifecycle, invitations, notifications, bulk actions, global search, audit logs, rate limiting, and portal feeds.
+- Security audit remains passed:
+  - WhatsApp security: PASS.
+  - Invitations security: PASS.
+  - Notifications security: PASS.
+  - Bulk actions security: PASS.
+  - Tenant isolation: PASS.
+- Launch operations completed:
+  - Daily organization purge automation exists and is active.
+  - Weekly Supabase Storage backup automation exists and is active.
+  - Storage backup script exists at `scripts/backup-supabase-storage.js`.
+  - Backup/restore runbook exists at `docs/OPERATIONS_BACKUP_RUNBOOK.md`.
+  - Real agency pilot checklist exists at `docs/PILOT_CHECKLIST.md`.
+- Portal feed readiness verified from the deployed service for an existing test organization:
+  - OLX XML feed: HTTP 200.
+  - Njuškalo XML feed: HTTP 200.
+  - Nekretnine.rs XML feed: HTTP 200.
+  - JSON feed: HTTP 200.
+  - Invalid organization id returns an empty feed, not another tenant's data.
 
-## 2. Code-level launch blockers
+## Verified
 
-No remaining code-level launch blockers.
+- Repository state before this pass: clean at `4b89440`.
+- GitHub workflow still contains `node-version: 18`.
+- Connected GitHub app write attempt to `.github/workflows/ci.yml` failed with GitHub 404 and OAuth scopes excluding `workflow`.
+- Supabase production project:
+  - Status: `ACTIVE_HEALTHY`.
+  - Region: `eu-central-1`.
+  - Database version: Postgres 17.6.1.141.
+  - WAL-G backups: enabled.
+  - PITR: disabled.
+  - Backup listing did not expose concrete restore artifacts during this verification pass.
+- Storage backup dry-run:
+  - Passed.
+  - Current result: no Storage buckets found.
+- Organization purge dry-run:
+  - Passed.
+  - Current result: no organizations due for deletion.
+- Zo production service topology:
+  - One `estateline` HTTP service is enabled.
+  - Current single-instance deployment makes in-memory rate limiting acceptable for v1.0 pilot/initial launch.
+  - Upstash becomes required before multi-instance scaling or high-traffic production.
 
-## 3. Manual repository task
+## Remaining external blockers
 
-- BLOCKED — GitHub workflow write permission required.
-- Required repository change in `.github/workflows/ci.yml`:
-  - Change `node-version: 18`
-  - To `node-version: 20`
-- Verified attempted path: connected GitHub app Contents API returned 404 with OAuth scopes excluding `workflow`.
-- Reason: Playwright requires Node 20+. Current available GitHub credentials cannot modify `.github/workflows/*`.
+### GitHub
 
-## 4. External configuration required before launch
+- Missing permission/credential: GitHub token with `workflow` scope.
+- Exact action required: change `.github/workflows/ci.yml` from `node-version: 18` to `node-version: 20`, push to `master`, and confirm GitHub Actions is green.
+- Current status: BLOCKED — workflow write permission required.
 
-### Required before first paying customer
+### Stripe
 
-- **Stripe**
+- Missing permission/credential: Stripe account/API access and production/test credentials.
+- Exact actions required:
   - Configure `ESTATELINE_STRIPE_SECRET_KEY` or `STRIPE_SECRET_KEY`.
   - Configure `ESTATELINE_STRIPE_PRICE_STARTER`, `ESTATELINE_STRIPE_PRICE_PRO`, `ESTATELINE_STRIPE_PRICE_AGENCY`.
   - Configure `ESTATELINE_STRIPE_WEBHOOK_SECRET` or `STRIPE_WEBHOOK_SECRET`.
-  - Add Stripe webhook URL: `https://<production-domain>/api/billing/webhook`.
-  - Subscribe webhook events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`.
-  - Configure Stripe Billing Portal in Stripe Dashboard.
-  - Run one test-mode subscribe → update/cancel → failed-payment simulation before live customer billing.
+  - Register webhook URL: `https://estateline-sprypine.zocomputer.io/api/billing/webhook` or final production domain equivalent.
+  - Subscribe events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`.
+  - Configure Stripe Billing Portal.
+  - Run one test-mode subscribe → webhook → subscription verified → cancel → cancellation verified lifecycle.
 
-- **Resend / email**
+### Resend / transactional email
+
+- Missing permission/credential: Resend API key and sending-domain access.
+- Exact actions required:
   - Configure `ESTATELINE_RESEND_API_KEY` or `RESEND_API_KEY`.
   - Configure `ESTATELINE_EMAIL_FROM` or `EMAIL_FROM`.
-  - Verify the sending domain in Resend.
-  - Add Resend DNS records: SPF, DKIM, DMARC.
-  - Confirm invitation emails and transactional CRM emails send from the verified address.
+  - Verify sending domain.
+  - Add SPF, DKIM, and DMARC DNS records.
+  - Send one safe Estateline transactional email test.
 
-- **Supabase Auth email**
-  - Configure Supabase Auth SMTP/sender settings and email templates.
-  - Confirm password reset redirect points to the production app domain.
-  - Test forgot-password → reset-password flow in production/staging.
+### Supabase Auth email
 
-- **WhatsApp / Meta**
+- Missing permission/credential: provider-side Supabase Auth SMTP/template configuration access.
+- Exact actions required:
+  - Configure SMTP/sender.
+  - Verify password reset template.
+  - Verify reset redirect URL points to the production app domain.
+  - Test forgot-password → reset-password end-to-end.
+
+### Sentry
+
+- Missing permission/credential: Sentry project DSN/account access.
+- Exact actions required:
+  - Configure `NEXT_PUBLIC_SENTRY_DSN` and/or `SENTRY_DSN`.
+  - Verify client/server/edge capture with one safe test event.
+
+### WhatsApp / Meta
+
+- Missing permission/credential: Meta app/WhatsApp Business access and agency sender credentials.
+- Exact actions required if WhatsApp is enabled for v1.0:
   - Configure `ESTATELINE_WHATSAPP_VERIFY_TOKEN` or `WHATSAPP_VERIFY_TOKEN`.
   - Configure `ESTATELINE_WHATSAPP_APP_SECRET` or `WHATSAPP_APP_SECRET`.
-  - Add Meta webhook URL: `https://<production-domain>/api/whatsapp/webhook`.
-  - Subscribe required WhatsApp webhook fields for inbound messages/statuses.
-  - For each agency using WhatsApp, populate `organizations.whatsapp_config` with `access_token` and `phone_number_id`.
-  - Approve outbound templates referenced by code: `brochure_delivery`, `viewing_confirmation`, `onboarding_welcome`.
+  - Register webhook URL: `https://estateline-sprypine.zocomputer.io/api/whatsapp/webhook` or final production domain equivalent.
+  - Subscribe required inbound/status webhook fields.
+  - Configure agency `access_token` and `phone_number_id`.
+  - Confirm approved templates: `brochure_delivery`, `viewing_confirmation`, `onboarding_welcome`.
 
-- **Sentry**
-  - Configure `NEXT_PUBLIC_SENTRY_DSN` and/or `SENTRY_DSN`.
-  - Set production environment/release values in hosting if release tracking is needed.
+### Supabase backup restore
 
-- **Supabase backups / restore**
-  - Supabase Management API confirms the project is `ACTIVE_HEALTHY` in `eu-central-1`.
-  - Management API reports `walg_enabled: true`.
-  - Management API reports `pitr_enabled: false`.
-  - Backups endpoint returned no listed backups at verification time.
-  - Decide whether daily/WAL-G backups are enough or PITR is required.
-  - Perform one restore drill before onboarding paid customers.
+- Missing provider capability/access: concrete restorable backup artifact/restore target was not exposed by the Management API during this pass.
+- Exact action required: perform a restore drill into a separate Supabase project before first paying customer data is relied on.
 
-- **Storage backup strategy**
-  - Implemented `scripts/backup-supabase-storage.js`.
-  - Added `npm run backup:storage`.
-  - Added `docs/OPERATIONS_BACKUP_RUNBOOK.md`.
-  - Dry-run passed and currently reports no Storage buckets.
-  - Weekly Zo automation is scheduled for confirmed storage backups.
-  - Before customer uploads go live, verify backup artifacts after the first real bucket/object exists.
+### Portal providers
 
-- **Organization purge cron**
-  - Dry-run completed successfully: no organizations due for deletion.
-  - Daily Zo automation is scheduled at 03:15 Europe/Sarajevo:
-    - `node scripts/purge-deleted-orgs.js --confirm`
-  - Automation is configured to stay silent on clean no-op runs and email on purge/failure.
+- Missing permission/approval: provider/account-manager onboarding for OLX, Njuškalo, and Nekretnine.rs.
+- Exact actions required:
+  - Submit production feed URLs to each provider.
+  - Configure provider ingestion schedule.
+  - Confirm at least one safe test listing ingestion where provider account access permits it.
 
-- **Portal feed onboarding/configuration**
-  - Production feed endpoints verified against the deployed service for one existing organization:
-    - `/api/feeds/olx/[org_id]` returns XML.
-    - `/api/feeds/njuskalo/[org_id]` returns XML.
-    - `/api/feeds/nekretnine_rs/[org_id]` returns XML.
-    - `/api/feeds/json/[org_id]` returns JSON.
-  - Invalid organization ids return empty feeds, not records from another tenant.
-  - Provider-side onboarding remains required: submit the production feed URLs to each portal/account manager and configure ingestion schedules.
-  - For OLX pull-import, configure the agency OLX profile/shop URL in the app.
+## Real pilot status
 
-### Optional / can be enabled later
+REAL USER PILOT REQUIRED
 
-- **Twilio SMS**
-  - Required only if SMS sending is enabled for customers.
-  - Configure `ESTATELINE_TWILIO_ACCOUNT_SID`, `ESTATELINE_TWILIO_AUTH_TOKEN`, `ESTATELINE_TWILIO_FROM_NUMBER`.
+## Remaining v1.0 blockers
 
-- **Upstash**
-  - Configure `ESTATELINE_UPSTASH_REDIS_REST_URL` or `UPSTASH_REDIS_REST_URL`.
-  - Configure `ESTATELINE_UPSTASH_REDIS_REST_TOKEN` or `UPSTASH_REDIS_REST_TOKEN`.
-  - Without Upstash, the app falls back to in-memory rate limiting, acceptable for the current single-instance Zo service launch but not ideal for multi-instance or high-traffic production.
+No remaining v1.0 engineering blockers.
 
-- **Sentry source maps / release tracking**
-  - Useful for debugging production errors, not a launch blocker if DSN capture is already configured.
+## Final decision
 
-- **PITR**
-  - Recommended for stronger recovery objectives; daily backups may be acceptable for first launch if the owner accepts the risk.
-
-## 5. Post-v1.0 improvements
-
-1. Consolidate stale planning/checklist docs into `/docs` and keep this file as the launch-status source of truth.
-2. Add deeper E2E coverage for billing portal, invitation acceptance, notifications, bulk actions, and document generation.
-3. Add screenshots/owner-specific steps to the production restore runbook after the first Supabase restore drill.
-4. Add stronger operational dashboards for portal feed health and failed outbound communications.
-5. Replace in-memory rate limiting with Upstash before scaling beyond one production instance.
-
-## 6. Final launch decision
-
-READY AFTER EXTERNAL CONFIGURATION
+READY AFTER PROVIDER ACCESS

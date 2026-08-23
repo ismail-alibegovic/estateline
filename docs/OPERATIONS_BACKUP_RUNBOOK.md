@@ -46,7 +46,22 @@ Configuration:
 
 The script writes a timestamped folder with downloaded objects and `manifest.json`. It prints counts and paths only; it must not print secrets.
 
-Current production observation on 2026-08-24: the Storage API is reachable and no buckets are currently present. Keep the scheduled backup in place so future buckets are covered once uploads are enabled.
+Current production verification on 2026-08-24:
+
+- Supabase project: active/healthy in `eu-central-1`.
+- Database version: Postgres 17.6.1.141.
+- WAL-G backups: enabled according to Supabase Management API.
+- PITR: not enabled.
+- Backup listing: Management API returned no concrete backup artifacts to restore from during this verification pass.
+- Storage API: reachable; no Storage buckets currently present.
+
+Restore drill status:
+
+- Full provider restore drill was not completed because the Management API did not expose a concrete backup artifact/restore target for this project during verification.
+- Safe local migration smoke remains passing, but that is not a substitute for restoring a production backup.
+- Before the first paying customer, perform a provider restore into a separate Supabase project once a concrete backup artifact is available.
+
+Keep the scheduled Storage backup in place so future buckets are covered once uploads are enabled.
 
 ## Organization purge
 
