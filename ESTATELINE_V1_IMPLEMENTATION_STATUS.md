@@ -52,7 +52,7 @@
 | Welcome / verify / password-reset / invite emails | PARTIAL | Password reset via Supabase Auth (verified live per IMPROVEMENT_PLAN.md); welcome/team-invite/client-portal emails not implemented |
 | WhatsApp Cloud API | DONE (code) | `src/lib/whatsapp-service.ts` + inbound webhook with verify token |
 | SMS (Twilio) | DONE (code) | `src/app/api/sms/send/route.ts` |
-| Consent/opt-in tracking | **MISSING** | No opt-in field or gate before automated WhatsApp/drip sends |
+| Consent/opt-in tracking | PARTIAL | `contacts.whatsapp_opted_in` gate enforced inside `sendWhatsAppTemplate` before any Meta API dispatch; no consent-capture UI or consent audit trail; drip engine inherits the same gate via the service function |
 
 ### Data Lifecycle
 
@@ -128,4 +128,4 @@ Roadmap order retained except where code dependencies dictate:
 | Audit | VERIFIED | this file | — | keep updated per phase |
 | 1. CI fix | IMPLEMENTED | `.github/workflows/ci.yml` (node 20) | watch next CI run | push requires workflow scope (GitHub App/manual) |
 | 2. Webhook hardening | IMPLEMENTED | `supabase/migrations/022_stripe_webhook_idempotency.sql`, `src/app/api/billing/webhook/route.ts` | manual payload tests | live Stripe verification |
-| 3. WhatsApp limit | IMPLEMENTED | `src/app/api/leads/stage-transition/route.ts`, `src/lib/whatsapp-service.ts` | unit test added | live Twilio verification |
+| 3. WhatsApp limit | IMPLEMENTED | `src/lib/whatsapp-service.ts` (enforcement centralized at dispatch point; callers unchanged) | typecheck + build green; no isolated unit test (function requires admin-client mock) | live Twilio verification |
