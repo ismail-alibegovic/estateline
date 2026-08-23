@@ -27,6 +27,7 @@ interface PropertyItem {
   notes?: string | null
   cover_image_url?: string | null
   images?: string[]
+  assigned_to?: string | null
 }
 
 const FALLBACK_PROPERTY_IMAGES = [
@@ -59,6 +60,7 @@ export default function PropertiesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkMode, setBulkMode] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [members, setMembers] = useState<{ user_id: string; label: string }[]>([])
 
   // Modal States
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -111,6 +113,19 @@ export default function PropertiesPage() {
     if (member) {
       const oid = (member as any).organization_id
       setOrgId(oid)
+
+      const { data: mem } = await supabase
+        .from('organization_members')
+        .select('user_id, users(full_name, email)')
+        .eq('organization_id', oid)
+        .order('created_at', { ascending: true })
+      setMembers(
+        ((mem || []) as any[]).map(m => ({
+          user_id: m.user_id,
+          label: m.users?.full_name || m.users?.email || m.user_id,
+        }))
+      )
+
 
       const { data: props } = await supabase
         .from('properties')
@@ -227,6 +242,21 @@ export default function PropertiesPage() {
 
   const selectAllProperties = () => setSelectedIds(new Set(filtered.map(p => p.id)))
 
+  const bulkCallProps = async (action: string, value?: string): Promise<boolean> => {
+    const res = await fetch('/api/properties/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: Array.from(selectedIds), action, value }),
+    })
+    if (!res.ok) {
+      let message = `HTTP ${res.status}`
+      try { message = (await res.json()).error || message } catch { /* keep */ }
+      toast(message, 'error')
+      return false
+    }
+    return true
+  }
+
   const bulkDeleteProperties = async () => {
     if (selectedIds.size === 0) return
     if (!confirm(`Obrisati ${selectedIds.size} nekretnina?`)) return
@@ -237,6 +267,47 @@ export default function PropertiesPage() {
     setSelectedIds(new Set())
     setBulkMode(false)
     toast(`${selectedIds.size} nekretnina obrisano`)
+  }
+
+  const bulkAssignProperties = async (userId: string) => {
+    if (!(await bulkCallProps('assign', userId))) return
+    setProperties(prev => prev.map(p => selectedIds.has(p.id) ? { ...p, assigned_to: userId } : p))
+    toast(`${selectedIds.size} nekretnina dodijeljeno`)
+    setSelectedIds(new Set())
+  }
+
+  const bulkStatusProperties = async (status: string) => {
+    if (!(await bulkCallProps('status', status))) return
+    setProperties(prev => prev.map(p => selectedIds.has(p.id) ? { ...p, status } : p))
+    const label = status === 'active' ? 'Aktivne' : status === 'sold' ? 'Prodano' : status === 'rented' ? 'Iznajmljeno' : status === 'inactive' ? 'Neaktivne' : 'Nacrt'
+    toast(`${selectedIds.size} → ${label}`)
+    setSelectedIds(new Set())
+  }
+
+  const exportSelectedPropertiesCSV = () => {
+    const rowsData = properties.filter(p => selectedIds.has(p.id))
+    if (rowsData.length === 0) return
+    const headers = ['Title', 'Type', 'Status', 'Price', 'City', 'Address', 'Bedrooms', 'Bathrooms', 'Area', 'Description']
+    const rows = rowsData.map(p => [
+      p.title || '',
+      p.type || '',
+      p.status || '',
+      p.price ?? '',
+      p.city || '',
+      p.address || '',
+      p.bedrooms ?? '',
+      p.bathrooms ?? '',
+      p.area_size ?? '',
+      (p.description || '').replace(/"/g, '""'),
+    ])
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `estateline-nekretnine-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const openEditModal = (p: PropertyItem) => {
@@ -653,6 +724,30 @@ export default function PropertiesPage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl border border-gray-800">
           <span className="text-sm font-semibold">{selectedIds.size} odabrano</span>
           <button onClick={selectAllProperties} className="text-xs text-gray-300 hover:text-white underline">Odaberi sve</button>
+          <select
+            defaultValue=""
+            onChange={e => { const v = e.target.value; e.target.value = ''; if (v) bulkAssignProperties(v) }}
+            className="px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-xs text-white"
+          >
+            <option value="">Dodijeli agentu…</option>
+            {members.map(m => (
+              <option key={m.user_id} value={m.user_id}>{m.label}</option>
+            ))}
+          </select>
+          <select
+            defaultValue=""
+            onChange={e => { const v = e.target.value; e.target.value = ''; if (v) bulkStatusProperties(v) }}
+            className="px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-xs text-white"
+          >
+            <option value="">Promijeni status…</option>
+            {(['active', 'inactive', 'sold', 'rented', 'draft'] as const).map(st => (
+              <option key={st} value={st}>{st}</option>
+            ))}
+          </select>
+          <button onClick={exportSelectedPropertiesCSV} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-semibold transition-colors">
+            <Download size={14} />
+            Izvezi CSV
+          </button>
           <button onClick={bulkDeleteProperties} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold transition-colors">
             <Trash2 size={14} />
             Obriši odabrano

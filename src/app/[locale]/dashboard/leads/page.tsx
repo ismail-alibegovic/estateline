@@ -28,6 +28,7 @@ type Lead = {
   rating?: number | null
   tags?: string[] | null
   created_at: string
+  assigned_to?: string | null
 }
 
 const STAGES = ['new', 'contacted', 'qualified', 'negotiation', 'converted']
@@ -56,6 +57,7 @@ export default function LeadsPage() {
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'board' | 'table'>('board')
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [members, setMembers] = useState<{ user_id: string; label: string }[]>([])
 
   // New Lead Modal
   const [isOpen, setIsOpen] = useState(false)
@@ -93,10 +95,22 @@ export default function LeadsPage() {
       .single()
 
     if (member) {
-      setOrgId((member as any).organization_id)
+      const org = (member as any).organization_id
+      setOrgId(org)
+      const { data: mem } = await supabase
+        .from('organization_members')
+        .select('user_id, users(full_name, email)')
+        .eq('organization_id', org)
+        .order('created_at', { ascending: true })
+      setMembers(
+        ((mem || []) as any[]).map(m => ({
+          user_id: m.user_id,
+          label: m.users?.full_name || m.users?.email || m.user_id,
+        }))
+      )
       const { data } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, email, phone, stage, status, source, budget_min, budget_max, company, requirements, rating, tags, created_at')
+        .select('id, first_name, last_name, email, phone, stage, status, source, budget_min, budget_max, company, requirements, rating, tags, created_at, assigned_to')
         .eq('organization_id', (member as any).organization_id)
         .order('created_at', { ascending: false })
 
@@ -113,8 +127,12 @@ export default function LeadsPage() {
 
   const updateStage = async (id: string, stage: string) => {
     const supabase = createBrowserClient()
-    await supabase.from('leads').update({ stage, status: stage }).eq('id', id)
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, stage, status: stage } : l))
+    const { error } = await supabase.from('leads').update({ stage, status: stage === 'converted' ? 'won' : 'open' }).eq('id', id)
+    if (error) {
+      toast(error.message, 'error')
+      return
+    }
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, stage, status: stage === 'converted' ? 'won' : 'open' } : l))
     toast(locale === 'bs' ? `Faza je promijenjena u "${STAGE_LABELS[stage]?.bs || stage}"` : `Stage updated to "${stage}"`)
   }
 
@@ -143,6 +161,65 @@ export default function LeadsPage() {
   }
 
   const selectAllLeads = () => setSelectedIds(new Set(leads.map(l => l.id)))
+
+  const bulkCall = async (action: string, value: string): Promise<boolean> => {
+    const res = await fetch('/api/leads/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: Array.from(selectedIds), action, value }),
+    })
+    if (!res.ok) {
+      let message = `HTTP ${res.status}`
+      try { message = (await res.json()).error || message } catch { /* keep */ }
+      toast(message, 'error')
+      return false
+    }
+    return true
+  }
+
+  const bulkAssignLeads = async (userId: string) => {
+    if (!(await bulkCall('assign', userId))) return
+    setLeads(prev => prev.map(l => selectedIds.has(l.id) ? { ...l, assigned_to: userId } : l))
+    toast(`${selectedIds.size} klijenata dodijeljeno`)
+    setSelectedIds(new Set())
+  }
+
+  const bulkStageLeads = async (stage: string) => {
+    if (!(await bulkCall('stage', stage))) return
+    setLeads(prev => prev.map(l => selectedIds.has(l.id) ? { ...l, stage, status: stage === 'converted' ? 'won' : 'open' } : l))
+    toast(`${selectedIds.size} klijenata prebačeno u "${STAGE_LABELS[stage]?.bs || stage}"`)
+    setSelectedIds(new Set())
+  }
+
+  const exportSelectedLeadsCSV = () => {
+    const rowsData = leads.filter(l => selectedIds.has(l.id))
+    if (rowsData.length === 0) return
+    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Stage', 'Status', 'Source', 'Budget Min', 'Budget Max', 'Requirements', 'Rating', 'Tags', 'Created At']
+    const rows = rowsData.map(l => [
+      l.first_name || '',
+      l.last_name || '',
+      l.email || '',
+      l.phone || '',
+      l.company || '',
+      l.stage || '',
+      l.status || '',
+      l.source || '',
+      l.budget_min || '',
+      l.budget_max || '',
+      (l.requirements || '').replace(/"/g, '""'),
+      l.rating || '',
+      Array.isArray(l.tags) ? l.tags.join('; ') : '',
+      l.created_at ? new Date(l.created_at).toLocaleDateString() : ''
+    ])
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `estateline-leads-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const bulkDeleteLeads = async () => {
     if (selectedIds.size === 0) return
@@ -709,6 +786,30 @@ export default function LeadsPage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl border border-gray-800">
           <span className="text-sm font-semibold">{selectedIds.size} odabrano</span>
           <button onClick={selectAllLeads} className="text-xs text-gray-300 hover:text-white underline">Odaberi sve</button>
+          <select
+            defaultValue=""
+            onChange={e => { const v = e.target.value; e.target.value = ''; if (v) bulkAssignLeads(v) }}
+            className="px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-xs text-white"
+          >
+            <option value="">Dodijeli agentu…</option>
+            {members.map(m => (
+              <option key={m.user_id} value={m.user_id}>{m.label}</option>
+            ))}
+          </select>
+          <select
+            defaultValue=""
+            onChange={e => { const v = e.target.value; e.target.value = ''; if (v) bulkStageLeads(v) }}
+            className="px-3 py-2 rounded-xl bg-gray-800 border border-gray-700 text-xs text-white"
+          >
+            <option value="">Promijeni fazu…</option>
+            {STAGES.map(st => (
+              <option key={st} value={st}>{STAGE_LABELS[st]?.bs || st}</option>
+            ))}
+          </select>
+          <button onClick={exportSelectedLeadsCSV} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-semibold transition-colors">
+            <Download size={14} />
+            Izvezi CSV
+          </button>
           <button onClick={bulkDeleteLeads} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold transition-colors">
             <Trash2 size={14} />
             Obriši odabrano
