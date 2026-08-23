@@ -26,6 +26,7 @@ import {
   ClipboardList,
   Eye,
   Receipt,
+  Upload,
 } from 'lucide-react'
 import NotificationBell from '@/components/NotificationBell'
 
@@ -111,6 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: `/${locale}/dashboard/tasks`, label: t('tasks') || 'Tasks', icon: <ClipboardList size={18} /> },
     { href: `/${locale}/dashboard/communications`, label: t('communications') || 'Messages', icon: <MessageSquare size={18} /> },
     { href: `/${locale}/dashboard/documents`, label: t('documents') || 'Documents', icon: <FileText size={18} /> },
+    { href: `/${locale}/dashboard/import`, label: t('importData') || 'Import', icon: <Upload size={18} /> },
   ]
 
   const NAV_FINANCE = [
