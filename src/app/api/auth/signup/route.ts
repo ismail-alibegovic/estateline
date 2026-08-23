@@ -7,8 +7,10 @@ export async function POST(request: Request) {
   try {
     const { email, password, fullName, orgName, orgSlug } = await request.json()
 
-    // Validate input
-    if (!email || !password || !fullName || !orgName || !orgSlug) {
+    // Validate input. orgName/orgSlug are optional: team-invitation
+    // signups create a bare account and join the inviting organization later.
+    const invited = !orgName && !orgSlug
+    if (!email || !password || !fullName || (!invited && (!orgName || !orgSlug))) {
       return NextResponse.json(
         { error: 'All fields are required' },
         { status: 400 }
@@ -25,18 +27,20 @@ export async function POST(request: Request) {
 
     const supabaseAdmin = createAdminClient()
 
-    // Step 1: Check slug availability FIRST (before creating auth user)
-    const { data: existing } = await supabaseAdmin
-      .from('organizations')
-      .select('id')
-      .eq('slug', orgSlug)
-      .single()
+    if (!invited) {
+      // Step 1: Check slug availability FIRST (before creating auth user)
+      const { data: existing } = await supabaseAdmin
+        .from('organizations')
+        .select('id')
+        .eq('slug', orgSlug)
+        .single()
 
-    if (existing) {
-      return NextResponse.json(
-        { error: 'This organization name is already taken. Please choose another.' },
-        { status: 409 }
-      )
+      if (existing) {
+        return NextResponse.json(
+          { error: 'This organization name is already taken. Please choose another.' },
+          { status: 409 }
+        )
+      }
     }
 
     // Step 2: Create auth user via Admin API
@@ -54,6 +58,42 @@ export async function POST(request: Request) {
         { error: authError?.message || 'Failed to create user account' },
         { status: 400 }
       )
+    }
+
+    if (invited) {
+      // Bare account for an invitee: create the profile row only.
+      const { error: profileError } = await supabaseAdmin
+        .from('users')
+        .insert({ auth_id: authData.user.id, email, full_name: fullName })
+
+      if (profileError) {
+        console.error('Profile error:', profileError)
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+        return NextResponse.json(
+          { error: 'Failed to create user profile' },
+          { status: 500 }
+        )
+      }
+
+      // Step 4: Create session for the user
+      const supabaseRouteInvited = createRouteClient()
+      const { data: sessionDataInvited, error: sessionErrorInvited } =
+        await supabaseRouteInvited.auth.signInWithPassword({ email, password })
+
+      if (sessionErrorInvited || !sessionDataInvited.session) {
+        return NextResponse.json({
+          success: true,
+          message: 'Account created. Please log in.',
+          user: { email },
+        })
+      }
+
+      return NextResponse.json({
+        success: true,
+        invited: true,
+        user: sessionDataInvited.user,
+        session: sessionDataInvited.session,
+      })
     }
 
     // Step 3: Atomic org creation via RPC (single transaction)
