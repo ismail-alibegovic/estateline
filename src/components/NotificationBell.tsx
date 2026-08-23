@@ -1,92 +1,59 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@/lib/supabase'
 
 interface Notification {
   id: string
-  type: 'new_lead' | 'viewing_reminder' | 'stage_change'
+  type: string
   title: string
-  subtitle: string
+  subtitle: string | null
   created_at: string
-  link?: string
+  link: string | null
   read: boolean
 }
 
-export default function NotificationBell({ orgId }: { orgId: string | null }) {
+const TYPE_COLORS: Record<string, string> = {
+  lead_assigned: '#3b82f6',
+  new_lead: '#3b82f6',
+  viewing_upcoming: '#C9963B',
+  viewing_reminder: '#C9963B',
+  task_overdue: '#EF4444',
+  document_signed: '#10B981',
+  portal_sync_failed: '#EF4444',
+  stage_change: '#8b5cf6',
+}
+
+const DEFAULT_COLOR = '#8b5cf6'
+
+export default function NotificationBell() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const ref = useRef<HTMLDivElement>(null)
 
-  const supabase = createBrowserClient()
-
-  useEffect(() => {
-    if (!orgId) return
-    loadNotifications()
-  }, [orgId])
-
-  useEffect(() => {
-    if (!orgId) return
-
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'activity_log',
-          filter: `organization_id=eq.${orgId}`,
-        },
-        (payload) => {
-          const entry = payload.new as any
-          const notif: Notification = {
-            id: entry.id,
-            type: entry.type as Notification['type'],
-            title: entry.type === 'lead_created' ? 'New Lead' : entry.type === 'stage_change' ? 'Pipeline Update' : 'Activity',
-            subtitle: entry.description || '',
-            created_at: entry.created_at,
-            link: entry.lead_id ? `/dashboard/leads/${entry.lead_id}` : undefined,
-            read: false,
-          }
-          setNotifications((prev) => [notif, ...prev].slice(0, 20))
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'viewings',
-          filter: `organization_id=eq.${orgId}`,
-        },
-        () => {
-          setNotifications((prev) =>
-            [
-              {
-                id: `viewing-${Date.now()}`,
-                type: 'viewing_reminder' as const,
-                title: 'New Viewing Scheduled',
-                subtitle: 'A viewing was added to the calendar',
-                created_at: new Date().toISOString(),
-                link: '/dashboard/viewings',
-                read: false,
-              },
-              ...prev,
-            ].slice(0, 20)
-          )
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/notifications')
+      if (!res.ok) return
+      const json = await res.json()
+      setNotifications(json.data ?? [])
+      setUnreadCount(json.unread ?? 0)
+    } catch {
+      // transient network failure — keep current list
+    } finally {
+      setLoading(false)
     }
-  }, [orgId, supabase])
+  }, [])
+
+  useEffect(() => {
+    load()
+    const interval = setInterval(load, 60_000)
+    return () => clearInterval(interval)
+  }, [load])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -98,60 +65,49 @@ export default function NotificationBell({ orgId }: { orgId: string | null }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  async function loadNotifications() {
-    if (!orgId) return
-    setLoading(true)
-
-    const [activityResp, viewingsResp] = await Promise.all([
-      supabase
-        .from('activity_log')
-        .select('id, type, description, created_at, lead_id')
-        .eq('organization_id', orgId)
-        .order('created_at', { ascending: false })
-        .limit(15),
-      supabase
-        .from('viewings')
-        .select('id, scheduled_at, lead_id')
-        .eq('organization_id', orgId)
-        .gte('scheduled_at', new Date().toISOString())
-        .order('scheduled_at', { ascending: true })
-        .limit(5),
-    ])
-
-    const items: Notification[] = []
-
-    for (const a of activityResp.data || []) {
-      const type =
-        a.type === 'lead_created' ? 'new_lead' : a.type === 'stage_change' ? 'stage_change' : 'stage_change'
-      items.push({
-        id: a.id,
-        type,
-        title: a.type === 'lead_created' ? 'New Lead' : a.type === 'stage_change' ? 'Pipeline Update' : 'Activity',
-        subtitle: a.description || '',
-        created_at: a.created_at,
-        link: a.lead_id ? `/dashboard/leads/${a.lead_id}` : undefined,
-        read: false,
-      })
-    }
-
-    for (const v of viewingsResp.data || []) {
-      items.push({
-        id: `viewing-${v.id}`,
-        type: 'viewing_reminder',
-        title: 'Upcoming Viewing',
-        subtitle: new Date(v.scheduled_at).toLocaleString(),
-        created_at: v.scheduled_at,
-        link: '/dashboard/viewings',
-        read: false,
-      })
-    }
-
-    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    setNotifications(items.slice(0, 20))
-    setLoading(false)
+  async function toggle() {
+    const next = !open
+    setOpen(next)
+    if (next) load()
   }
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  async function markRead(id: string) {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    )
+    setUnreadCount((c) => Math.max(0, c - 1))
+    try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+    } catch {
+      // optimistic — server reconciles on next poll
+    }
+  }
+
+  async function handleClick(n: Notification) {
+    if (!n.read) markRead(n.id)
+    if (n.link) {
+      router.push(`/${n.link.replace(/^\//, '')}`)
+    }
+    setOpen(false)
+  }
+
+  async function handleMarkAllRead() {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    setUnreadCount(0)
+    try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      })
+    } catch {
+      // optimistic — server reconciles on next poll
+    }
+  }
 
   function formatTimeAgo(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime()
@@ -165,24 +121,10 @@ export default function NotificationBell({ orgId }: { orgId: string | null }) {
     return `${days}d ago`
   }
 
-  function handleClick(n: Notification) {
-    setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)))
-    if (n.link) {
-      router.push(`/${n.link.replace(/^\//, '')}`)
-    }
-    setOpen(false)
-  }
-
-  const iconColor: Record<Notification['type'], string> = {
-    new_lead: '#3b82f6',
-    viewing_reminder: '#C9963B',
-    stage_change: '#8b5cf6',
-  }
-
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className="relative text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-lg hover:bg-gray-50"
       >
         <Bell size={20} />
@@ -221,7 +163,7 @@ export default function NotificationBell({ orgId }: { orgId: string | null }) {
                 >
                   <div
                     className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-                    style={{ background: iconColor[n.type] }}
+                    style={{ background: TYPE_COLORS[n.type] ?? DEFAULT_COLOR }}
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900 truncate">{n.title}</p>
@@ -236,9 +178,7 @@ export default function NotificationBell({ orgId }: { orgId: string | null }) {
           {notifications.length > 0 && (
             <div className="border-t border-gray-50 px-4 py-2">
               <button
-                onClick={() => {
-                  setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
-                }}
+                onClick={handleMarkAllRead}
                 className="text-xs text-gray-400 hover:text-gray-600 transition-colors w-full text-center"
               >
                 Mark all as read

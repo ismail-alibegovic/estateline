@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
+import { notifyUser } from '@/lib/notifications'
 
 export async function GET(request: Request) {
   try {
@@ -66,6 +67,19 @@ export async function POST(request: Request) {
       .single()
 
     if (error) throw error
+
+    if (data && body.assigned_to && body.assigned_to !== ctx.user.id) {
+      await notifyUser({
+        supabase: ctx.supabase,
+        organizationId: ctx.org.id,
+        userId: body.assigned_to,
+        type: 'lead_assigned',
+        title: 'New lead assigned to you',
+        subtitle: [data.first_name, data.last_name].filter(Boolean).join(' ') || data.email || 'Lead',
+        link: `/dashboard/leads/${data.id}`,
+      })
+    }
+
     return NextResponse.json({ data }, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })

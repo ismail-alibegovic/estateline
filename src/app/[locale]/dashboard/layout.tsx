@@ -332,7 +332,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
 
             {/* Notification Bell */}
-            <NotificationBell orgId={orgId} />
+            <NotificationBell />
 
             {/* Separator */}
             <div className="w-px h-8 bg-gray-100" />

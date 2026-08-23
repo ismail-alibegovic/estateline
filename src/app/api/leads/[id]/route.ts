@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
+import { notifyUser } from '@/lib/notifications'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -37,6 +38,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const updates: any = { ...body }
     if (body.stage || body.status) updates.last_activity_at = new Date().toISOString()
 
+    const { data: previous } = await ctx.supabase
+      .from('leads')
+      .select('assigned_to')
+      .eq('id', params.id)
+      .eq('organization_id', ctx.org.id)
+      .single()
+
     const { data, error } = await ctx.supabase
       .from('leads')
       .update(updates)
@@ -46,6 +54,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       .single()
 
     if (error) throw error
+
+    const isReassignment =
+      data && body.assigned_to && body.assigned_to !== previous?.assigned_to
+
+    if (isReassignment && body.assigned_to !== ctx.user.id) {
+      await notifyUser({
+        supabase: ctx.supabase,
+        organizationId: ctx.org.id,
+        userId: body.assigned_to,
+        type: 'lead_assigned',
+        title: 'New lead assigned to you',
+        subtitle: [data.first_name, data.last_name].filter(Boolean).join(' ') || data.email || 'Lead',
+        link: `/dashboard/leads/${data.id}`,
+      })
+    }
 
     // Trigger WhatsApp outbound templates via the service directly (since we're already on the server)
     if (body.stage && data) {
