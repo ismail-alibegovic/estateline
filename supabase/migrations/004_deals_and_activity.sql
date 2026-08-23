@@ -17,6 +17,8 @@
 -- migration and update the application layer accordingly.
 -- =====================================================
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- =====================================================
 -- ENUMS
 -- =====================================================
@@ -152,7 +154,7 @@ CREATE TABLE IF NOT EXISTS invitations (
   status invitation_status NOT NULL DEFAULT 'pending',
 
   -- Single-use token (Supabase edge function or server signs it)
-  token UNIQUE TEXT NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),
+  token TEXT NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
   expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days'),
   accepted_at TIMESTAMPTZ,
   accepted_by UUID REFERENCES users(id) ON DELETE SET NULL,

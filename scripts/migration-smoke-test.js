@@ -4,7 +4,50 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
-function splitStatements(sql) {
+// Removes -- line comments while respecting dollar-quoted blocks and
+// single-quoted string literals, so semicolons inside comments no longer
+// corrupt statement splitting.
+function stripLineComments(sql) {
+  let out = '';
+  let i = 0;
+  const n = sql.length;
+  while (i < n) {
+    if (sql[i] === '$') {
+      const match = sql.slice(i).match(/^(\$[A-Za-z_][A-Za-z0-9_]*\$|\$\$)/);
+      if (match) {
+        const tag = match[1];
+        const end = sql.indexOf(tag, i + tag.length);
+        if (end === -1) {
+          out += sql.slice(i);
+          return out;
+        }
+        out += sql.slice(i, end + tag.length);
+        i = end + tag.length;
+        continue;
+      }
+    }
+    if (sql[i] === "'") {
+      const end = sql.indexOf("'", i + 1);
+      if (end === -1) {
+        out += sql.slice(i);
+        return out;
+      }
+      out += sql.slice(i, end + 1);
+      i = end + 1;
+      continue;
+    }
+    if (sql[i] === '-' && sql[i + 1] === '-') {
+      while (i < n && sql[i] !== '\n') i++;
+      continue;
+    }
+    out += sql[i];
+    i++;
+  }
+  return out;
+}
+
+function splitStatements(rawSql) {
+  const sql = stripLineComments(rawSql);
   const statements = [];
   let current = '';
   let inDollar = false;
@@ -14,7 +57,7 @@ function splitStatements(sql) {
     const char = sql[i];
     if (char === '$') {
       const sub = sql.slice(i);
-      const match = sub.match(/^(\$[a-zA-Z0-9_]*\$)/);
+      const match = sub.match(/^(\$[A-Za-z_][A-Za-z0-9_]*\$|\$\$)/);
       if (match) {
         const tag = match[1];
         if (!inDollar) {
