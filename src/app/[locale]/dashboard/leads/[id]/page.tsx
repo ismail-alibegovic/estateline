@@ -663,7 +663,7 @@ export default function LeadDetailPage() {
                       <Star
                         key={n}
                         size={16}
-                        className={lead.rating >= n ? 'fill-[#C9963B] text-[#C9963B]' : 'text-muted-foreground/20'}
+                        className={(lead.rating ?? 0) >= n ? 'fill-[#C9963B] text-[#C9963B]' : 'text-muted-foreground/20'}
                       />
                     ))}
                     <span className="text-xs text-muted-foreground ml-1">({lead.rating}/5)</span>

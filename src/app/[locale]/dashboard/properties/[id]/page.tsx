@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useCurrency } from '@/components/CurrencyContext'
-import ActivityTimeline from '@/components/ActivityTimeline'
+import { ActivityTimeline } from '@/components/ActivityTimeline'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -57,6 +57,7 @@ export default function PropertyDetailPage() {
   const [viewings, setViewings] = useState<Viewing[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
   const [deals, setDeals] = useState<any[]>([])
+  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -122,6 +123,9 @@ export default function PropertyDetailPage() {
 
       supabase.from('deals').select('id,title,stage,price').eq('property_id', id).then(({ data: dls }) => {
         if (dls) setDeals(dls as any)
+      })
+      supabase.from('activity_log').select('id, type, description, created_at, users(full_name)').eq('property_id', id).order('created_at', { ascending: false }).limit(8).then(({ data: acts }) => {
+        if (acts) setActivities(acts as any)
       })
       setLoading(false)
     }
@@ -626,7 +630,7 @@ export default function PropertyDetailPage() {
           </div>
 
           {/* Activity Timeline */}
-          <ActivityTimeline orgId={orgId || ""} />
+          <ActivityTimeline activities={activities} maxItems={5} />
 
           {/* Linked Leads */}
           {leads.length > 0 && (

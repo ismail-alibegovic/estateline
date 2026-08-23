@@ -23,6 +23,10 @@ type Lead = {
   source: string
   budget_min: number | null
   budget_max: number | null
+  company?: string | null
+  requirements?: string | null
+  rating?: number | null
+  tags?: string[] | null
   created_at: string
 }
 
@@ -92,7 +96,7 @@ export default function LeadsPage() {
       setOrgId((member as any).organization_id)
       const { data } = await supabase
         .from('leads')
-        .select('id, first_name, last_name, email, phone, stage, status, source, budget_min, budget_max, created_at')
+        .select('id, first_name, last_name, email, phone, stage, status, source, budget_min, budget_max, company, requirements, rating, tags, created_at')
         .eq('organization_id', (member as any).organization_id)
         .order('created_at', { ascending: false })
 

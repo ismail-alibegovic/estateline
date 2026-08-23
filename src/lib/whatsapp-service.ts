@@ -1,5 +1,6 @@
 import { createAdminClient } from './supabase'
 import { maskPhone } from './redact'
+import { canSendWhatsApp } from './limits'
 
 export interface WhatsAppTemplateComponent {
   type: 'header' | 'body' | 'button'
@@ -26,10 +27,10 @@ export async function sendWhatsAppTemplate(
   try {
     const supabase = createAdminClient()
     
-    // Fetch organization credentials from whatsapp_config
+    // Fetch organization credentials from whatsapp_config + current plan tier
     const { data: org, error: orgError } = await supabase
       .from('organizations')
-      .select('whatsapp_config')
+      .select('whatsapp_config, subscription_tier')
       .eq('id', orgId)
       .single()
 
@@ -61,6 +62,27 @@ export async function sendWhatsAppTemplate(
     if (contact && !contact.whatsapp_opted_in) {
       console.warn(`Attempted to send WhatsApp template to opted-out recipient: ${maskPhone(to)}`)
       return { success: false, error: 'Recipient has not opted-in to receive WhatsApp messages.' }
+    }
+
+    // Enforce server-side monthly WhatsApp plan limit before dispatch
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+
+    const { count: monthlySends } = await supabase
+      .from('activity_log')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgId)
+      .gte('created_at', monthStart.toISOString())
+      .eq('metadata->>channel', 'whatsapp_outbound')
+
+    const quota = canSendWhatsApp(
+      { subscription_tier: (org as any)?.subscription_tier },
+      monthlySends || 0
+    )
+    if (!quota.allowed) {
+      console.warn(`WhatsApp send blocked by plan limit for org ${orgId}`)
+      return { success: false, error: quota.reason }
     }
 
     // Make the Meta Graph API request
