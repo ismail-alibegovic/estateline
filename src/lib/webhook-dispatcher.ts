@@ -10,11 +10,6 @@ export interface WebhookEventPayload {
 }
 
 /**
- * Calculates HMAC-SHA256 signature for webhook payload verification.
- */
-  return crypto.createHmac('sha256', secret).update(payload).digest('hex')
-
-/**
  * Dispatches an event payload to all active webhook subscribers for an organization.
  */
 export async function dispatchWebhookEvent(
