@@ -10,7 +10,8 @@ async function run() {
     process.exit(1);
   }
 
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } });
+  const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+  const client = new Client({ connectionString, ssl: isLocal ? false : { rejectUnauthorized: false } });
   try {
     await client.connect();
 
