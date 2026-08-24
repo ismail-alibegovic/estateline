@@ -56,13 +56,13 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
-      - name: Run reporting RPC integration tests
-        run: npm run test:rpcs
+      - name: Run migration smoke tests
+        run: npm run test:migrations
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
 
-      - name: Run migration smoke tests
-        run: npm run test:migrations
+      - name: Run reporting RPC integration tests
+        run: npm run test:rpcs
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
 
