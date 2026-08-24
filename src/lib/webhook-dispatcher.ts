@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { calculateWebhookSignature } from './webhook-signature'
 import { createAdminClient } from '@/lib/supabase'
 
 export interface WebhookEventPayload {
@@ -11,9 +12,7 @@ export interface WebhookEventPayload {
 /**
  * Calculates HMAC-SHA256 signature for webhook payload verification.
  */
-export function calculateWebhookSignature(secret: string, payload: string): string {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex')
-}
 
 /**
  * Dispatches an event payload to all active webhook subscribers for an organization.

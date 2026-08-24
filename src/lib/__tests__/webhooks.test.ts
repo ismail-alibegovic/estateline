@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateWebhookSignature } from '../webhook-dispatcher'
+import { calculateWebhookSignature } from '../webhook-signature'
 
 describe('Webhook Dispatcher & HMAC Security', () => {
   it('calculates deterministic HMAC-SHA256 signature for payload', () => {
