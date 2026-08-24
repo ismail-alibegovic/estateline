@@ -71,10 +71,10 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
 
+      - name: Build production bundle
+        run: npm run build
+
       - name: Run Playwright E2E tests
         run: npm run test:e2e
         env:
           BASE_URL: http://localhost:3000
-
-      - name: Build production bundle
-        run: npm run build
