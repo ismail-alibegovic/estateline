@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { createBrowserClient } from '@/lib/supabase'
 import { useCurrency } from '@/components/CurrencyContext'
 import { useParams, useRouter } from 'next/navigation'
@@ -105,6 +106,7 @@ interface ActivityEntry {
 }
 
 export default function LeadDetailPage() {
+  const t = useTranslations()
   const params = useParams()
   const router = useRouter()
   const locale = (params?.locale as string) || 'en'
@@ -353,7 +355,7 @@ export default function LeadDetailPage() {
                 onClick={() => { setEditMode(false); setEditData(lead); setEditTags(lead.tags || []) }}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors"
               >
-                <X size={14} /> {locale === 'bs' ? 'Otkaži' : 'Cancel'}
+                <X size={14} /> {t('common.cancel')}
               </button>
               <button
                 onClick={handleSave}
@@ -370,7 +372,7 @@ export default function LeadDetailPage() {
                   onClick={() => setShowConvertModal(true)}
                   className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-[#C9963B] text-white rounded-lg hover:bg-[#B8862B] transition-colors"
                 >
-                  <Target size={14} /> {locale === 'bs' ? 'Konvertuj u posao' : 'Convert to Deal'}
+                  <Target size={14} /> {t('lead.convertToDeal')}
                 </button>
               )}
               <button
@@ -537,15 +539,15 @@ export default function LeadDetailPage() {
                 <>
                   <div className="flex items-center gap-2.5">
                     <Mail size={16} className="text-muted-foreground shrink-0" />
-                    <span className="text-sm text-foreground">{lead.email || (locale === 'bs' ? 'Nema email' : 'No email')}</span>
+                    <span className="text-sm text-foreground">{lead.email || (t('contact.noEmail'))}</span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <Phone size={16} className="text-muted-foreground shrink-0" />
-                    <span className="text-sm text-foreground">{lead.phone || (locale === 'bs' ? 'Nema telefon' : 'No phone')}</span>
+                    <span className="text-sm text-foreground">{lead.phone || (t('contact.noPhone'))}</span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <Building2 size={16} className="text-muted-foreground shrink-0" />
-                    <span className="text-sm text-foreground">{lead.company || (locale === 'bs' ? 'Bez firme' : 'No company')}</span>
+                    <span className="text-sm text-foreground">{lead.company || (t('contact.noCompany'))}</span>
                   </div>
                 </>
               )}
@@ -598,7 +600,7 @@ export default function LeadDetailPage() {
                   <p className="text-sm text-muted-foreground leading-relaxed">{lead.requirements}</p>
                 )}
                 {!budgetText && !lead.requirements && (
-                  <p className="text-sm text-muted-foreground/60 italic">{locale === 'bs' ? 'Nema specificiranih zahtjeva' : 'No requirements specified'}</p>
+                  <p className="text-sm text-muted-foreground/60 italic">{t('lead.noRequirements')}</p>
                 )}
               </div>
             )}
@@ -641,7 +643,7 @@ export default function LeadDetailPage() {
                   <div className="flex gap-2">
                     <input
                       className={inputClass + ' flex-1'}
-                      placeholder={locale === 'bs' ? 'Dodaj tag…' : 'Add tag…'}
+                      placeholder={t('common.addTag')}
                       value={tagInput}
                       onChange={e => setTagInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
@@ -676,7 +678,7 @@ export default function LeadDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground/60 italic">{locale === 'bs' ? 'Nema tagova' : 'No tags'}</p>
+                  <p className="text-sm text-muted-foreground/60 italic">{t('common.noTags')}</p>
                 )}
               </div>
             )}
@@ -704,7 +706,7 @@ export default function LeadDetailPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-foreground group-hover:text-[#C9963B] transition-colors truncate">{linkedProperty.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {linkedProperty.city || (locale === 'bs' ? 'Nepoznata lokacija' : 'Unknown location')}
+                    {linkedProperty.city || (t('lead.unknownLocation'))}
                     {linkedProperty.price != null && ` · ${formatPrice(linkedProperty.price)}`}
                   </p>
                 </div>
@@ -718,13 +720,13 @@ export default function LeadDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-bold text-lg text-foreground">Communications</h2>
               <Link href={`/${locale}/dashboard/communications`} className="text-xs text-primary hover:underline">
-                {locale === 'bs' ? 'Vidi sve' : 'View all'}
+                {t('common.viewAll')}
               </Link>
             </div>
             {communications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <MessageSquare size={28} className="text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground/60">{locale === 'bs' ? 'Nema komunikacije' : 'No communications yet'}</p>
+                <p className="text-sm text-muted-foreground/60">{t('lead.noCommunications')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -757,13 +759,13 @@ export default function LeadDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-bold text-lg text-foreground">Viewings</h2>
               <Link href={`/${locale}/dashboard/viewings`} className="text-xs text-primary hover:underline">
-                {locale === 'bs' ? 'Vidi sve' : 'View all'}
+                {t('common.viewAll')}
               </Link>
             </div>
             {viewings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Eye size={28} className="text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground/60">{locale === 'bs' ? 'Nema obilazaka' : 'No viewings scheduled'}</p>
+                <p className="text-sm text-muted-foreground/60">{t('lead.noViewings')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -793,7 +795,7 @@ export default function LeadDetailPage() {
             {activity.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Activity size={28} className="text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground/60">{locale === 'bs' ? 'Nema aktivnosti' : 'No activity yet'}</p>
+                <p className="text-sm text-muted-foreground/60">{t('common.noActivity')}</p>
               </div>
             ) : (
               <div className="relative space-y-4 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-px before:bg-border">
@@ -820,20 +822,20 @@ export default function LeadDetailPage() {
             <h3 className="font-display font-bold text-sm text-foreground mb-3 uppercase tracking-wider">Overview</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{locale === 'bs' ? 'Dani u sistemu' : 'Days in pipeline'}</span>
+                <span className="text-xs text-muted-foreground">{t('lead.daysInPipeline')}</span>
                 <span className="text-sm font-bold text-foreground">{daysSince(lead.created_at)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{locale === 'bs' ? 'Komunikacija' : 'Communications'}</span>
+                <span className="text-xs text-muted-foreground">{t('lead.communications')}</span>
                 <span className="text-sm font-bold text-foreground">{communications.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{locale === 'bs' ? 'Obilasci' : 'Viewings'}</span>
+                <span className="text-xs text-muted-foreground">{t('nav.viewings')}</span>
                 <span className="text-sm font-bold text-foreground">{viewings.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{locale === 'bs' ? 'Zadnji kontakt' : 'Last contact'}</span>
-                <span className="text-sm font-bold text-foreground">{formatDate(lead.last_contacted_at) || (locale === 'bs' ? 'Nikad' : 'Never')}</span>
+                <span className="text-xs text-muted-foreground">{t('lead.lastContact')}</span>
+                <span className="text-sm font-bold text-foreground">{formatDate(lead.last_contacted_at) || (t('common.never'))}</span>
               </div>
             </div>
           </div>
@@ -843,16 +845,16 @@ export default function LeadDetailPage() {
             <h3 className="font-display font-bold text-sm text-foreground mb-3 uppercase tracking-wider">Details</h3>
             <div className="space-y-3">
               <div>
-                <span className="text-xs text-muted-foreground block mb-0.5">{locale === 'bs' ? 'Kreiran' : 'Created'}</span>
+                <span className="text-xs text-muted-foreground block mb-0.5">{t('lead.created')}</span>
                 <span className="text-sm text-foreground">{formatDate(lead.created_at)}</span>
               </div>
               <div>
-                <span className="text-xs text-muted-foreground block mb-0.5">{locale === 'bs' ? 'Zadnja aktivnost' : 'Last activity'}</span>
-                <span className="text-sm text-foreground">{formatDate(lead.last_activity_at) || (locale === 'bs' ? 'Nema' : 'None')}</span>
+                <span className="text-xs text-muted-foreground block mb-0.5">{t('lead.lastActivity')}</span>
+                <span className="text-sm text-foreground">{formatDate(lead.last_activity_at) || (t('common.none'))}</span>
               </div>
               {lead.lost_reason && (
                 <div>
-                  <span className="text-xs text-muted-foreground block mb-0.5">{locale === 'bs' ? 'Razlog gubitka' : 'Lost reason'}</span>
+                  <span className="text-xs text-muted-foreground block mb-0.5">{t('lead.lostReason')}</span>
                   <span className="text-sm text-rose-600">{lead.lost_reason}</span>
                 </div>
               )}
@@ -867,20 +869,20 @@ export default function LeadDetailPage() {
                 href={`/${locale}/dashboard/communications?lead=${lead.id}`}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                <MessageSquare size={14} /> {locale === 'bs' ? 'Zabilježi komunikaciju' : 'Log Communication'}
+                <MessageSquare size={14} /> {t('lead.logCommunication')}
               </Link>
               <Link
                 href={`/${locale}/dashboard/viewings?lead=${lead.id}`}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
               >
-                <Calendar size={14} /> {locale === 'bs' ? 'Zakaži obilazak' : 'Schedule Viewing'}
+                <Calendar size={14} /> {t('lead.scheduleViewing')}
               </Link>
               {lead.email && (
                 <a
                   href={`mailto:${lead.email}`}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
                 >
-                  <Mail size={14} /> {locale === 'bs' ? 'Pošalji email' : 'Send Email'}
+                  <Mail size={14} /> {t('contact.sendEmail')}
                 </a>
               )}
               {lead.phone && (
@@ -888,7 +890,7 @@ export default function LeadDetailPage() {
                   href={`tel:${lead.phone}`}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
                 >
-                  <Phone size={14} /> {locale === 'bs' ? 'Zovi' : 'Call'}
+                  <Phone size={14} /> {t('lead.call')}
                 </a>
               )}
             </div>
@@ -906,7 +908,7 @@ export default function LeadDetailPage() {
                   <Target size={18} className="text-amber-600" />
                 </div>
                 <h3 className="font-display font-bold text-lg text-foreground">
-                  {locale === 'bs' ? 'Konvertuj u posao' : 'Convert to Deal'}
+                  {t('lead.convertToDeal')}
                 </h3>
               </div>
               <button
@@ -924,27 +926,27 @@ export default function LeadDetailPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
-                  {locale === 'bs' ? 'Tip posla' : 'Deal Type'}
+                  {t('deal.dealType')}
                 </label>
                 <select
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground"
                   value={dealType}
                   onChange={e => setDealType(e.target.value as 'sale' | 'rental')}
                 >
-                  <option value="sale">{locale === 'bs' ? 'Prodaja' : 'Sale'}</option>
-                  <option value="rental">{locale === 'bs' ? 'Iznajmljivanje' : 'Rental'}</option>
+                  <option value="sale">{t('lead.sale')}</option>
+                  <option value="rental">{t('lead.rental')}</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
-                  {locale === 'bs' ? 'Nekretnina (opciono)' : 'Property (optional)'}
+                  {t('lead.propertyOptional')}
                 </label>
                 <select
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground"
                   value={dealProperty}
                   onChange={e => setDealProperty(e.target.value)}
                 >
-                  <option value="">{locale === 'bs' ? '— Bez nekretnine —' : '— No property —'}</option>
+                  <option value="">{t('lead.noPropertySelected')}</option>
                   {orgProperties.map(p => (
                     <option key={p.id} value={p.id}>{p.title}</option>
                   ))}
@@ -956,7 +958,7 @@ export default function LeadDetailPage() {
                 onClick={() => setShowConvertModal(false)}
                 className="px-4 py-2 text-sm border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors"
               >
-                {locale === 'bs' ? 'Otkaži' : 'Cancel'}
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleConvertToDeal}
@@ -964,8 +966,8 @@ export default function LeadDetailPage() {
                 className="px-4 py-2 text-sm bg-[#C9963B] text-white rounded-lg hover:bg-[#B8862B] transition-colors disabled:opacity-50"
               >
                 {converting
-                  ? (locale === 'bs' ? 'Konvertujem…' : 'Converting…')
-                  : (locale === 'bs' ? 'Konvertuj' : 'Convert')}
+                  ? (t('lead.converting'))
+                  : (t('lead.convert'))}
               </button>
             </div>
           </div>

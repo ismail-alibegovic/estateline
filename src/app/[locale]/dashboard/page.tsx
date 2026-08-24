@@ -310,14 +310,14 @@ export default function DashboardHome() {
     if (!iso) return null
     const diff = Date.now() - new Date(iso).getTime()
     const mins = Math.floor(diff / 60000)
-    if (mins < 1) return locale === 'bs' ? 'Upravo sada' : 'Just now'
-    if (mins < 60) return locale === 'bs' ? `Prije ${mins} min` : `${mins} min ago`
+    if (mins < 1) return t('common.justNow')
+    if (mins < 60) return t('common.minutesAgo', { mins })
     const hours = Math.floor(mins / 60)
-    if (hours < 24) return locale === 'bs' ? `Prije ${hours} h` : `${hours}h ago`
+    if (hours < 24) return t('common.hoursAgo', { hours })
     const days = Math.floor(hours / 24)
-    return locale === 'bs' ? `Prije ${days} d` : `${days}d ago`
+    return t('common.daysAgo', { days })
   }
-  const olxSyncLabel = relativeTime(lastOlxSync) || (locale === 'bs' ? 'Nije sinhronizovano' : 'Not synced yet')
+  const olxSyncLabel = relativeTime(lastOlxSync) || (t('dashboard.notSynced'))
 
   return (
     <div className="w-full space-y-8 pb-12 font-sans animate-fade-in">
@@ -587,18 +587,18 @@ export default function DashboardHome() {
           {/* SECTION 3b: PROPERTY STATUS DISTRIBUTION */}
           <section className="bg-white rounded-3xl border border-gray-200/70 p-6 sm:p-8 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900 mb-1">
-              {locale === 'bs' ? 'Nekretnine po statusu' : 'Properties by status'}
+              {t('dashboard.propertiesByStatus')}
             </h3>
             <p className="text-xs text-gray-500 mb-5">
-              {locale === 'bs' ? 'Distribucija portfolija agencije' : 'Agency portfolio distribution'}
+              {t('dashboard.portfolioDistribution')}
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { key: 'active', label: locale === 'bs' ? 'Aktivne' : 'Active', color: '#C9963B', bg: 'bg-amber-50' },
-                { key: 'sold', label: locale === 'bs' ? 'Prodane' : 'Sold', color: '#059669', bg: 'bg-emerald-50' },
-                { key: 'rented', label: locale === 'bs' ? 'Iznajmljene' : 'Rented', color: '#2563EB', bg: 'bg-blue-50' },
-                { key: 'off_market', label: locale === 'bs' ? 'Van ponude' : 'Off market', color: '#6B7280', bg: 'bg-gray-50' },
+                { key: 'active', label: t('dashboard.active'), color: '#C9963B', bg: 'bg-amber-50' },
+                { key: 'sold', label: t('dashboard.sold'), color: '#059669', bg: 'bg-emerald-50' },
+                { key: 'rented', label: t('dashboard.rented'), color: '#2563EB', bg: 'bg-blue-50' },
+                { key: 'off_market', label: t('dashboard.offMarket'), color: '#6B7280', bg: 'bg-gray-50' },
               ].map(({ key, label, color, bg }) => {
                 const total = propertyStatusCounts.active + propertyStatusCounts.sold + propertyStatusCounts.rented + propertyStatusCounts.off_market
                 const count = propertyStatusCounts[key as keyof typeof propertyStatusCounts]
@@ -779,13 +779,13 @@ export default function DashboardHome() {
                 <h3 className="font-bold text-gray-900 text-base">Današnji Obilasci</h3>
               </div>
               <span className="text-xs font-bold text-[#C9963B] bg-amber-50 px-2 py-0.5 rounded-full">
-                {todayViewings.length} {locale === 'bs' ? 'zakazana' : 'scheduled'}
+                {todayViewings.length} {t('dashboard.scheduled')}
               </span>
             </div>
 
             <div className="space-y-3">
               {todayViewings.length > 0 ? todayViewings.map((v) => {
-                const propLabel = v.properties?.title || (locale === 'bs' ? 'Nekretnina' : 'Property')
+                const propLabel = v.properties?.title || (tNav('properties'))
                 const contact = v.contacts || v.leads
                 const who = contact ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() : ''
                 const time = v.scheduled_at ? new Date(v.scheduled_at).toLocaleTimeString(locale === 'bs' ? 'bs-BA' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : ''
@@ -804,13 +804,13 @@ export default function DashboardHome() {
                     </div>
                     {who && (
                       <p className="text-xs text-gray-500">
-                        {locale === 'bs' ? 'Klijent' : 'Client'}: {who}
+                        {t('contact.client')}: {who}
                       </p>
                     )}
                     {phone && (
                       <div className="flex items-center gap-2 pt-1">
                         <a href={`tel:${phone}`} className="text-[11px] font-bold text-[#C9963B] flex items-center gap-1 hover:underline">
-                          <Phone size={12} /> {locale === 'bs' ? 'Pozovi Kupca' : 'Call Client'}
+                          <Phone size={12} /> {t('lead.callClient')}
                         </a>
                       </div>
                     )}
@@ -820,10 +820,10 @@ export default function DashboardHome() {
                 <div className="py-8 text-center space-y-2 border border-dashed border-gray-200 rounded-2xl">
                   <Calendar size={24} className="text-gray-300 mx-auto" />
                   <p className="text-xs text-gray-400">
-                    {locale === 'bs' ? 'Danas nema zakazanih obilazaka.' : 'No viewings scheduled today.'}
+                    {t('dashboard.noViewingsToday')}
                   </p>
                   <Link href={`/${locale}/dashboard/calendar`} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#C9963B] hover:underline">
-                    {locale === 'bs' ? 'Zakaži obilazak' : 'Schedule a viewing'}
+                    {t('lead.scheduleViewing')}
                     <ArrowRight size={12} />
                   </Link>
                 </div>
@@ -875,17 +875,17 @@ export default function DashboardHome() {
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">
-                {locale === 'bs' ? 'Ostvareno ovaj mjesec' : 'Closed this month'}
+                {t('dashboard.closedThisMonth')}
               </span>
               <span className="text-xs font-bold bg-white/10 px-2.5 py-1 rounded-full text-amber-300">
-                {monthlyRevenue.count} {locale === 'bs' ? 'poslova' : 'deals'}
+                {monthlyRevenue.count} {t('dashboard.dealsUnit')}
               </span>
             </div>
 
             <div>
               <h4 className="text-2xl font-bold">{formatPrice(monthlyRevenue.value)}</h4>
               <p className="text-xs text-gray-400 mt-0.5">
-                {locale === 'bs' ? 'Ukupna vrijednost zatvorenih poslova' : 'Total value of closed deals'}
+                {t('dashboard.totalClosedValue')}
               </p>
             </div>
 
@@ -916,7 +916,7 @@ export default function DashboardHome() {
             <div className="w-8 h-8 rounded-xl bg-[#C9963B]/10 text-[#C9963B] flex items-center justify-center font-bold">
               <Activity size={18} />
             </div>
-            <h3 className="font-bold text-gray-900 text-base">{locale === 'bs' ? 'Nedavna Aktivnost' : 'Recent Activity'}</h3>
+            <h3 className="font-bold text-gray-900 text-base">{t('dashboard.recentActivity')}</h3>
           </div>
         </div>
         <ActivityTimeline activities={activities} locale={locale} compact />
@@ -928,7 +928,7 @@ export default function DashboardHome() {
             <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
               <Activity size={18} />
             </div>
-            <h3 className="font-bold text-gray-900 text-base">{locale === 'bs' ? 'Aktivnosti' : 'Recent Activity'}</h3>
+            <h3 className="font-bold text-gray-900 text-base">{t('dashboard.recentActivity')}</h3>
           </div>
         </div>
         <ActivityTimeline activities={activities} locale={locale} maxItems={5} />
