@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext } from '@/lib/auth'
-import { generateContractPdf, SystemVariables } from '@/lib/pdf-generator'
+import { generateContractPdf, SystemVariables, DocumentBranding } from '@/lib/pdf-generator'
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
     }
 
+    const branding = (ctx.org.branding || {}) as DocumentBranding
     const systemVars: SystemVariables = {
       agency_name: ctx.org.name,
       ...custom_values,
@@ -75,7 +76,10 @@ export async function POST(request: Request) {
     }
 
     // Generate PDF Bytes
-    const pdfBytes = await generateContractPdf(title, content, systemVars)
+    const pdfBytes = await generateContractPdf(title, content, systemVars, {
+      ...branding,
+      logo_url: branding.logo_url || ctx.org.logo_url,
+    })
 
     // Save metadata record into database
     const fileName = `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}.pdf`

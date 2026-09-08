@@ -10,6 +10,7 @@ import {
   Tags,
   Plug,
   Database,
+  FileText,
   ArrowLeft,
 } from 'lucide-react'
 
@@ -21,6 +22,7 @@ const TABS = [
   { href: 'custom-fields', label: 'Custom Fields', icon: <Tags size={15} /> },
   { href: 'integrations', label: 'Integrations', icon: <Plug size={15} /> },
   { href: 'data', label: 'Data & Account', icon: <Database size={15} /> },
+  { href: 'documents', label: 'Document Branding', icon: <FileText size={15} /> },
 ]
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

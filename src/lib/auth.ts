@@ -42,6 +42,8 @@ export interface RouteContext {
     id: string
     name: string
     slug: string
+    logo_url?: string | null
+    branding?: Record<string, unknown> | null
     stripe_customer_id?: string | null
     deletion_requested_at?: string | null
     deletion_scheduled_for?: string | null
@@ -90,7 +92,7 @@ export async function getRouteContext(
   const { data: membership } = await supabase
     .from('organization_members')
     .select(
-      'role, organization_id, organizations(id, name, slug, stripe_customer_id, deletion_requested_at, deletion_scheduled_for)'
+      'role, organization_id, organizations(id, name, slug, logo_url, branding, stripe_customer_id, deletion_requested_at, deletion_scheduled_for)'
     )
     .eq('user_id', profile.id)
     .eq('is_primary', true)

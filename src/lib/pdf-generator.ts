@@ -37,6 +37,10 @@ export interface SystemVariables {
   agency_name?: string
   agency_address?: string
   agency_jib?: string
+  property_title?: string
+  agency_tax_id?: string
+  closing_date?: string
+  agency_commission?: string
   [key: string]: string | undefined
 }
 
@@ -79,7 +83,8 @@ export function extractPlaceholders(template: string): string[] {
 export async function generateContractPdf(
   title: string,
   content: string,
-  systemVars: SystemVariables
+  systemVars: SystemVariables,
+  branding: DocumentBranding = {}
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create()
   pdfDoc.registerFontkit(fontkit)
@@ -97,15 +102,48 @@ export async function generateContractPdf(
   let y = height - margin
 
   const agencyName = systemVars.agency_name || 'Estateline Real Estate'
-  page.drawText(agencyName.toUpperCase(), {
-    x: margin,
-    y: y - 10,
-    size: 14,
-    font: fontBold,
-    color: rgb(0.788, 0.588, 0.231),
-  })
+  const accent = rgb(0.788, 0.588, 0.231)
+  const logo = await embedBrandLogo(pdfDoc, branding.logo_url)
 
-  y -= 50
+  if (logo) {
+    const logoScale = Math.min(1, 90 / logo.width)
+    page.drawImage(logo.image, {
+      x: margin,
+      y: y - logo.height * logoScale,
+      width: logo.width * logoScale,
+      height: logo.height * logoScale,
+    })
+    page.drawText(agencyName.toUpperCase(), {
+      x: margin + logo.width * logoScale + 12,
+      y: y - 16,
+      size: 14,
+      font: fontBold,
+      color: accent,
+    })
+  } else {
+    page.drawText(agencyName.toUpperCase(), {
+      x: margin,
+      y: y - 10,
+      size: 14,
+      font: fontBold,
+      color: accent,
+    })
+  }
+
+  const contactLine = [branding.address, branding.phone, branding.email, branding.tax_id]
+    .filter(Boolean)
+    .join('  •  ')
+  if (contactLine) {
+    page.drawText(contactLine, {
+      x: margin,
+      y: y - 34,
+      size: 8,
+      font,
+      color: rgb(0.35, 0.35, 0.35),
+    })
+  }
+
+  y -= contactLine ? 68 : 50
 
   page.drawText(title, {
     x: margin,
@@ -122,7 +160,7 @@ export async function generateContractPdf(
     start: { x: margin, y: lineY },
     end: { x: width - margin, y: lineY },
     thickness: 1,
-    color: rgb(0.788, 0.588, 0.231),
+    color: accent,
   })
 
   y -= 25
@@ -197,7 +235,7 @@ export async function generateContractPdf(
     start: { x: margin, y: footerY },
     end: { x: width - margin, y: footerY },
     thickness: 0.5,
-    color: rgb(0.788, 0.588, 0.231),
+    color: accent,
   })
 
   y -= 20
@@ -234,7 +272,7 @@ export async function generateContractPdf(
     color: rgb(0.5, 0.5, 0.5),
   })
 
-  page.drawText('Estateline — Vaš Partner u Nekretninama', {
+  page.drawText(branding.footer_text || `${agencyName} — Vaš Partner u Nekretninama`, {
     x: width - margin - 200,
     y,
     size: 9,
@@ -243,4 +281,33 @@ export async function generateContractPdf(
   })
 
   return pdfDoc.save()
+}
+
+export interface DocumentBranding {
+  logo_url?: string | null
+  address?: string
+  phone?: string
+  email?: string
+  tax_id?: string
+  footer_text?: string
+}
+
+async function embedBrandLogo(
+  pdfDoc: PDFDocument,
+  logoUrl?: string | null
+): Promise<{ image: Awaited<ReturnType<PDFDocument['embedPng']>>; width: number; height: number } | null> {
+  if (!logoUrl || !/^https?:\/\//i.test(logoUrl)) return null
+
+  try {
+    const response = await fetch(logoUrl)
+    if (!response.ok) return null
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    const contentType = response.headers.get('content-type') || ''
+    const image = contentType.includes('png')
+      ? await pdfDoc.embedPng(bytes)
+      : await pdfDoc.embedJpg(bytes)
+    return { image, width: image.width, height: image.height }
+  } catch {
+    return null
+  }
 }

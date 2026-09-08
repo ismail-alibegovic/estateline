@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { getRouteContext, isAuthError } from '@/lib/auth'
+import { generateContractPdf, type DocumentBranding, type SystemVariables } from '@/lib/pdf-generator'
 
 // Field names below match the `properties` table as defined in
 // supabase/migrations/002_properties_leads.sql:
@@ -42,100 +42,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
     }
 
-    // Build the contract PDF
-    const pdfDoc = await PDFDocument.create()
-    const page = pdfDoc.addPage([595.28, 841.89]) // A4
-    const { width, height } = page.getSize()
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-
-    const drawText = (text: string, x: number, y: number, size: number, isBold = false) => {
-      const fontSize = size
-      page.drawText(text, {
-        x, y: height - y,
-        size: fontSize,
-        font: isBold ? boldFont : font,
-        color: rgb(0.1, 0.1, 0.1),
-      })
+    const systemVars: SystemVariables = {
+      agency_name: org.name,
+      client_name: `${contact.first_name} ${contact.last_name || ''}`.trim(),
+      property_title: property.title,
+      property_address: property.address || '',
+      property_city: property.city || '',
+      property_type: property.type || '',
+      property_area: property.area_size ? `${property.area_size} m²` : '',
+      property_price: property.price ? `${property.price.toLocaleString()} ${property.currency}` : '',
+      closing_date: new Date().toLocaleDateString('bs-BA'),
     }
-
-    // Header
-    drawText('REAL ESTATE CONTRACT', 50, 70, 20, true)
-    drawText(`Contract ID: ${deal_id?.substring(0, 8) || 'N/A'}`, 50, 95, 10)
-    drawText(`Date: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}`, 50, 110, 10)
-
-    // Organization
-    drawText('PARTIES', 50, 140, 14, true)
-    drawText(`Seller/Agency: ${org.name}`, 50, 165, 11)
-    drawText(`Buyer/Client: ${contact.first_name} ${contact.last_name || ''}`, 50, 180, 11)
-
-    // Property — fields match 002_properties_leads.sql:
-    //   type (property_type enum), area_size, bedrooms, bathrooms, currency, country
-    drawText('PROPERTY DETAILS', 50, 215, 14, true)
-    drawText(`Title: ${property.title}`, 50, 240, 11)
-    drawText(`Type: ${property.type}`, 50, 255, 11)
-
-    if (property.address) drawText(`Address: ${property.address}`, 50, 270, 11)
-    if (property.city) drawText(`City: ${property.city}`, 50, 285, 11)
-    if (property.country) drawText(`Country: ${property.country}`, 50, 300, 11)
-
-    if (property.area_size) drawText(`Size: ${property.area_size} m²`, 50, 325, 11)
-    if (property.bedrooms) drawText(`Bedrooms: ${property.bedrooms}`, 50, 340, 11)
-    if (property.bathrooms) drawText(`Bathrooms: ${property.bathrooms}`, 50, 355, 11)
-    if (property.year_built) drawText(`Year Built: ${property.year_built}`, 50, 370, 11)
-
-    // Financial
-    drawText('FINANCIAL DETAILS', 50, 405, 14, true)
-    if (property.price) {
-      drawText(`Price: ${property.price.toLocaleString()} ${property.currency}`, 50, 430, 12, true)
-    }
-
-    // Terms
-    drawText('TERMS & CONDITIONS', 50, 475, 14, true)
-    drawText('1. This contract is binding upon signature by both parties.', 50, 500, 10)
-    drawText('2. All information provided is believed to be accurate.', 50, 515, 10)
-    drawText('3. This document serves as a preliminary agreement.', 50, 530, 10)
-    drawText('4. Legal review is recommended before final signing.', 50, 545, 10)
-
-    // Signatures
-    drawText('SIGNATURES', 50, 580, 14, true)
-    drawText('Seller/Agency:', 50, 620, 11)
-    drawText('Buyer/Client:', 300, 620, 11)
-
-    // Signature lines
-    page.drawLine({
-      start: { x: 50, y: height - 660 },
-      end: { x: 200, y: height - 660 },
-      thickness: 1,
-      color: rgb(0.4, 0.4, 0.4),
+    const content = [
+      `Contract ID: ${deal_id?.substring(0, 8) || 'N/A'}`,
+      `Date: ${systemVars.closing_date}`,
+      '',
+      'PARTIES',
+      `Seller/Agency: ${org.name}`,
+      `Buyer/Client: ${systemVars.client_name}`,
+      '',
+      'PROPERTY DETAILS',
+      `Title: ${systemVars.property_title}`,
+      `Type: ${systemVars.property_type}`,
+      property.address ? `Address: ${property.address}` : '',
+      property.city ? `City: ${property.city}` : '',
+      property.country ? `Country: ${property.country}` : '',
+      systemVars.property_area ? `Size: ${systemVars.property_area}` : '',
+      '',
+      'FINANCIAL DETAILS',
+      systemVars.property_price ? `Price: ${systemVars.property_price}` : '',
+      '',
+      'TERMS & CONDITIONS',
+      '1. This contract is binding upon signature by both parties.',
+      '2. All information provided is believed to be accurate.',
+      '3. This document serves as a preliminary agreement.',
+      '4. Legal review is recommended before final signing.',
+    ].join('\n')
+    const branding = (org.branding || {}) as DocumentBranding
+    const pdfBytes = await generateContractPdf('REAL ESTATE CONTRACT', content, systemVars, {
+      ...branding,
+      logo_url: branding.logo_url || org.logo_url,
     })
-    page.drawLine({
-      start: { x: 300, y: height - 660 },
-      end: { x: 450, y: height - 660 },
-      thickness: 1,
-      color: rgb(0.4, 0.4, 0.4),
-    })
-
-    drawText('Date:', 50, 685, 10)
-    drawText('Date:', 300, 685, 10)
-
-    page.drawLine({
-      start: { x: 50, y: height - 725 },
-      end: { x: 200, y: height - 725 },
-      thickness: 1,
-      color: rgb(0.4, 0.4, 0.4),
-    })
-    page.drawLine({
-      start: { x: 300, y: height - 725 },
-      end: { x: 450, y: height - 725 },
-      thickness: 1,
-      color: rgb(0.4, 0.4, 0.4),
-    })
-
-    // Footer
-    drawText(`Generated by ${org.name} | Powered by Estateline`, 50, 810, 8)
-
-    const pdfBytes = await pdfDoc.save()
 
     return new NextResponse(new Uint8Array(pdfBytes), {
       headers: {
