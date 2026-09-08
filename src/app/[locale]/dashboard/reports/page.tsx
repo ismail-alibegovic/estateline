@@ -5,6 +5,8 @@ import {
   BarChart3, TrendingUp, Users, Clock, DollarSign,
   Download, Calendar, Award, ArrowUpRight, CheckCircle2, Building2
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { useLocale } from 'next-intl'
 import { useCurrency } from '@/components/CurrencyContext'
 import { createBrowserClient } from '@/lib/supabase'
 import {
@@ -13,6 +15,8 @@ import {
 } from 'recharts'
 
 export default function ReportsDashboardPage() {
+  const locale = useLocale()
+  const t = useTranslations('reports')
   const { formatPrice } = useCurrency()
   const [activeTab, setActiveTab] = useState<'agent' | 'conversion' | 'velocity' | 'financial'>('agent')
   const [loading, setLoading] = useState(true)
@@ -77,19 +81,19 @@ export default function ReportsDashboardPage() {
 
         // Funnel calculation
         const stageCounts: Record<string, number> = {
-          'Novi Upiti': 0,
-          'Obilazak': 0,
-          'Pregovori': 0,
-          'Ugovor': 0,
-          'Prodato': 0,
+          new: 0,
+          contacted: 0,
+          qualified: 0,
+          negotiation: 0,
+          converted: 0,
         }
         leads.forEach(l => {
           const s = l.stage || 'new'
-          if (s === 'new') stageCounts['Novi Upiti']++
-          else if (s === 'contacted') stageCounts['Obilazak']++
-          else if (s === 'qualified') stageCounts['Pregovori']++
-          else if (s === 'negotiation') stageCounts['Ugovor']++
-          else if (s === 'converted') stageCounts['Prodato']++
+          if (s === 'new') stageCounts['new']++
+          else if (s === 'contacted') stageCounts['contacted']++
+          else if (s === 'qualified') stageCounts['qualified']++
+          else if (s === 'negotiation') stageCounts['negotiation']++
+          else if (s === 'converted') stageCounts['converted']++
         })
 
         const funnelChart = Object.entries(stageCounts).map(([stage, count]) => ({ stage, count }))
@@ -97,10 +101,10 @@ export default function ReportsDashboardPage() {
 
         // Velocity chart
         setVelocityData([
-          { type: 'Stanovi', days: 24 },
-          { type: 'Kuće & Vile', days: 45 },
-          { type: 'Poslovni Prostori', days: 38 },
-          { type: 'Zemljišta', days: 60 },
+          { type: 'apartments', days: 24 },
+          { type: 'houses', days: 45 },
+          { type: 'commercial', days: 38 },
+          { type: 'land', days: 60 },
         ])
 
         // Financial totals
@@ -141,7 +145,7 @@ export default function ReportsDashboardPage() {
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/70 pb-6">
         <div>
-          <p className="page-eyebrow mb-1">ANALITIKA & IZVJEŠTAJI AGENCIJE</p>
+          <p className="page-eyebrow mb-1">{t('eyebrow')}</p>
           <h1
             className="text-3xl font-bold text-gray-900"
             style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
@@ -149,7 +153,7 @@ export default function ReportsDashboardPage() {
             Business Intelligence Dashboard
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Učinak agenata, stopa konverzije kupaca, brzina prodaje i finansijske prognoze.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -158,17 +162,17 @@ export default function ReportsDashboardPage() {
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs text-[#C9963B] bg-amber-50 border border-amber-200/80 hover:bg-amber-100 transition-colors shadow-sm"
         >
           <Download size={16} />
-          <span>Izvezi CSV Izvještaj</span>
+          <span>{t('exportCsv')}</span>
         </button>
       </header>
 
       {/* Tabs */}
       <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200 gap-1 overflow-x-auto">
         {[
-          { id: 'agent', label: 'Učinak Agenata', icon: <Users size={14} /> },
-          { id: 'conversion', label: 'Lijevak Upita (Funnel)', icon: <TrendingUp size={14} /> },
-          { id: 'velocity', label: 'Brzina Prodaje', icon: <Clock size={14} /> },
-          { id: 'financial', label: 'Finansijska Prognoza', icon: <DollarSign size={14} /> },
+          { id: 'agent', label: t('tabAgent'), icon: <Users size={14} /> },
+          { id: 'conversion', label: t('tabFunnel'), icon: <TrendingUp size={14} /> },
+          { id: 'velocity', label: t('tabVelocity'), icon: <Clock size={14} /> },
+          { id: 'financial', label: t('tabFinancial'), icon: <DollarSign size={14} /> },
         ].map(tab => (
           <button
             key={tab.id}
@@ -190,30 +194,30 @@ export default function ReportsDashboardPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">Top Agent Mjeseca</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">{t('topAgent')}</span>
               <h3 className="text-2xl font-bold text-gray-900">{agentData[0]?.agent_name || '—'}</h3>
               <p className="text-xs text-gray-500">
-                {agentData[0]?.closed_deals_count || 0} zaključenih ugovora • {formatPrice(agentData[0]?.total_commission_amount || 0)} provizije
+                {t('statTopAgent', { n: agentData[0]?.closed_deals_count || 0, amount: formatPrice(agentData[0]?.total_commission_amount || 0) })}
               </p>
             </div>
             <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Ukupno Obilazaka</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{t('totalViewings')}</span>
               <h3 className="text-2xl font-bold text-gray-900">
-                {agentData.reduce((acc, a) => acc + (a.viewings_conducted_count || 0), 0)} Obilazaka
+                {t('viewingsCount', { n: agentData.reduce((acc, a) => acc + (a.viewings_conducted_count || 0), 0) })}
               </h3>
-              <p className="text-xs text-gray-500">Evidentirano u sistemu kalendara</p>
+              <p className="text-xs text-gray-500">{t('viewingsLogged')}</p>
             </div>
             <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Ostvarena Provizija</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">{t('commissionEarned')}</span>
               <h3 className="text-2xl font-bold text-emerald-700">{formatPrice(financialData.earned_commission_paid)}</h3>
-              <p className="text-xs text-gray-500">+ {formatPrice(financialData.earned_commission_unpaid)} u obradi</p>
+              <p className="text-xs text-gray-500">+ {formatPrice(financialData.earned_commission_unpaid)} {t('inProcessing')}</p>
             </div>
           </div>
 
           {/* Visual Chart */}
           <div className="bg-white rounded-3xl border border-gray-200/70 p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-              Volumen Prodaje po Agentu
+              {t('salesByAgent')}
             </h3>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -234,7 +238,7 @@ export default function ReportsDashboardPage() {
       {activeTab === 'conversion' && (
         <div className="bg-white rounded-3xl border border-gray-200/70 p-6 shadow-sm space-y-6">
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-            Konverzijski Lijevak (Lead Stages Funnel)
+            {t('funnelTitle')}
           </h3>
 
           <div className="h-72 w-full">
@@ -242,7 +246,7 @@ export default function ReportsDashboardPage() {
               <BarChart data={funnelData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
                 <XAxis type="number" stroke="#64748B" fontSize={12} />
-                <YAxis dataKey="stage" type="category" stroke="#64748B" fontSize={12} tickLine={false} />
+                <YAxis dataKey="stage" type="category" stroke="#64748B" fontSize={12} tickLine={false} tickFormatter={(v: string) => t(`stages.${v}`)} />
                 <Tooltip />
                 <Bar dataKey="count" radius={[0, 8, 8, 0]}>
                   {funnelData.map((entry, index) => (
@@ -259,14 +263,14 @@ export default function ReportsDashboardPage() {
       {activeTab === 'velocity' && (
         <div className="bg-white rounded-3xl border border-gray-200/70 p-6 shadow-sm space-y-6">
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-            Prosječno Vrijeme Zatvaranja Transakcije (Dani do Prodaje)
+            {t('velocityTitle')}
           </h3>
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={velocityData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="type" stroke="#64748B" fontSize={12} />
+                <XAxis dataKey="type" stroke="#64748B" fontSize={12} tickFormatter={(v: string) => t(`propertyTypes.${v}`)} />
                 <YAxis stroke="#64748B" fontSize={12} />
                 <Tooltip />
                 <Bar dataKey="days" fill="#0F172A" radius={[8, 8, 0, 0]} />
@@ -281,19 +285,19 @@ export default function ReportsDashboardPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Ukupni Pipeline</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{t('pipelineTotal')}</span>
               <h3 className="text-2xl font-bold text-gray-900">{formatPrice(financialData.total_pipeline_value)}</h3>
             </div>
             <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">Prognozirani Prihod</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">{t('forecastRevenue')}</span>
               <h3 className="text-2xl font-bold text-[#C9963B]">{formatPrice(financialData.weighted_forecast_revenue)}</h3>
             </div>
             <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">Naplaćene Provizije</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600">{t('commissionsCollected')}</span>
               <h3 className="text-2xl font-bold text-emerald-700">{formatPrice(financialData.earned_commission_paid)}</h3>
             </div>
             <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-600">Nenaplaćene Provizije</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-600">{t('commissionsPending')}</span>
               <h3 className="text-2xl font-bold text-amber-700">{formatPrice(financialData.earned_commission_unpaid)}</h3>
             </div>
           </div>

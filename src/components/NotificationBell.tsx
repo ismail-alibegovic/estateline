@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
+import { switchLocalePath } from '@/lib/locale'
 
 interface Notification {
   id: string
@@ -29,6 +31,8 @@ const DEFAULT_COLOR = '#8b5cf6'
 
 export default function NotificationBell() {
   const router = useRouter()
+  const locale = useLocale()
+  const t = useTranslations('notifications')
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -90,7 +94,8 @@ export default function NotificationBell() {
   async function handleClick(n: Notification) {
     if (!n.read) markRead(n.id)
     if (n.link) {
-      router.push(`/${n.link.replace(/^\//, '')}`)
+      // Stored links are locale-less ("/dashboard/...") — re-prefix with the active locale
+      router.push(switchLocalePath(n.link, locale as 'en' | 'bs'))
     }
     setOpen(false)
   }
@@ -111,14 +116,14 @@ export default function NotificationBell() {
 
   function formatTimeAgo(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime()
-    if (diff < 0) return 'Upcoming'
+    if (diff < 0) return t('upcoming')
     const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'Just now'
-    if (mins < 60) return `${mins}m ago`
+    if (mins < 1) return t('justNow')
+    if (mins < 60) return t('minutesAgo', { count: mins })
     const hrs = Math.floor(mins / 60)
-    if (hrs < 24) return `${hrs}h ago`
+    if (hrs < 24) return t('hoursAgo', { count: hrs })
     const days = Math.floor(hrs / 24)
-    return `${days}d ago`
+    return t('daysAgo', { count: days })
   }
 
   return (
@@ -139,19 +144,19 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t('title')}</h3>
             {unreadCount > 0 && (
               <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92400E' }}>
-                {unreadCount} new
+                {t('newCount', { count: unreadCount })}
               </span>
             )}
           </div>
 
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="px-4 py-8 text-center text-sm text-gray-400">Loading...</div>
+              <div className="px-4 py-8 text-center text-sm text-gray-400">{t('loading')}</div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-gray-400">No notifications yet</div>
+              <div className="px-4 py-8 text-center text-sm text-gray-400">{t('empty')}</div>
             ) : (
               notifications.map((n) => (
                 <button
@@ -181,7 +186,7 @@ export default function NotificationBell() {
                 onClick={handleMarkAllRead}
                 className="text-xs text-gray-400 hover:text-gray-600 transition-colors w-full text-center"
               >
-                Mark all as read
+                {t('markAllRead')}
               </button>
             </div>
           )}

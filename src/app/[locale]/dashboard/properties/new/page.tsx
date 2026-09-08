@@ -167,12 +167,12 @@ export default function NewPropertyPage() {
           <h2 className="text-base font-display font-bold">Basic Details</h2>
           <div>
             <label className={labelClass}>Property Title *</label>
-            <input type="text" required placeholder="e.g. Modern 2-Bedroom Apartment in Sarajevo" className={inputClass} {...field('title')} />
+            <input type="text" required placeholder={locale === 'bs' ? 'npr. Moderan Dvosobni Stan u Sarajevu' : 'e.g. Modern 2-Bedroom Apartment in Sarajevo'} className={inputClass} {...field('title')} />
           </div>
           <div>
             <label className={labelClass}>Description</label>
             <textarea
-              placeholder="Describe the property, its features, and surroundings..."
+              placeholder={locale === 'bs' ? 'Opišite nekretninu, njene karakteristike i okolinu...' : 'Describe the property, its features, and surroundings...'}
               rows={4}
               className={inputClass}
               value={formData.description}
@@ -247,11 +247,11 @@ export default function NewPropertyPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>City *</label>
-              <input type="text" required placeholder="e.g. Sarajevo" className={inputClass} {...field('city')} />
+              <input type="text" required placeholder={locale === 'bs' ? 'npr. Sarajevo' : 'e.g. Sarajevo'} className={inputClass} {...field('city')} />
             </div>
             <div>
               <label className={labelClass}>Address</label>
-              <input type="text" placeholder="e.g. Ferhadija 12" className={inputClass} {...field('address')} />
+              <input type="text" placeholder={locale === 'bs' ? 'npr. Ferhadija 12' : 'e.g. Ferhadija 12'} className={inputClass} {...field('address')} />
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { Plus, X, TrendingUp, DollarSign, FileText, Trash2, Building2, User, CheckCircle2, ChevronRight } from 'lucide-react'
+import { useTranslations, useLocale } from 'next-intl'
 import { useCurrency } from '@/components/CurrencyContext'
 
 interface DealItem {
@@ -17,16 +18,19 @@ interface DealItem {
 }
 
 const STAGES = [
-  { id: 'new', label: '1. Novi Upiti', color: '#2563EB', bg: '#EFF6FF' },
-  { id: 'viewing', label: '2. Zakazan Obilazak', color: '#9333EA', bg: '#F3E8FF' },
-  { id: 'negotiation', label: '3. U Pregovorima', color: '#D97706', bg: '#FEF3C7' },
-  { id: 'under_contract', label: '4. Ugovor & Kapara', color: '#C9963B', bg: '#FAF8F5' },
-  { id: 'closed_won', label: '5. Prodano (Završeno)', color: '#059669', bg: '#ECFDF5' },
+  { id: 'new', color: '#2563EB', bg: '#EFF6FF' },
+  { id: 'viewing', color: '#9333EA', bg: '#F3E8FF' },
+  { id: 'negotiation', color: '#D97706', bg: '#FEF3C7' },
+  { id: 'under_contract', color: '#C9963B', bg: '#FAF8F5' },
+  { id: 'closed_won', color: '#059669', bg: '#ECFDF5' },
 ] as const
 
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function KanbanPage() {
+  const locale = useLocale()
+  const t = useTranslations('pipeline')
+  const tCommon = useTranslations('common')
   const { formatPrice } = useCurrency()
   const [deals, setDeals] = useState<DealItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -95,7 +99,7 @@ export default function KanbanPage() {
 
   const moveStage = async (dealId: string, nextStage: DealItem['stage']) => {
     setDeals(prev => prev.map(d => d.id === dealId ? { ...d, stage: nextStage } : d))
-    toast('Faza posla je ažurirana!')
+    toast(tCommon('dealStageUpdated'))
 
     if (orgId && !dealId.startsWith('deal-')) {
       const supabase = createBrowserClient()
@@ -163,10 +167,10 @@ export default function KanbanPage() {
             className="text-3xl font-bold text-gray-900"
             style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
           >
-            Prodajne Faze & Deal-ovi
+            {t('title')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Kanban tabla za praćenje pregovora, ponuda, kapara i ugovorenih provizija.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -179,7 +183,7 @@ export default function KanbanPage() {
           }}
         >
           <Plus size={16} />
-          <span>Dodaj Novi Posao</span>
+          <span>{t('addDeal')}</span>
         </button>
       </header>
 
@@ -195,7 +199,7 @@ export default function KanbanPage() {
                 {/* Stage Header */}
                 <div className="bg-white rounded-2xl p-3.5 border border-gray-200/70 shadow-sm flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-gray-900">{stage.label}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-900">{t(('stages' + stage.id.replace(/(^|_)(\w)/g, (_, __, c) => c.toUpperCase())) as Parameters<typeof t>[0])}</span>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border" style={{ color: stage.color, background: stage.bg, borderColor: `${stage.color}30` }}>
                       {stageDeals.length}
                     </span>
@@ -268,8 +272,8 @@ export default function KanbanPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Dodaj Novi Posao</h3>
-              <p className="text-xs text-gray-500 mt-1">Unesite detalje pregovora i povežite nekretninu i kupca.</p>
+              <h3 className="text-xl font-bold text-gray-900">{t('addDeal')}</h3>
+              <p className="text-xs text-gray-500 mt-1">{t('addDesc')}</p>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
@@ -289,7 +293,7 @@ export default function KanbanPage() {
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Ime Kupca</label>
                 <input
                   type="text"
-                  placeholder="Emir Hadžić"
+                  placeholder="John Smith"
                   value={form.contact_name}
                   onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -328,7 +332,7 @@ export default function KanbanPage() {
                   Odustani
                 </button>
                 <button type="submit" disabled={saving} className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors">
-                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Posao'}
+                  {saving ? tCommon('saving') : t('saveDeal')}
                 </button>
               </div>
             </form>

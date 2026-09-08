@@ -13,6 +13,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
   }
 })
 
-export function setRequestLocale(locale: string) {
-  return locale
+/**
+ * Single source of truth for swapping the locale segment of an app path.
+ * Used by every language switcher so navigation always preserves the
+ * current route. Paths outside /en|/bs (should not exist) get prefixed.
+ */
+export function switchLocalePath(pathname: string, nextLocale: Locale): string {
+  const rest = pathname.replace(/^\/(en|bs)(?=\/|$)/, '')
+  return `/${nextLocale}${rest === '' ? '' : rest}` || `/${nextLocale}`
 }

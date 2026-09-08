@@ -921,18 +921,7 @@ export default function DashboardHome() {
         </div>
         <ActivityTimeline activities={activities} locale={locale} compact />
       </div>
-      {/* Activity Timeline */}
-      <div className="bg-white rounded-3xl border border-gray-200/70 p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
-              <Activity size={18} />
-            </div>
-            <h3 className="font-bold text-gray-900 text-base">{t('dashboard.recentActivity')}</h3>
-          </div>
-        </div>
-        <ActivityTimeline activities={activities} locale={locale} maxItems={5} />
-      </div>
+
 
       {showOLXModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">

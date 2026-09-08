@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
+import { useTranslations, useLocale } from 'next-intl'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale'
@@ -27,6 +28,9 @@ interface CalendarEvent {
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function CalendarPage() {
+  const locale = useLocale()
+  const t = useTranslations('calendar')
+  const tCommon = useTranslations('common')
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
@@ -156,7 +160,7 @@ export default function CalendarPage() {
     }
 
     setEvents(prev => [...prev, item])
-    toast('Događaj je dodan u kalendar!')
+    toast(tCommon('eventAdded'))
     setShowModal(false)
     setNewEvent({ title: '', client_name: '', type: 'viewing', date: '', time: '12:00', location: '', notes: '' })
   }
@@ -195,10 +199,10 @@ export default function CalendarPage() {
             className="text-3xl font-bold text-gray-900"
             style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
           >
-            Interaktivni Kalendar
+            {t('title')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Pregled svih agencijskih obilazaka, notarskih ugovora, poziva i obaveza.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -211,7 +215,7 @@ export default function CalendarPage() {
           }}
         >
           <Plus size={16} />
-          <span>Zakazi Događaj</span>
+          <span>{t('scheduleEvent')}</span>
         </button>
       </header>
 
@@ -219,7 +223,7 @@ export default function CalendarPage() {
       <div className="bg-white rounded-3xl border border-gray-200/70 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
           <Filter size={16} className="text-[#C9963B]" />
-          <span>Filter Događaja:</span>
+          <span>{t('filterEvents')}</span>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap text-xs font-semibold">
@@ -230,7 +234,7 @@ export default function CalendarPage() {
               onChange={e => setFilters(p => ({ ...p, viewings: e.target.checked }))}
               className="accent-[#C9963B]"
             />
-            <span>Obilasci</span>
+            <span>{t('viewingsFilter')}</span>
           </label>
 
           <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 cursor-pointer">
@@ -240,7 +244,7 @@ export default function CalendarPage() {
               onChange={e => setFilters(p => ({ ...p, meetings: e.target.checked }))}
               className="accent-purple-600"
             />
-            <span>Sastanci / Ugovori</span>
+            <span>{t('meetingsFilter')}</span>
           </label>
 
           <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 cursor-pointer">
@@ -250,7 +254,7 @@ export default function CalendarPage() {
               onChange={e => setFilters(p => ({ ...p, calls: e.target.checked }))}
               className="accent-blue-600"
             />
-            <span>Pozivi</span>
+            <span>{t('callsFilter')}</span>
           </label>
 
           <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 cursor-pointer">
@@ -291,7 +295,7 @@ export default function CalendarPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Zakazi Događaj u Kalendaru</h3>
+              <h3 className="text-xl font-bold text-gray-900">{t('modalTitle')}</h3>
               <p className="text-xs text-gray-500 mt-1">Unesite naslov, vrstu i satnicu sastanka ili obilaska.</p>
             </div>
 
@@ -316,10 +320,10 @@ export default function CalendarPage() {
                     onChange={e => setNewEvent(p => ({ ...p, type: e.target.value as any }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
                   >
-                    <option value="viewing">Obilazak</option>
-                    <option value="meeting">Sastanak / Ugovor</option>
-                    <option value="call">Poziv</option>
-                    <option value="task">Zadatak</option>
+                    <option value="viewing">{t('optViewing')}</option>
+                    <option value="meeting">{t('optMeeting')}</option>
+                    <option value="call">{t('optCall')}</option>
+                    <option value="task">{t('optTask')}</option>
                   </select>
                 </div>
 
@@ -327,7 +331,7 @@ export default function CalendarPage() {
                   <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Kupac / Klijent</label>
                   <input
                     type="text"
-                    placeholder="Emir Hadžić"
+                    placeholder="John Smith"
                     value={newEvent.client_name}
                     onChange={e => setNewEvent(p => ({ ...p, client_name: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -363,7 +367,7 @@ export default function CalendarPage() {
                   Odustani
                 </button>
                 <button type="submit" className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors">
-                  Zakazi Događaj
+                  {t('scheduleEvent')}
                 </button>
               </div>
             </form>

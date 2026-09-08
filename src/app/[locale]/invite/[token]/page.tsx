@@ -289,7 +289,7 @@ export default function InvitePage() {
                         <input
                           type="email"
                           required
-                          placeholder="you@domain.com"
+                          placeholder={locale === 'bs' ? 'vi@domen.com' : 'you@domain.com'}
                           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                           value={email}
                           onChange={e => setEmail(e.target.value)}
@@ -323,7 +323,7 @@ export default function InvitePage() {
                         <input
                           type="email"
                           required
-                          placeholder="the invited email address"
+                          placeholder={locale === 'bs' ? 'email adresa pozvanog korisnika' : 'the invited email address'}
                           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                           value={email}
                           onChange={e => setEmail(e.target.value)}
@@ -335,7 +335,7 @@ export default function InvitePage() {
                         <input
                           type="text"
                           required
-                          placeholder="Your name"
+                          placeholder={locale === 'bs' ? 'Vaše ime' : 'Your name'}
                           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                           value={fullName}
                           onChange={e => setFullName(e.target.value)}
@@ -347,7 +347,7 @@ export default function InvitePage() {
                           type="password"
                           required
                           minLength={6}
-                          placeholder="At least 6 characters"
+                          placeholder={locale === 'bs' ? 'Najmanje 6 karaktera' : 'At least 6 characters'}
                           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                           value={password}
                           onChange={e => setPassword(e.target.value)}

@@ -474,7 +474,7 @@ export default function PropertyDetailPage() {
                 value={editData.description || ''}
                 onChange={e => setEditData(p => ({ ...p, description: e.target.value }))}
                 className={inputClass}
-                placeholder="Describe the property…"
+                placeholder={locale === 'bs' ? 'Opišite nekretninu…' : 'Describe the property…'}
               />
             ) : (
               <p className="text-sm text-muted-foreground leading-relaxed">

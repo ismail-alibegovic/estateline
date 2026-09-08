@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase'
 import { useTranslations } from 'next-intl'
 import {
@@ -43,7 +44,10 @@ const statusMeta = {
 }
 
 export default function IntegrationsPage() {
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const tNav = useTranslations('nav')
+  const tInt = useTranslations('integrationsSettings')
   const [org, setOrg] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [copiedFeed, setCopiedFeed] = useState<string | null>(null)
@@ -131,9 +135,9 @@ export default function IntegrationsPage() {
       if (error) throw error
       
       setOrg((prev: any) => ({ ...prev, olx_profile_url: olxUrl }))
-      toast('OLX profilni link je uspješno spašen!')
+      toast(tInt('olxSaved'))
     } catch (err: any) {
-      toast('Greška pri spašavanju: ' + err.message, 'error')
+      toast(tInt('saveError', { error: err.message }), 'error')
     } finally {
       setSaving(false)
     }
@@ -154,11 +158,11 @@ export default function IntegrationsPage() {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || 'Sinhronizacija nije uspjela')
+        throw new Error(data.error || tInt('syncFailed'))
       }
 
       setSyncResult(data)
-      toast(`Sinhronizacija završena! Uvezeno ${data.importedCount} novih nekretnina.`)
+      toast(tInt('syncDone', { count: data.importedCount }))
       // Refresh stats
       loadOrgData()
     } catch (err: any) {
@@ -185,7 +189,7 @@ export default function IntegrationsPage() {
   }
 
   if (!org) {
-    return <div className="p-8 text-gray-500">Organizacija nije pronađena.</div>
+    return <div className="p-8 text-gray-500">{tInt('orgNotFound')}</div>
   }
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -213,19 +217,19 @@ export default function IntegrationsPage() {
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/60 pb-6">
         <div>
-          <p className="page-eyebrow mb-1">INTEGRACIJE & PORTE</p>
+          <p className="page-eyebrow mb-1">{tInt("eyebrow")}</p>
           <h1 className="text-3xl font-semibold text-gray-900" style={{ fontFamily: 'var(--font-display), serif' }}>
-            Sinhronizacija Oglasa & Portala
+            {tInt('title')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Automatski uvozite i objavljujte nekretnine na najpopularnijim portalima u BiH i regionu.
+            {tInt('subtitle')}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="bg-emerald-50 border border-emerald-200/60 px-3.5 py-1.5 rounded-xl flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-semibold text-emerald-800">OLX Integracija Aktivna</span>
+            <span className="text-xs font-semibold text-emerald-800">{tInt("integrationActive")}</span>
           </div>
         </div>
       </header>
@@ -234,18 +238,18 @@ export default function IntegrationsPage() {
         <div className="rounded-3xl border border-gray-200/70 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="page-eyebrow mb-1">SYSTEM STATUS</p>
+              <p className="page-eyebrow mb-1">{tInt("systemStatusEyebrow")}</p>
               <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-display), serif' }}>
-                Runtime konfiguracija
+                {tInt('runtimeTitle')}
               </h2>
               <p className="mt-1 text-sm leading-6 text-gray-500">
-                Prikazuje koje integracije trenutni Estateline servis stvarno vidi. Ključevi se nikad ne prikazuju.
+                {tInt('runtimeDesc')}
               </p>
             </div>
             {systemStatus && (
               <div className="rounded-2xl bg-[#F5F1EB] px-4 py-3 text-right">
                 <p className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-display), serif' }}>{systemStatus.summary.connected}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">connected</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{tInt("connectedLabel")}</p>
               </div>
             )}
           </div>
@@ -338,7 +342,7 @@ export default function IntegrationsPage() {
             }}
           >
             <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
-            <span>{syncing ? 'Sinhronizacija u toku...' : 'Ažuriraj sa OLX.ba'}</span>
+            <span>{syncing ? tInt('syncing') : tInt('syncNow')}</span>
           </button>
         </div>
 
@@ -346,14 +350,14 @@ export default function IntegrationsPage() {
         <div className="bg-gray-50/70 border border-gray-200/60 rounded-2xl p-5 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
-              Link OLX Profila ili Trgovine Agencije
+              {tInt('olxUrlLabel')}
             </label>
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <LinkIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="url"
-                  placeholder="https://olx.ba/profil/vasa-agencija ili https://olx.ba/shops/vasa-trgovina"
+                  placeholder={locale === 'bs' ? 'https://olx.ba/profil/vasa-agencija ili https://olx.ba/shops/vasa-trgovina' : 'https://olx.ba/profile/your-agency or https://olx.ba/shops/your-shop'}
                   value={olxUrl}
                   onChange={(e) => setOlxUrl(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-[#C9963B] focus:ring-2 focus:ring-[#C9963B]/20 transition-all"
@@ -364,7 +368,7 @@ export default function IntegrationsPage() {
                 disabled={saving || !olxUrl}
                 className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-medium text-sm rounded-xl transition-colors disabled:opacity-50 shrink-0"
               >
-                {saving ? 'Spašavanje...' : 'Sačuvaj Link'}
+                {saving ? tInt('saving') : tInt('saveUrl')}
               </button>
             </div>
           </div>
@@ -395,10 +399,10 @@ export default function IntegrationsPage() {
           <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-5 space-y-3 animate-fade-in">
             <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm">
               <CheckCircle2 size={18} className="text-emerald-600" />
-              <span>Uspješno sinhronizovano sa OLX.ba!</span>
+              <span>{tInt('syncSuccess')}</span>
             </div>
             <p className="text-xs text-emerald-700 font-medium">
-              Sistem je obradio profil i uveo {syncResult.importedCount} novih nekretnina:
+              {tInt('importedCount', { count: syncResult.importedCount })}
             </p>
             {syncResult.imported && syncResult.imported.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
@@ -406,14 +410,14 @@ export default function IntegrationsPage() {
                   <div key={item.id} className="bg-white border border-emerald-100 p-3 rounded-xl flex items-center justify-between text-xs shadow-sm">
                     <div className="min-w-0 pr-2">
                       <p className="font-semibold text-gray-900 truncate">{item.title}</p>
-                      <p className="text-[11px] text-gray-400">{item.area_size} m² • {item.bedrooms} soba</p>
+                      <p className="text-[11px] text-gray-400">{tInt("rooms", { bedrooms: item.bedrooms })}</p>
                     </div>
                     <span className="font-bold text-emerald-700 shrink-0">{item.price.toLocaleString()} KM</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-500 italic">Sve nekretnine sa ovog profila su već uvozne i ažurne!</p>
+              <p className="text-xs text-gray-500 italic">{tInt("allImported")}</p>
             )}
           </div>
         )}
@@ -421,7 +425,7 @@ export default function IntegrationsPage() {
         {syncError && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-xs font-semibold flex items-center gap-2">
             <AlertCircle size={16} className="shrink-0" />
-            <span>Greška pri sinhronizaciji: {syncError}</span>
+            <span>{tInt('syncError', { error: syncError })}</span>
           </div>
         )}
       </section>
@@ -430,10 +434,10 @@ export default function IntegrationsPage() {
       <section className="bg-white rounded-3xl border border-gray-200/70 p-6 sm:p-8 shadow-sm space-y-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            XML & JSON Feed Izvoz za Portale
+            {tInt('feedsTitle')}
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Kopirajte ove linkove u postavke vaših naloga na regionalnim portalima za automatsko objavljivanje.
+            {tInt('feedsDesc')}
           </p>
         </div>
 
@@ -442,17 +446,17 @@ export default function IntegrationsPage() {
           <div className="bg-gray-50/70 border border-gray-200/60 rounded-2xl p-5 flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-gray-900">Njuškalo.hr</span>
+                <span className="font-bold text-gray-900">{tInt("njuskaloName")}</span>
                 <span className="text-[10px] font-bold uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">XML</span>
               </div>
-              <p className="text-xs text-gray-500">Automatski izvoz oglasa za Njuškalo u HR formatu.</p>
+              <p className="text-xs text-gray-500">{tInt("njuskaloDesc")}</p>
             </div>
             <button
               onClick={() => copyToClipboard(njuskaloFeedUrl, 'njuskalo')}
               className="w-full py-2 px-3 bg-white border border-gray-200 hover:bg-gray-100 text-gray-800 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
             >
               {copiedFeed === 'njuskalo' ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-              <span>{copiedFeed === 'njuskalo' ? 'Kopirano' : 'Kopiraj XML Link'}</span>
+              <span>{copiedFeed === 'njuskalo' ? tInt('copied') : tInt('copyXml')}</span>
             </button>
           </div>
 
@@ -460,17 +464,17 @@ export default function IntegrationsPage() {
           <div className="bg-gray-50/70 border border-gray-200/60 rounded-2xl p-5 flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-gray-900">Nekretnine.rs</span>
+                <span className="font-bold text-gray-900">{tInt("nekretnineName")}</span>
                 <span className="text-[10px] font-bold uppercase bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">XML</span>
               </div>
-              <p className="text-xs text-gray-500">Automatski izvoz oglasa za Nekretnine.rs u RS formatu.</p>
+              <p className="text-xs text-gray-500">{tInt("nekretnineDesc")}</p>
             </div>
             <button
               onClick={() => copyToClipboard(nekretnineFeedUrl, 'nekretnine')}
               className="w-full py-2 px-3 bg-white border border-gray-200 hover:bg-gray-100 text-gray-800 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
             >
               {copiedFeed === 'nekretnine' ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-              <span>{copiedFeed === 'nekretnine' ? 'Kopirano' : 'Kopiraj XML Link'}</span>
+              <span>{copiedFeed === 'nekretnine' ? tInt('copied') : tInt('copyXml')}</span>
             </button>
           </div>
 
@@ -478,17 +482,17 @@ export default function IntegrationsPage() {
           <div className="bg-gray-50/70 border border-gray-200/60 rounded-2xl p-5 flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-gray-900">Custom Web Feed</span>
+                <span className="font-bold text-gray-900">{tInt("customFeedName")}</span>
                 <span className="text-[10px] font-bold uppercase bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">JSON</span>
               </div>
-              <p className="text-xs text-gray-500">Prilagođeni JSON izvor za vašu web stranicu agencije.</p>
+              <p className="text-xs text-gray-500">{tInt("customFeedDesc")}</p>
             </div>
             <button
               onClick={() => copyToClipboard(jsonFeedUrl, 'json')}
               className="w-full py-2 px-3 bg-white border border-gray-200 hover:bg-gray-100 text-gray-800 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
             >
               {copiedFeed === 'json' ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-              <span>{copiedFeed === 'json' ? 'Kopirano' : 'Kopiraj JSON Link'}</span>
+              <span>{copiedFeed === 'json' ? tInt('copied') : tInt('copyJson')}</span>
             </button>
           </div>
         </div>

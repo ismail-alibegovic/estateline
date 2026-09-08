@@ -40,3 +40,6 @@ test-results/
 playwright-report/
 
 
+
+# Lighthouse CI
+.lighthouseci/

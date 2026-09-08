@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { Download, Trash2, ShieldAlert, Database } from 'lucide-react'
 
 const ENTITIES = [
@@ -32,6 +33,8 @@ function formatDate(iso: string | null): string {
 }
 
 export default function DataSettingsPage() {
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const [loading, setLoading] = useState(true)
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null)
   const [orgName, setOrgName] = useState('')
@@ -189,7 +192,7 @@ export default function DataSettingsPage() {
                 type="text"
                 value={confirmText}
                 onChange={e => setConfirmText(e.target.value)}
-                placeholder="DELETE"
+                placeholder={locale === 'bs' ? 'OBRIŠI' : 'DELETE'}
                 className="w-full max-w-xs rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>

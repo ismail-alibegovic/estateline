@@ -231,7 +231,7 @@ export default function LoginPage() {
                   href={`/${locale}/forgot-password`}
                   className="text-xs text-[#C9963B] hover:underline font-semibold"
                 >
-                  {locale === 'bs' ? 'Zaboravili ste lozinku?' : 'Forgot password?'}
+                  {t('forgotPassword')}
                 </Link>
               </div>
               <div className="relative">

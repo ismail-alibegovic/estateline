@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { Plus, X, Search, Users, Mail, Trash2, Phone, Building2, CheckCircle2, MapPin } from 'lucide-react'
 
@@ -29,7 +29,9 @@ const TYPE_LABELS: Record<string, { bs: string; color: string; bg: string }> = {
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function ContactsPage() {
+  const locale = useLocale()
   const t = useTranslations('contacts')
+  const tCommon = useTranslations('common')
   const [contacts, setContacts] = useState<ContactRow[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
@@ -111,7 +113,7 @@ export default function ContactsPage() {
       if (error) {
         toast(error.message, 'error')
       } else {
-        toast('Kontakt je usješno dodan!')
+        toast(tCommon('contactAdded'))
         setIsOpen(false)
         setForm({ first_name: '', last_name: '', email: '', phone: '', type: 'client', city: 'Sarajevo', company: '' })
         loadContacts()
@@ -137,7 +139,7 @@ export default function ContactsPage() {
   }
 
   const deleteContact = async (id: string) => {
-    if (!confirm('Da li ste sigurni da želite obrisati ovaj kontakt?')) return
+    if (!confirm(tCommon('confirmDeleteContact'))) return
     const supabase = createBrowserClient()
     const { error } = await supabase.from('contacts').delete().eq('id', id)
     if (error) {
@@ -220,7 +222,7 @@ export default function ContactsPage() {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Pretraži po imenu, telefonu, emailu ili firmi..."
+              placeholder={tCommon("searchContacts")}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -239,7 +241,7 @@ export default function ContactsPage() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {type === 'all' ? `Svi (${contacts.length})` : TYPE_LABELS[type]?.bs || type}
+                {type === 'all' ? tCommon('allCount', { n: contacts.length }) : t(`types.${type}`)}
               </button>
             ))}
           </div>
@@ -349,7 +351,7 @@ export default function ContactsPage() {
 
             <div>
               <h3 className="text-xl font-bold text-gray-900">Dodaj Novi Kontakt</h3>
-              <p className="text-xs text-gray-500 mt-1">Unesite lične podatke kupca, prodavca ili notara.</p>
+              <p className="text-xs text-gray-500 mt-1">{t('addDesc')}</p>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
@@ -369,7 +371,7 @@ export default function ContactsPage() {
                   <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Prezime</label>
                   <input
                     type="text"
-                    placeholder="Dizdarević"
+                    placeholder="Smith"
                     value={form.last_name}
                     onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -439,7 +441,7 @@ export default function ContactsPage() {
                   disabled={saving}
                   className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors"
                 >
-                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Kontakt'}
+                  {saving ? tCommon('saving') : t('saveContact')}
                 </button>
               </div>
             </form>

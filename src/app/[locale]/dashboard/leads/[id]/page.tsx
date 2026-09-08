@@ -284,7 +284,7 @@ export default function LeadDetailPage() {
       }
       setShowConvertModal(false)
       setLead({ ...lead, status: "won" })
-      alert(locale === "bs" ? "Lead je uspješno konvertovan u posao!" : "Lead successfully converted to deal!")
+      alert(t("leadDetail.convertedAlert"))
       router.push(`/${locale}/dashboard/pipeline`)
     } catch (e: any) {
       alert("Conversion failed: " + e.message)
@@ -919,9 +919,7 @@ export default function LeadDetailPage() {
               </button>
             </div>
             <p className="text-sm text-muted-foreground mb-5">
-              {locale === 'bs'
-                ? `Ovo će kreirati novi kontakt i posao za ${lead?.first_name || ''} ${lead?.last_name || ''}, te označiti lead kao "won".`
-                : `This will create a new contact and deal for ${lead?.first_name || ''} ${lead?.last_name || ''}, and mark the lead as "won".`}
+              {t('leadDetail.convertDesc', { name: `${lead?.first_name || ''} ${lead?.last_name || ''}`.trim() })}
             </p>
             <div className="space-y-4">
               <div>

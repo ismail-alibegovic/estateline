@@ -17,7 +17,9 @@
     "check:env": "node scripts/check-env-parity.js",
     "backup:storage": "node scripts/backup-supabase-storage.js",
     "db:generate": "npx drizzle-kit generate",
-    "db:push": "npx drizzle-kit push"
+    "db:push": "npx drizzle-kit push",
+    "lhci": "lhci autorun",
+    "lhci:autorun": "lhci autorun"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
@@ -49,6 +51,7 @@
     "twilio": "^6.0.2"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.14.0",
     "@playwright/test": "^1.62.0",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20.10.0",

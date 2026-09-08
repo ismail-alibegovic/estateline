@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useCurrency } from '@/components/CurrencyContext'
 import {
   DollarSign,
@@ -33,6 +34,7 @@ export default function FinancialsDashboard() {
   const [recentInvoices, setRecentInvoices] = useState<any[]>([])
   const params = useParams()
   const locale = params?.locale || 'en'
+  const t = useTranslations('financials')
   const { formatPrice } = useCurrency()
 
   useEffect(() => {
@@ -140,36 +142,36 @@ export default function FinancialsDashboard() {
 
   const cards = [
     {
-      label: 'Total Quoted',
+      label: t('totalQuoted'),
       value: formatPrice(metrics.totalQuoted),
-      hint: 'Deal values sent in quotes',
+      hint: t('totalQuotedHint'),
       icon: TrendingUp,
       gradient: 'linear-gradient(135deg, #101c2b 0%, #070e17 100%)',
       accentColor: '#5fa1e0',
       lightBg: 'rgba(95, 161, 224, 0.15)',
     },
     {
-      label: 'Collected Revenue',
+      label: t('collectedRevenue'),
       value: formatPrice(metrics.collectedRevenue),
-      hint: 'Fully paid invoice amounts',
+      hint: t('collectedRevenueHint'),
       icon: CheckCircle2,
       gradient: 'linear-gradient(135deg, #091a14 0%, #030a07 100%)',
       accentColor: '#10b981',
       lightBg: 'rgba(16, 185, 129, 0.15)',
     },
     {
-      label: 'Pending Balance',
+      label: t('pendingBalance'),
       value: formatPrice(metrics.pendingRevenue),
-      hint: 'Unpaid invoices in pipeline',
+      hint: t('pendingBalanceHint'),
       icon: Clock,
       gradient: 'linear-gradient(135deg, #1e160a 0%, #0c0803 100%)',
       accentColor: '#eab308',
       lightBg: 'rgba(234, 179, 8, 0.15)',
     },
     {
-      label: 'VAT Tax (17%)',
+      label: t('vatTax'),
       value: formatPrice(metrics.taxCollected),
-      hint: 'Tax component on paid deals',
+      hint: t('vatTaxHint'),
       icon: Percent,
       gradient: 'linear-gradient(135deg, #18112b 0%, #090612 100%)',
       accentColor: '#a855f7',
@@ -182,10 +184,10 @@ export default function FinancialsDashboard() {
       {/* Header */}
       <header className="flex justify-between items-start">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Accounting & Performance</p>
-          <h1 className="font-display text-4xl font-bold tracking-tight">Financials Overview</h1>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2">{t('eyebrow')}</p>
+          <h1 className="font-display text-4xl font-bold tracking-tight">{t('title')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Track revenue collections, pending deals value, and invoices distributions.
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex gap-3">
@@ -193,7 +195,7 @@ export default function FinancialsDashboard() {
             href={`/${locale}/dashboard/quotes`}
             className="px-4 py-2 border border-border rounded-lg text-sm font-semibold hover:bg-neutral-50 transition-colors"
           >
-            Manage Quotes
+            {t('manageQuotes')}
           </Link>
           <Link
             href={`/${locale}/dashboard/invoices`}
@@ -273,8 +275,8 @@ export default function FinancialsDashboard() {
             {/* Total Deals generated */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-semibold">
-                <span className="text-muted-foreground font-medium">1. Quotes Generated</span>
-                <span>{formatPrice(metrics.totalQuoted)} ({recentQuotes.length} Deals)</span>
+                <span className="text-muted-foreground font-medium">{t('quotesGenerated')}</span>
+                <span>{formatPrice(metrics.totalQuoted)} ({recentQuotes.length} {t('dealsWord')})</span>
               </div>
               <div className="w-full bg-neutral-100 rounded-full h-3 overflow-hidden">
                 <div className="bg-sky-500 h-full rounded-full w-full" />
@@ -284,8 +286,8 @@ export default function FinancialsDashboard() {
             {/* Total Invoiced */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-semibold">
-                <span className="text-muted-foreground font-medium">2. Billing Invoiced</span>
-                <span>{formatPrice(metrics.totalInvoiced)} ({recentInvoices.length} Invoices)</span>
+                <span className="text-muted-foreground font-medium">{t('invoiced')}</span>
+                <span>{formatPrice(metrics.totalInvoiced)} ({recentInvoices.length} {t('invoicesWord')})</span>
               </div>
               <div className="w-full bg-neutral-100 rounded-full h-3 overflow-hidden">
                 <div
@@ -298,8 +300,8 @@ export default function FinancialsDashboard() {
             {/* Total Collected */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-semibold">
-                <span className="text-muted-foreground font-medium">3. Revenue Collected</span>
-                <span>{formatPrice(metrics.collectedRevenue)} ({metrics.paidCount} Paid)</span>
+                <span className="text-muted-foreground font-medium">{t('revenueCollected')}</span>
+                <span>{formatPrice(metrics.collectedRevenue)} ({metrics.paidCount} {t('paidWord')})</span>
               </div>
               <div className="w-full bg-neutral-100 rounded-full h-3 overflow-hidden">
                 <div
@@ -311,7 +313,7 @@ export default function FinancialsDashboard() {
           </div>
 
           <div className="flex justify-between items-center text-xs text-muted-foreground pt-4 border-t border-border/60">
-            <span>Overall quote-to-bill conversion ratio:</span>
+            <span>{t('conversionRatio')}:</span>
             <span className="font-bold text-foreground text-sm">{metrics.quoteToInvoicePct}%</span>
           </div>
         </div>
@@ -319,8 +321,8 @@ export default function FinancialsDashboard() {
         {/* Invoice Paid Ratio circle */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col justify-between items-center col-span-1 text-center">
           <div className="w-full flex items-center justify-between border-b pb-3.5 mb-4 text-left">
-            <h3 className="font-display font-bold text-base text-foreground">Invoice Status</h3>
-            <span className="text-xs font-semibold text-muted-foreground">Ratio</span>
+            <h3 className="font-display font-bold text-base text-foreground">{t('invoiceStatus')}</h3>
+            <span className="text-xs font-semibold text-muted-foreground">{t('ratio')}</span>
           </div>
 
           <div className="relative w-32 h-32 flex items-center justify-center mb-4">
@@ -339,18 +341,18 @@ export default function FinancialsDashboard() {
             </svg>
             <div className="absolute flex flex-col items-center">
               <span className="text-2xl font-bold text-foreground">{paidPercentage}%</span>
-              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Paid</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t('paidWord')}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 w-full text-xs border-t border-border pt-4">
             <div className="border-r border-border pr-2">
               <p className="font-bold text-emerald-600 text-sm">{metrics.paidCount}</p>
-              <p className="text-muted-foreground text-[10px]">Paid Bills</p>
+              <p className="text-muted-foreground text-[10px]">{t('paidBills')}</p>
             </div>
             <div className="pl-2">
               <p className="font-bold text-amber-600 text-sm">{metrics.unpaidCount}</p>
-              <p className="text-muted-foreground text-[10px]">Pending Bills</p>
+              <p className="text-muted-foreground text-[10px]">{t('pendingBills')}</p>
             </div>
           </div>
         </div>
@@ -361,22 +363,22 @@ export default function FinancialsDashboard() {
         {/* Recent Quotes */}
         <section className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b pb-3">
-            <h2 className="font-display text-lg font-bold text-foreground">Recent Quotes</h2>
+            <h2 className="font-display text-lg font-bold text-foreground">{t('recentQuotes')}</h2>
             <Link href={`/${locale}/dashboard/quotes`} className="text-xs text-primary hover:underline flex items-center">
-              View All <ChevronRight size={12} />
+              {t('viewAll')} <ChevronRight size={12} />
             </Link>
           </div>
 
           {recentQuotes.length === 0 ? (
-            <div className="py-12 text-center text-xs text-muted-foreground">No quotes issued yet.</div>
+            <div className="py-12 text-center text-xs text-muted-foreground">{t('noQuotes')}</div>
           ) : (
             <div className="divide-y divide-border/60">
               {recentQuotes.map((q) => {
                 const clientName = q.leads
                   ? `${q.leads.first_name} ${q.leads.last_name || ''}`
-                  : q.contacts
+                  : (q.contacts as any | undefined)
                   ? `${q.contacts.first_name} ${q.contacts.last_name || ''}`
-                  : 'N/A'
+                  : t('na')
 
                 return (
                   <div key={q.id} className="flex justify-between items-center py-3.5 hover:bg-neutral-50/20 transition-colors">
@@ -398,14 +400,14 @@ export default function FinancialsDashboard() {
         {/* Recent Invoices */}
         <section className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b pb-3">
-            <h2 className="font-display text-lg font-bold text-foreground">Recent Invoices</h2>
+            <h2 className="font-display text-lg font-bold text-foreground">{t('recentInvoices')}</h2>
             <Link href={`/${locale}/dashboard/invoices`} className="text-xs text-primary hover:underline flex items-center">
-              View All <ChevronRight size={12} />
+              {t('viewAll')} <ChevronRight size={12} />
             </Link>
           </div>
 
           {recentInvoices.length === 0 ? (
-            <div className="py-12 text-center text-xs text-muted-foreground">No invoices generated yet.</div>
+            <div className="py-12 text-center text-xs text-muted-foreground">{t('noInvoices')}</div>
           ) : (
             <div className="divide-y divide-border/60">
               {recentInvoices.map((inv) => (

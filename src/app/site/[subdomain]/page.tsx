@@ -1,231 +1,294 @@
 import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
-import { headers } from 'next/headers'
-import { NextRequest } from 'next/server'
+import Link from 'next/link'
 import Image from 'next/image'
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
-import { resolveHostIdentifier } from '@/lib/domain-helpers'
-import type { Database } from '@/lib/supabase'
-import { requireSupabasePublicEnv } from '@/lib/env'
+import { MapPin, Bed, Bath, Maximize, Phone, Mail, Globe, ChevronRight, Star, ArrowLeft } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
-
-type Property = {
-  id: string
-  title: string
-  description: string | null
-  slug: string
-  price: number
-  currency: string
-  price_period: string | null
-  city: string
-  address: string | null
-  area_size: number | null
-  bedrooms: number | null
-  bathrooms: number | null
-  year_built: number | null
-  cover_image_url: string | null
-  images: unknown
-  type: string
-  featured: boolean
+interface Props {
+  params: Promise<{ subdomain: string }>
 }
 
-type Org = {
+interface Agency {
   id: string
   name: string
   slug: string
   logo_url: string | null
-  locale_default: string
-  currency_default: string
+  phone: string | null
+  email: string | null
+  website: string | null
+  primary_color: string
+  accent_color: string
+  tagline: string | null
+  bio: string | null
+  city: string | null
+  address: string | null
 }
 
-const theme = {
-  bg: '#faf6f0',
-  card: '#ffffff',
-  fg: '#2b2420',
-  muted: '#8a7f76',
-  accent: '#b45309',
-  border: '#e8dfb5',
+interface Property {
+  id: string
+  title: string
+  slug: string
+  price: number
+  currency: string
+  listing_type: string
+  property_type: string
+  bedrooms: number | null
+  bathrooms: number | null
+  area: number | null
+  area_unit: string
+  address: string
+  city: string
+  cover_image: string | null
+  images: string[] | null
+  description: string | null
+  featured: boolean
+  status: string
+  created_at: string
 }
 
-function fmt(n: number, cur = 'BAM', locale = 'en') {
-  const label = { BAM: 'KM', EUR: '€', USD: '$', HRK: 'kn' }[cur] ?? cur
-  try {
-    return `${new Intl.NumberFormat(locale === 'bs' ? 'bs-BA' : 'en-US', { maximumFractionDigits: 0 }).format(n)} ${label}`
-  } catch {
-    return `${n.toLocaleString()} ${label}`
-  }
+async function getAgency(subdomain: string): Promise<Agency | null> {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { get: (name: string) => cookieStore.get(name)?.value } })
+  const { data } = await supabase
+    .from('agencies')
+    .select('*')
+    .eq('slug', subdomain)
+    .eq('is_active', true)
+    .single()
+  return data
 }
 
-export default async function OrgMicrosite({ params }: { params: { subdomain: string } }) {
-  const reqHeaders = headers()
-  const dummyReq = new NextRequest(`https://localhost/site/${params.subdomain}`, { headers: reqHeaders })
-  const rl = await checkRateLimit(dummyReq, 60, 60 * 1000)
-  if (!rl.success) {
-    return rateLimitResponse() as any
-  }
+async function getProperties(orgId: string): Promise<Property[]> {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { get: (name: string) => cookieStore.get(name)?.value } })
+  const { data } = await supabase
+    .from('properties')
+    .select('*')
+    .eq('organization_id', orgId)
+    .eq('status', 'active')
+    .order('featured', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(50)
+  return data || []
+}
 
-  const host = reqHeaders.get('host')
-  const { identifier, isCustomDomain } = resolveHostIdentifier(host, params.subdomain)
-  const slug = identifier
+function formatPrice(price: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale === 'bs' ? 'bs-BA' : 'en-US', {
+    style: 'currency',
+    currency: currency || 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price)
+}
 
-  const { url: supabaseUrl, anonKey: supabaseAnonKey } = requireSupabasePublicEnv()
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: { get: () => '', set: () => {}, remove: () => {} },
-  })
+export default async function MicrositePage({ params }: Props) {
+  const { subdomain } = await params
+  const agency = await getAgency(subdomain)
+  if (!agency) notFound()
 
-  let orgRaw: any[] | null = null
-  let orgErr: any = null
-
-  if (isCustomDomain) {
-    const { data: cdOrg, error: cdErr } = await supabase
-      .from('organizations')
-      .select('id, name, slug, logo_url, locale_default, currency_default')
-      .eq('custom_domain', slug)
-      .limit(1)
-
-    if (cdOrg && cdOrg.length > 0) {
-      orgRaw = cdOrg
-    }
-  }
-
-  if (!orgRaw || orgRaw.length === 0) {
-    const { data: slugOrg, error: err } = await supabase
-      .rpc('get_public_org_by_slug', { p_slug: slug })
-    orgRaw = slugOrg as any[]
-    orgErr = err
-  }
-
-  const org = orgRaw as any[]
-
-  if (orgErr || !org || org.length === 0) notFound()
-  const org_ = org[0] as Org
-
-  const { data: propertiesRaw, error: propErr } = await supabase
-    .rpc('get_public_properties', { p_org_id: org_.id })
-
-  if (propErr) {
-    console.error('RPC error:', propErr)
-  }
-
-  const listings = (propertiesRaw ?? []) as Property[]
+  const properties = await getProperties(agency.id)
+  const primary = agency.primary_color || '#1a2332'
+  const accent = agency.accent_color || '#C9963B'
+  const featured = properties.filter(p => p.featured)
+  const recent = properties.slice(0, 12)
 
   return (
-    <main
-      style={{
-        '--ms-bg': theme.bg,
-        '--ms-card': theme.card,
-        '--ms-fg': theme.fg,
-        '--ms-muted': theme.muted,
-        '--ms-accent': theme.accent,
-        '--ms-border': theme.border,
-      } as React.CSSProperties}
-      className="min-h-screen bg-[var(--ms-bg)] text-[var(--ms-fg)]"
-    >
-      {/* Masthead */}
-      <header className="border-b" style={{ borderColor: theme.border }}>
-        <div className="max-w-6xl mx-auto px-6 py-10">
-          <div className="flex items-center gap-4">
-            {org_.logo_url && (
-              <Image src={org_.logo_url} alt={`${org_.name} logo`} width={48} height={48} unoptimized className="h-12 w-12 rounded-full object-cover" />
+    <div className="min-h-screen bg-[#f8f6f3]">
+      {/* Hero */}
+      <header
+        className="relative overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${primary} 0%, ${primary}dd 100%)` }}
+      >
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-3xl" style={{ background: accent, transform: 'translate(30%, -30%)' }} />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full blur-3xl" style={{ background: accent, transform: 'translate(-30%, 30%)' }} />
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-6 py-16 md:py-24">
+          <div className="flex items-center gap-5 mb-8">
+            {agency.logo_url ? (
+              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center p-2">
+                <Image src={agency.logo_url} alt={agency.name} width={64} height={64} className="object-contain" />
+              </div>
+            ) : (
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold" style={{ background: accent }}>
+                {agency.name.charAt(0)}
+              </div>
             )}
             <div>
-              <p className="text-[0.7rem] uppercase tracking-[0.22em] text-[var(--ms-muted)] font-sans">Aktuelne nekretnine · Listings</p>
-              <h1 className="font-serif text-4xl md:text-5xl mt-1 leading-none">{org_.name}</h1>
+              <h1 className="text-3xl md:text-4xl font-bold text-white font-display tracking-tight">{agency.name}</h1>
+              {agency.tagline && (
+                <p className="text-white/70 text-sm mt-1 font-body">{agency.tagline}</p>
+              )}
             </div>
           </div>
-          <p className="mt-5 max-w-2xl text-[var(--ms-muted)] font-sans text-sm leading-relaxed">
-            Browse our active listings. Tap any property to contact us — we respond fast.
-          </p>
+
+          {agency.bio && (
+            <p className="text-white/80 text-base max-w-2xl leading-relaxed font-body">{agency.bio}</p>
+          )}
+
+          <div className="flex flex-wrap gap-4 mt-8">
+            {agency.phone && (
+              <a href={`tel:${agency.phone}`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105" style={{ background: accent, color: primary }}>
+                <Phone size={16} /> {agency.phone}
+              </a>
+            )}
+            {agency.email && (
+              <a href={`mailto:${agency.email}`} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-white/10 text-white border border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all">
+                <Mail size={16} /> {agency.email}
+              </a>
+            )}
+            {agency.website && (
+              <a href={agency.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-white/10 text-white border border-white/20 backdrop-blur-sm hover:bg-white/20 transition-all">
+                <Globe size={16} /> Website
+              </a>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Listings */}
-      <section className="max-w-6xl mx-auto px-6 py-10">
-        <div className="flex items-baseline justify-between mb-8">
-          <h2 className="font-serif text-2xl">
-            Available properties
-            <span className="ml-3 text-sm align-middle text-[var(--ms-muted)] font-sans">({listings.length})</span>
-          </h2>
-        </div>
-
-        {listings.length === 0 && (
-          <div className="border rounded-lg p-10 text-center" style={{ borderColor: theme.border }}>
-            <p className="text-[var(--ms-muted)] font-sans text-sm">No published properties yet.</p>
+      {/* Featured Properties */}
+      {featured.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 py-16">
+          <div className="flex items-center gap-3 mb-8">
+            <Star size={20} style={{ color: accent }} />
+            <h2 className="text-2xl font-bold text-gray-900 font-display">Featured Properties</h2>
           </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {listings.map(p => {
-            const wifi = p.price_period ? 'For rent' : 'For sale'
-            const img = p.cover_image_url && p.cover_image_url.length > 0
-              ? p.cover_image_url
-              : '/api/placeholder/600/400'
-            return (
-              <article
-                key={p.id}
-                className="border rounded-lg overflow-hidden bg-[var(--ms-card)] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col"
-                style={{ borderColor: theme.border }}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featured.slice(0, 6).map((property) => (
+              <Link
+                key={property.id}
+                href={`/site/${subdomain}/property/${property.slug}`}
+                className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
               >
-                <div className="relative aspect-[4/3] bg-[#eee4d1] flex items-center justify-center overflow-hidden">
-                  {img !== '/api/placeholder/600/400' ? (
-                    <Image src={img} alt={p.title} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" unoptimized className="object-cover" />
+                <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                  {property.cover_image ? (
+                    <Image
+                      src={property.cover_image}
+                      alt={property.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
                   ) : (
-                    <span className="text-[#b39a78] font-sans text-sm">No image</span>
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                      <Maximize size={40} />
+                    </div>
                   )}
-                  {p.featured && (
-                    <span
-                      className="absolute top-3 left-3 text-[0.65rem] uppercase tracking-wider px-2 py-1 rounded font-sans"
-                      style={{ background: theme.accent, color: '#fff' }}
-                    >
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider text-white" style={{ background: accent }}>
                       Featured
                     </span>
+                    <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-white/90 text-gray-800">
+                      {property.listing_type === 'sale' ? 'For Sale' : 'For Rent'}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <p className="text-lg font-bold text-gray-900 font-display">{formatPrice(property.price, property.currency, 'en')}</p>
+                  <h3 className="text-sm font-semibold text-gray-800 mt-1 line-clamp-1">{property.title}</h3>
+                  <div className="flex items-center gap-1 text-gray-500 text-xs mt-2">
+                    <MapPin size={12} />
+                    <span>{property.city}{property.address ? `, ${property.address}` : ''}</span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+                    {property.bedrooms != null && (
+                      <span className="flex items-center gap-1"><Bed size={13} /> {property.bedrooms}</span>
+                    )}
+                    {property.bathrooms != null && (
+                      <span className="flex items-center gap-1"><Bath size={13} /> {property.bathrooms}</span>
+                    )}
+                    {property.area != null && (
+                      <span className="flex items-center gap-1"><Maximize size={13} /> {property.area} {property.area_unit}</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* All Properties */}
+      <section className="max-w-6xl mx-auto px-6 pb-16">
+        <h2 className="text-2xl font-bold text-gray-900 font-display mb-8">
+          {featured.length > 0 ? 'All Properties' : 'Properties'}
+        </h2>
+        {recent.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+            <Maximize size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 font-body">No properties listed yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recent.map((property) => (
+              <Link
+                key={property.id}
+                href={`/site/${subdomain}/property/${property.slug}`}
+                className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                  {property.cover_image ? (
+                    <Image
+                      src={property.cover_image}
+                      alt={property.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                      <Maximize size={40} />
+                    </div>
                   )}
-                </div>
-
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex justify-between items-start gap-2">
-                    <h3 className="font-serif text-lg leading-tight">{p.title}</h3>
-                    <span
-                      className="text-[0.65rem] px-2 py-1 rounded-full font-sans shrink-0"
-                      style={{ background: theme.border, color: theme.fg }}
-                    >
-                      {wifi}
+                  <div className="absolute top-3 left-3">
+                    <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-white/90 text-gray-800">
+                      {property.listing_type === 'sale' ? 'For Sale' : 'For Rent'}
                     </span>
                   </div>
-
-                  <p className="text-[var(--ms-muted)] font-sans text-sm mt-1">
-                    {p.city}{p.address ? ` · ${p.address.slice(0, 40)}${p.address.length > 40 ? '…' : ''}` : ''}
-                  </p>
-
-                  <div className="mt-3 flex gap-4 text-xs font-sans text-[var(--ms-muted)]">
-                    {p.bedrooms ? <span>{p.bedrooms} bd</span> : null}
-                    {p.bathrooms ? <span>{p.bathrooms} ba</span> : null}
-                    {p.area_size ? <span>{p.area_size} m²</span> : null}
-                    {p.year_built ? <span>{p.year_built}</span> : null}
+                </div>
+                <div className="p-5">
+                  <p className="text-lg font-bold text-gray-900 font-display">{formatPrice(property.price, property.currency, 'en')}</p>
+                  <h3 className="text-sm font-semibold text-gray-800 mt-1 line-clamp-1">{property.title}</h3>
+                  <div className="flex items-center gap-1 text-gray-500 text-xs mt-2">
+                    <MapPin size={12} />
+                    <span>{property.city}{property.address ? `, ${property.address}` : ''}</span>
                   </div>
-
-                  <div className="mt-4 pt-3 border-t flex justify-between items-end flex-1" style={{ borderColor: theme.border }}>
-                    <span className="font-serif text-2xl">
-                      {fmt(Number(p.price), p.currency, org_.locale_default)}
-                      {p.price_period && <span className="text-xs text-[var(--ms-muted)] font-sans">/mo</span>}
-                    </span>
-                    <span className="text-[var(--ms-accent)] font-sans text-sm">View →</span>
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+                    {property.bedrooms != null && (
+                      <span className="flex items-center gap-1"><Bed size={13} /> {property.bedrooms}</span>
+                    )}
+                    {property.bathrooms != null && (
+                      <span className="flex items-center gap-1"><Bath size={13} /> {property.bathrooms}</span>
+                    )}
+                    {property.area != null && (
+                      <span className="flex items-center gap-1"><Maximize size={13} /> {property.area} {property.area_unit}</span>
+                    )}
                   </div>
                 </div>
-              </article>
-            )
-          })}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Footer */}
-      <footer className="border-t mt-10" style={{ borderColor: theme.border }}>
-        <div className="max-w-6xl mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-[var(--ms-muted)] font-sans">© {new Date().getFullYear()} {org_.name}</p>
-          <p className="text-xs text-[var(--ms-muted)] font-sans">Powered by Estateline</p>
+      <footer className="border-t border-gray-200 bg-white">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {agency.logo_url ? (
+              <Image src={agency.logo_url} alt={agency.name} width={32} height={32} className="object-contain" />
+            ) : null}
+            <span className="text-sm font-semibold text-gray-700">{agency.name}</span>
+          </div>
+          {agency.address && (
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <MapPin size={12} />
+              <span>{agency.address}{agency.city ? `, ${agency.city}` : ''}</span>
+            </div>
+          )}
+          <p className="text-xs text-gray-400">Powered by Estateline</p>
         </div>
       </footer>
-    </main>
+    </div>
   )
 }

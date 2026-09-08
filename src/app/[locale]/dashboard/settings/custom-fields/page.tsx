@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase'
 import { Plus, Trash2, Sliders, CheckSquare, Layers } from 'lucide-react'
 
@@ -15,6 +16,8 @@ interface CustomFieldDefinition {
 }
 
 export default function CustomFieldsSettingsPage() {
+  const params = useParams()
+  const locale = (params?.locale as string) || 'en'
   const [fields, setFields] = useState<CustomFieldDefinition[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
@@ -166,7 +169,7 @@ export default function CustomFieldsSettingsPage() {
               <input
                 type="text"
                 required
-                placeholder="e.g. Heating Type"
+                placeholder={locale === 'bs' ? 'npr. Tip Grijanja' : 'e.g. Heating Type'}
                 value={label}
                 onChange={e => setLabel(e.target.value)}
                 className={inputClass}
@@ -192,7 +195,7 @@ export default function CustomFieldsSettingsPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Gas, Electric, Central"
+                  placeholder={locale === 'bs' ? 'npr. Plin, Struja, Centralno' : 'e.g. Gas, Electric, Central'}
                   value={optionsStr}
                   onChange={e => setOptionsStr(e.target.value)}
                   className={inputClass}

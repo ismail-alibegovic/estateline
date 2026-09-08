@@ -4,21 +4,18 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase'
+import { useTranslations } from 'next-intl'
 import { GitCommit, Plus, Trash2, ArrowUp, ArrowDown, Save, CheckCircle2, ArrowLeft } from 'lucide-react'
 
-const DEFAULT_STAGES = [
-  'Novi Upiti (New)',
-  'Zakazan Obilazak (Viewing Scheduled)',
-  'U Pregovorima (Negotiation)',
-  'Ugovor & Kapara (Under Contract)',
-  'Prodano / Završeno (Closed Won)'
-]
+const DEFAULT_STAGE_KEYS = ['new', 'viewing_scheduled', 'negotiation', 'under_contract', 'closed_won']
 
 export default function PipelineSettingsPage() {
   const params = useParams()
   const locale = (params?.locale as string) || 'en'
 
-  const [stages, setStages] = useState<string[]>(DEFAULT_STAGES)
+  const t = useTranslations('settingsPipeline')
+
+  const [stages, setStages] = useState<string[]>(DEFAULT_STAGE_KEYS)
   const [newStage, setNewStage] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -95,9 +92,9 @@ export default function PipelineSettingsPage() {
       .eq('id', orgId)
 
     if (error) {
-      toast('Greška pri spašavanju faza pipeline-a.')
+      toast(t('saveError'))
     } else {
-      toast('Pipeline faze su uspješno ažurirane!')
+      toast(t('saved'))
     }
     setSaving(false)
   }
@@ -134,10 +131,10 @@ export default function PipelineSettingsPage() {
               className="text-2xl font-bold text-slate-900 tracking-tight"
               style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
             >
-              Postavke Pipeline Faza (Funnel)
+              {t('title')}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Prilagodite korake kroz koje prolaze kupci i prodavci u KanBan tabli vaše agencije.
+              {t('subtitle')}
             </p>
           </div>
         </div>
@@ -148,7 +145,7 @@ export default function PipelineSettingsPage() {
           className="px-5 py-2.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white text-sm font-semibold shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
         >
           <Save size={16} />
-          <span>{saving ? 'Spremanje...' : 'Spremi Faze'}</span>
+          <span>{saving ? t('saving') : t('save')}</span>
         </button>
       </div>
 
@@ -157,9 +154,9 @@ export default function PipelineSettingsPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
             <GitCommit size={18} className="text-[#C9963B]" />
-            <span>Trenutne Faze Prodajnog Ciklusa</span>
+            <span>{t('currentStages')}</span>
           </h2>
-          <span className="text-xs text-slate-400 font-medium">{stages.length} faza aktivno</span>
+          <span className="text-xs text-slate-400 font-medium">{t('activeCount', { count: stages.length })}</span>
         </div>
 
         <div className="space-y-2.5">
@@ -216,7 +213,7 @@ export default function PipelineSettingsPage() {
             type="text"
             value={newStage}
             onChange={e => setNewStage(e.target.value)}
-            placeholder="Dodaj novu fazu (npr. 'Procjena Nekretnine')..."
+            placeholder={t('addPlaceholder')}
             className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-[#C9963B]"
           />
           <button
@@ -224,7 +221,7 @@ export default function PipelineSettingsPage() {
             className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-[#C9963B] text-sm font-semibold rounded-xl flex items-center gap-2 transition-all"
           >
             <Plus size={16} />
-            <span>Dodaj Fazu</span>
+            <span>{t('addStage')}</span>
           </button>
         </div>
       </div>

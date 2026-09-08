@@ -5,12 +5,9 @@ import { useTranslations, useLocale } from 'next-intl'
 import { createBrowserClient } from '@/lib/supabase'
 import { CheckCircle2, ShieldCheck, Zap, CreditCard, ArrowUpRight, Sparkles, Loader2 } from 'lucide-react'
 
-/** Maps a UI tier name → the API payload tier key. MUST match src/app/api/billing/checkout/route.ts. */
-const TIER_KEYS: Record<string, string> = {
-  'Starter Agencija': 'starter',
-  'EstateLine Pro': 'pro',
-  'Enterprise Premium': 'agency',
-}
+/** Canonical plan ids — match organizations.subscription_tier and api/billing/checkout. */
+const PLAN_IDS = ['starter', 'pro', 'agency'] as const
+type PlanId = (typeof PLAN_IDS)[number]
 
 const SUCCESS = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('success')
 const CANCELED = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('canceled')
@@ -19,7 +16,7 @@ const MOCK_TIER = typeof window !== 'undefined' && new URLSearchParams(window.lo
 export default function BillingPage() {
   const t = useTranslations('billing')
   const locale = useLocale()
-  const [plan, setPlan] = useState<string>('EstateLine Pro')
+  const [plan, setPlan] = useState<string>('pro')
   const [loading, setLoading] = useState(true)
   const [upgradingTier, setUpgradingTier] = useState<string | null>(null)
   const [usage, setUsage] = useState<{ properties: { used: number; cap: number }; agents: { used: number; cap: number }; storage: { used: number; cap: number } } | null>(null)
@@ -51,8 +48,8 @@ export default function BillingPage() {
 
           const orgId = (activeMemberships?.[0] as any)?.organization_id
           if (orgId) {
-            const tier = (activeMemberships?.[0] as any)?.organizations?.subscription_tier || 'EstateLine Pro'
-            const caps = TIER_CAPS[tier] || TIER_CAPS['EstateLine Pro']
+            const tier = ((activeMemberships?.[0] as any)?.organizations?.subscription_tier || 'pro') as PlanId
+            const caps = TIER_CAPS[tier] || TIER_CAPS.pro
 
             const [{ count: propertyCount }, { count: agentCount }] = await Promise.all([
               supabase.from('properties').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
@@ -75,7 +72,7 @@ export default function BillingPage() {
   // Surface Stripe redirect outcomes
   useEffect(() => {
     if (SUCCESS) {
-      setToast(MOCK_TIER ? `Mock upgrade confirmed (no Stripe key). Tier: ${MOCK_TIER}.` : 'Subscription activated. Welcome to your new plan.')
+      setToast(MOCK_TIER ? t('mockToast', { tier: MOCK_TIER }) : t('activatedToast'))
       // Clear the query string so a refresh doesn't re-fire the toast
       const url = new URL(window.location.href)
       url.searchParams.delete('success')
@@ -83,17 +80,16 @@ export default function BillingPage() {
       url.searchParams.delete('mock_tier')
       window.history.replaceState({}, '', url.toString())
     } else if (CANCELED) {
-      setToast('Checkout canceled. No changes made.')
+      setToast(t('canceledToast'))
       const url = new URL(window.location.href)
       url.searchParams.delete('canceled')
       window.history.replaceState({}, '', url.toString())
     }
   }, [])
 
-  const handleUpgrade = async (tierName: string) => {
-    const tierKey = TIER_KEYS[tierName]
-    if (!tierKey || tierKey === TIER_KEYS[plan]) return
-    setUpgradingTier(tierName)
+  const handleUpgrade = async (tierKey: string) => {
+    if (!tierKey || tierKey === plan) return
+    setUpgradingTier(tierKey)
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
@@ -108,7 +104,7 @@ export default function BillingPage() {
         throw new Error('No checkout URL returned')
       }
     } catch (err: any) {
-      setToast(`Upgrade failed: ${err.message}`)
+      setToast(t('upgradeFailed', { error: err.message }))
       setUpgradingTier(null)
     }
   }
@@ -133,15 +129,15 @@ export default function BillingPage() {
 
       {/* Header */}
       <header className="border-b border-gray-200/70 pb-6">
-        <p className="page-eyebrow mb-1">PRETPLATA AGENCIJE</p>
+        <p className="page-eyebrow mb-1">{t('agencySubscription')}</p>
         <h1
           className="text-3xl font-bold text-gray-900"
           style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
         >
-          Billing & Agencijski Paket
+          {t('title')}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Upravljanje pretplatom na EstateLine CRM, resursima i fakturama servisa.
+          {t('subtitle')}
         </p>
       </header>
 
@@ -150,21 +146,21 @@ export default function BillingPage() {
         <div className="space-y-2 z-10">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-[#C9963B]" />
-            <span className="text-xs font-bold text-[#C9963B] uppercase tracking-wider">Aktivni Agencijski Paket</span>
+            <span className="text-xs font-bold text-[#C9963B] uppercase tracking-wider">{t('activePlanLabel')}</span>
           </div>
-          <h2 className="text-3xl font-bold">{plan}</h2>
+          <h2 className="text-3xl font-bold">{t(`plan_${(PLAN_IDS as readonly string[]).includes(plan as PlanId) ? (plan as PlanId) : 'pro'}`)}</h2>
           <p className="text-xs text-gray-300">
-            Pristup svim naprednim modulima: AI Matchmaking, OLX Sinhronizacija, Generator Ugovora & Multi-Agent CRM.
+            {t('modulesLine')}
           </p>
         </div>
 
         <div className="flex items-center gap-3 z-10 shrink-0">
           <button
-            onClick={() => handleUpgrade('EstateLine Pro')}
-            disabled={upgradingTier === 'EstateLine Pro'}
+            onClick={() => handleUpgrade('pro')}
+            disabled={upgradingTier === 'pro'}
             className="px-5 py-3 bg-[#C9963B] hover:bg-[#b88328] text-white font-bold text-xs rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-wait"
           >
-            {upgradingTier === 'EstateLine Pro' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Upravljaj Pretplatom'}
+            {upgradingTier === 'pro' ? <Loader2 className="w-3 h-3 animate-spin" /> : t('manageSubscription')}
           </button>
         </div>
       </div>
@@ -182,35 +178,35 @@ export default function BillingPage() {
             <>
               <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-3">
                 <div className="flex justify-between items-center text-xs text-gray-500 font-semibold">
-                  <span>Aktivne Nekretnine</span>
+                  <span>{t('activeProperties')}</span>
                   <span className="font-bold text-gray-900">{props.used} / {props.cap}</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full bg-[#C9963B] rounded-full transition-all duration-500" style={{ width: `${propPct}%` }} />
                 </div>
-                <p className="text-[11px] text-gray-400">Preostalo još {Math.max(0, props.cap - props.used)} mjesta za oglase.</p>
+                <p className="text-[11px] text-gray-400">{t('listingsLeft', { count: Math.max(0, props.cap - props.used) })}</p>
               </div>
 
               <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-3">
                 <div className="flex justify-between items-center text-xs text-gray-500 font-semibold">
-                  <span>Licence Agenata</span>
+                  <span>{t('agentLicenses')}</span>
                   <span className="font-bold text-gray-900">{agents.used} / {agents.cap}</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full bg-[#2563EB] rounded-full transition-all duration-500" style={{ width: `${agentPct}%` }} />
                 </div>
-                <p className="text-[11px] text-gray-400">Preostalo još {Math.max(0, agents.cap - agents.used)} licenciranih agenata.</p>
+                <p className="text-[11px] text-gray-400">{t('agentsLeft', { count: Math.max(0, agents.cap - agents.used) })}</p>
               </div>
 
               <div className="bg-white border border-gray-200/70 rounded-3xl p-6 shadow-sm space-y-3">
                 <div className="flex justify-between items-center text-xs text-gray-500 font-semibold">
-                  <span>Skladište Dokumenta</span>
+                  <span>{t('documentStorage')}</span>
                   <span className="font-bold text-gray-900">{storage.used} GB / {storage.cap} GB</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full bg-[#059669] rounded-full transition-all duration-500" style={{ width: `${storagePct}%` }} />
                 </div>
-                <p className="text-[11px] text-gray-400">Dovoljno prostora za hiljade ugovora.</p>
+                <p className="text-[11px] text-gray-400">{t('storageHint')}</p>
               </div>
             </>
           )
@@ -219,14 +215,10 @@ export default function BillingPage() {
 
       {/* Pricing Tiers */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-        {[
-          { name: 'Starter Agencija', price: '€49 / mj', features: ['Do 25 Nekretnina', '2 Agenta', 'Osnovna OLX Sinhronizacija'] },
-          { name: 'EstateLine Pro', price: '€99 / mj', features: ['Do 100 Nekretnina', '10 Agenata', 'Neograničeno OLX & Portali', 'Generator Ugovora'] },
-          { name: 'Enterprise Premium', price: '€199 / mj', features: ['Neograničeno Nekretnina', 'Neograničeno Agenata', 'Privatni API & White-Label', '24/7 Podrška'] },
-        ].map((tier, idx) => {
-          const isActive = tier.name === plan
-          const isUpgrading = upgradingTier === tier.name
-          const isCurrent = TIER_KEYS[tier.name] === TIER_KEYS[plan]
+        {PLAN_IDS.map((id, idx) => {
+          const isActive = id === plan
+          const isUpgrading = upgradingTier === id
+          const isCurrent = id === plan
           return (
             <div
               key={idx}
@@ -236,28 +228,32 @@ export default function BillingPage() {
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-lg text-gray-900">{tier.name}</h3>
+                  <h3 className="font-bold text-lg text-gray-900">{t(`plan_${id}`)}</h3>
                   {isActive && (
                     <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-[#C9963B] border border-amber-200">
-                      Aktivno
+                      {t('activeBadge')}
                     </span>
                   )}
                 </div>
 
-                <div className="text-2xl font-bold text-gray-900">{tier.price}</div>
+                <div className="text-2xl font-bold text-gray-900">{t(`price_${id}`)}</div>
 
                 <div className="space-y-2 text-xs text-gray-600">
-                  {tier.features.map((f, fIdx) => (
-                    <div key={fIdx} className="flex items-center gap-2">
-                      <CheckCircle2 size={14} className="text-[#C9963B]" />
-                      <span>{f}</span>
-                    </div>
-                  ))}
+                  {[1, 2, 3, 4].map(n => {
+                    const key = `feat_${id}_${n}`
+                    const label = t.has(key) ? t(key) : null
+                    return label ? (
+                      <div key={n} className="flex items-center gap-2">
+                        <CheckCircle2 size={14} className="text-[#C9963B]" />
+                        <span>{label}</span>
+                      </div>
+                    ) : null
+                  })}
                 </div>
               </div>
 
               <button
-                onClick={() => handleUpgrade(tier.name)}
+                onClick={() => handleUpgrade(id)}
                 disabled={isCurrent || isUpgrading}
                 className={`w-full py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-2 ${
                   isCurrent

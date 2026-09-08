@@ -3,6 +3,7 @@ import { setRequestLocale, getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { locales, defaultLocale, type Locale } from '@/i18n'
 import { CurrencyProvider } from '@/components/CurrencyContext'
+import HtmlLangSync from '@/components/HtmlLangSync'
 import '../globals.css'
 
 export function generateStaticParams() {
@@ -27,6 +28,7 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider locale={locale as Locale} messages={messages}>
+      <HtmlLangSync />
       <CurrencyProvider>
         {children}
       </CurrencyProvider>

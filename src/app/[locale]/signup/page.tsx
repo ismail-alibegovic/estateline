@@ -314,7 +314,7 @@ export default function SignupPage() {
                     if (formData.fullName && formData.email && formData.password) {
                       setStep(2)
                     } else {
-                      setError(locale === 'bs' ? 'Molimo popunite sva polja koraka 1' : 'Please fill in all step 1 fields')
+                      setError(t('step1Required'))
                     }
                   }}
                   className="w-full py-3.5 px-4 text-white font-semibold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-2"
