@@ -36,7 +36,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
@@ -97,7 +97,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Chromium for Lighthouse
+        run: |
+          npx playwright install --with-deps chromium
+          CHROME_PATH=$(find ~/.cache/ms-playwright -type f -name chrome -path '*chrome-linux*' | head -1)
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
 
       - name: Build production bundle
         run: npm run build

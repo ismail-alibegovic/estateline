@@ -10,7 +10,7 @@ module.exports = {
       startServerReadyPattern: 'Ready in',
       startServerReadyTimeout: 120000,
       settings: {
-        chromePath: '/usr/bin/chromium',
+        chromePath: process.env.CHROME_PATH || '/usr/bin/chromium',
         chromeFlags: '--no-sandbox --headless=new --disable-dev-shm-usage',
         preset: 'desktop',
         onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
