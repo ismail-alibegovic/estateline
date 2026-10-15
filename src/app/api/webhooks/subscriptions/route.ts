@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { getRouteContext, isAuthError, ADMIN_ROLES, requireRole } from '@/lib/auth'
+import { validateWebhookUrl } from '@/lib/webhook-url'
+import { allowMockIntegrations } from '@/lib/integration-env'
 
 export async function GET() {
   try {
@@ -34,8 +36,11 @@ export async function POST(req: NextRequest) {
 
     const { url, events } = await req.json()
 
-    if (!url || !url.startsWith('http')) {
-      return NextResponse.json({ error: 'Valid HTTP/HTTPS URL is required' }, { status: 400 })
+    const check = typeof url === 'string'
+      ? validateWebhookUrl(url, { allowInsecure: allowMockIntegrations() })
+      : ({ ok: false, reason: 'URL is required' } as const)
+    if (!check.ok) {
+      return NextResponse.json({ error: check.reason }, { status: 400 })
     }
 
     const secret = `whsec_${crypto.randomBytes(24).toString('hex')}`

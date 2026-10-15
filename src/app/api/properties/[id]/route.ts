@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
+import { dispatchWebhookEvent } from '@/lib/webhook-dispatcher'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -30,6 +31,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: 'Insufficient role' }, { status: 403 })
 
     const body = await request.json()
+    // Never let a client re-parent or rewrite identity columns.
+    delete body.id
+    delete body.organization_id
+    delete body.created_at
 
     const { data, error } = await ctx.supabase
       .from('properties')
@@ -40,6 +45,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       .single()
 
     if (error) throw error
+    void dispatchWebhookEvent(ctx.org.id, 'property.updated', data)
     return NextResponse.json({ data })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })

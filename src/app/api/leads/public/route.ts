@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { createAdminClient } from '@/lib/supabase'
+import { dispatchWebhookEvent } from '@/lib/webhook-dispatcher'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not create lead' }, { status: 500 })
     }
 
+    void dispatchWebhookEvent(org.id, 'lead.created', data)
     return NextResponse.json({ success: true, organization: { name: org.name, slug: org.slug }, data })
   } catch {
     return NextResponse.json({ error: 'Invalid lead submission' }, { status: 500 })
