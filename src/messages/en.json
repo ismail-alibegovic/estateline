@@ -86,7 +86,8 @@
     "feat_agency_1": "Unlimited properties",
     "feat_agency_2": "Unlimited agents",
     "feat_agency_3": "Private API & White-Label",
-    "feat_agency_4": "24/7 Support"
+    "feat_agency_4": "24/7 Support",
+    "documentStorage": "Document storage"
   },
   "calendar": {
     "title": "Interactive Calendar",
@@ -180,7 +181,9 @@
     "saving": "Saving...",
     "allCount": "All ({n})",
     "confirmDeleteContact": "Are you sure you want to delete this contact?",
-    "contactAdded": "Contact added!"
+    "contactAdded": "Contact added!",
+    "eventAdded": "Event added!",
+    "dealStageUpdated": "Deal stage updated!"
   },
   "contacts": {
     "addContact": "Add Contact",
@@ -921,5 +924,10 @@
     "saveTemplate": "Save template & mapping",
     "autoDetect": "Automatic field detection is on",
     "editText": "Edit text"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "tryAgainMessage": "An unexpected error occurred. Please try again.",
+    "tryAgain": "Try again"
   }
 }
