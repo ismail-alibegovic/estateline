@@ -872,5 +872,23 @@
     "save": "Save new password",
     "linkInvalid": "The password reset link is invalid or has expired.",
     "redirecting": "Redirecting to sign in..."
+  },
+  "contractTemplates": {
+    "saved": "Contract template saved!",
+    "testPdfOk": "Test PDF generated and downloaded!",
+    "testPdfError": "Error generating the test PDF.",
+    "title": "Contracts & templates (PDF editor)",
+    "subtitle": "Manage contract templates with variables filled in automatically from your data.",
+    "newTemplateTitle": "New contract template",
+    "newTemplateDesc": "Description of the new contract template",
+    "newTemplate": "New template",
+    "available": "Available templates ({count})",
+    "cancel": "Cancel",
+    "nameLabel": "Template name",
+    "descLabel": "Template description",
+    "contentLabel": "Contract content with variables",
+    "saveTemplate": "Save template & mapping",
+    "autoDetect": "Automatic field detection is on",
+    "editText": "Edit text"
   }
 }

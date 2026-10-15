@@ -872,5 +872,23 @@
     "save": "Sačuvaj novu lozinku",
     "linkInvalid": "Link za promjenu lozinke nije validan ili je istekao.",
     "redirecting": "Preusmjeravanje na prijavu..."
+  },
+  "contractTemplates": {
+    "saved": "Šablon ugovora je uspješno sačuvan!",
+    "testPdfOk": "Testni PDF je uspješno generisan i preuzet!",
+    "testPdfError": "Greška pri generisanju testnog PDF-a.",
+    "title": "Ugovori & šabloni (PDF editor)",
+    "subtitle": "Upravljajte šablonima ugovora sa automatskim popunjavanjem varijabli iz baze podataka.",
+    "newTemplateTitle": "Novi šablon ugovora",
+    "newTemplateDesc": "Opis novog ugovornog šablona",
+    "newTemplate": "Novi šablon",
+    "available": "Dostupni šabloni ({count})",
+    "cancel": "Otkaži",
+    "nameLabel": "Naziv šablona",
+    "descLabel": "Opis šablona",
+    "contentLabel": "Sadržaj ugovora sa varijablama",
+    "saveTemplate": "Spremi šablon & mapiranje",
+    "autoDetect": "Automatsko prepoznavanje polja je aktivno",
+    "editText": "Uredi tekst"
   }
 }
