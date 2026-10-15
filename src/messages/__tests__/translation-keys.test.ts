@@ -26,9 +26,9 @@ describe('translation keys used in components exist in both languages', () => {
     const missing: string[] = []
     for (const file of walk(path.join(root, 'src'))) {
       const text = fs.readFileSync(file, 'utf8')
-      const translators = [...text.matchAll(/const (\w+) = useTranslations\('([\w.]+)'\)/g)]
+      const translators = Array.from(text.matchAll(/const (\w+) = useTranslations\('([\w.]+)'\)/g))
       for (const [, variable, namespace] of translators) {
-        const uses = text.matchAll(new RegExp(`\\b${variable}\\('([\\w.]+)'`, 'g'))
+        const uses = Array.from(text.matchAll(new RegExp(`\\b${variable}\\('([\\w.]+)'`, 'g')))
         for (const [, key] of uses) {
           for (const lang of ['bs', 'en']) {
             if (lookup(messages[lang], `${namespace}.${key}`) === undefined) {
