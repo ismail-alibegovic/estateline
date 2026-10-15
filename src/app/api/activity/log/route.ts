@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
+import { createRouteClient, getRouteContext, isAuthError, WRITER_ROLES, requireRole } from '@/lib/auth'
 
 /**
  * POST /api/activity/log
@@ -22,6 +22,8 @@ const VALID_ACTIONS = new Set(['messaged', 'call', 'email', 'meeting', 'note'])
 export async function POST(req: NextRequest) {
   const ctx = await getRouteContext()
   if (isAuthError(ctx)) return ctx
+  const denied = requireRole(ctx, WRITER_ROLES)
+  if (denied) return denied
 
   let body: any
   try {

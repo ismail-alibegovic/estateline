@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getRouteContext, isAuthError, ADMIN_ROLES, requireRole } from '@/lib/auth'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,10 @@ export async function GET(req: NextRequest) {
   // it IS the data-out path of the deletion lifecycle.
   const ctx = await getRouteContext({ allowScheduledForDeletion: true })
   if (isAuthError(ctx)) return ctx
+  const denied = requireRole(ctx, ADMIN_ROLES)
+  if (denied) return denied
+  const rl = await checkRateLimit(req, 5, 60 * 1000, `org:${ctx.org.id}`)
+  if (!rl.success) return rateLimitResponse()
 
   const url = new URL(req.url)
   const entityParam = url.searchParams.get('entity') || 'all'

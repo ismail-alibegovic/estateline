@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getRouteContext, isAuthError, ADMIN_ROLES, WRITER_ROLES, requireRole } from '@/lib/auth'
 import { calculateDealCommissions } from '@/lib/commission-service'
 
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getRouteContext()
     if (isAuthError(ctx)) return ctx
+    const denied = requireRole(ctx, WRITER_ROLES)
+    if (denied) return denied
     const { org, supabase } = ctx
 
     const { searchParams } = new URL(req.url)
@@ -37,6 +39,8 @@ export async function POST(req: NextRequest) {
   try {
     const ctx = await getRouteContext()
     if (isAuthError(ctx)) return ctx
+    const denied = requireRole(ctx, ADMIN_ROLES)
+    if (denied) return denied
     const { org, supabase } = ctx
 
     const { deal_id, commission_rate_pct, splits } = await req.json()

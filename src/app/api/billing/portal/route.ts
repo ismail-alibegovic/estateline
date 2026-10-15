@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getRouteContext, isAuthError, ADMIN_ROLES, requireRole } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase'
-import { hasRealStripeSecret, integrationEnv } from '@/lib/integration-env'
+import {
+  allowMockIntegrations,
+  hasRealStripeSecret,
+  integrationEnv,
+  integrationNotConfiguredResponse,
+} from '@/lib/integration-env'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -13,6 +18,12 @@ const stripe = new Stripe(integrationEnv.stripeSecretKey || 'mock_stripe_key', {
 export async function POST(request: Request) {
   const ctx = await getRouteContext()
   if (isAuthError(ctx)) return ctx
+  const denied = requireRole(ctx, ADMIN_ROLES)
+  if (denied) return denied
+
+  if (!hasRealStripeSecret() && !allowMockIntegrations()) {
+    return integrationNotConfiguredResponse('Billing')
+  }
 
   try {
     const origin = request.headers.get('origin') || 'http://localhost:3000'

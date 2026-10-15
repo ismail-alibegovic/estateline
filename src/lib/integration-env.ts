@@ -22,6 +22,25 @@ export const integrationEnv = {
   get upstashRedisRestToken() { return process.env.ESTATELINE_UPSTASH_REDIS_REST_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN },
 }
 
+/**
+ * Mock fallbacks (fake checkout URLs, "sent" messages that were never sent)
+ * are for local development only. In production a missing provider key must
+ * surface as an error, not as a success the customer believes.
+ */
+export function allowMockIntegrations(): boolean {
+  return process.env.NODE_ENV !== 'production'
+}
+
+export function integrationNotConfiguredResponse(name: string): Response {
+  return new Response(
+    JSON.stringify({
+      error: `${name} is not configured on this server. Contact support.`,
+      code: 'INTEGRATION_NOT_CONFIGURED',
+    }),
+    { status: 503, headers: { 'content-type': 'application/json' } }
+  )
+}
+
 export function hasRealStripeSecret(): boolean {
   return Boolean(integrationEnv.stripeSecretKey && !integrationEnv.stripeSecretKey.startsWith('mock'))
 }

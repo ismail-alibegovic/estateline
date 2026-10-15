@@ -1,11 +1,16 @@
-import { NextResponse } from 'next/server'
-import { getRouteContext } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { getRouteContext, WRITER_ROLES, requireRole } from '@/lib/auth'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { generateContractPdf, SystemVariables, DocumentBranding } from '@/lib/pdf-generator'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const ctx = await getRouteContext()
     if (ctx instanceof Response) return ctx
+    const denied = requireRole(ctx, WRITER_ROLES)
+    if (denied) return denied
+    const rl = await checkRateLimit(request, 30, 60 * 1000, `org:${ctx.org.id}`)
+    if (!rl.success) return rateLimitResponse()
 
     const {
       title,
