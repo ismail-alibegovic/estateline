@@ -1,0 +1,16 @@
+{
+  "name": "estateline-mcp",
+  "version": "0.1.0",
+  "description": "Read-only MCP server that lets Claude query an Estateline organization via its API key",
+  "type": "module",
+  "bin": { "estateline-mcp": "dist/index.js" },
+  "scripts": { "build": "tsc", "start": "node dist/index.js" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

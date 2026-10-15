@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getRouteContext, isAuthError, WRITER_ROLES, requireRole } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
     const ctx = await getRouteContext()
     if (isAuthError(ctx)) return ctx
+    const denied = requireRole(ctx, WRITER_ROLES)
+    if (denied) return denied
     const { org, supabase } = ctx
 
     const {

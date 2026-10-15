@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { getReadContext } from '@/lib/api-key-auth'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const ctx = await getRouteContext()
-    if (isAuthError(ctx)) return ctx
+    const ctx = await getReadContext(request)
+    if (ctx instanceof Response) return ctx
 
     const { data, error } = await ctx.supabase.rpc('get_dashboard_metrics', {
       p_org_id: ctx.org.id,

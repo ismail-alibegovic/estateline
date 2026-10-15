@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getRouteContext, isAuthError, ADMIN_ROLES, requireRole } from '@/lib/auth'
 import { cleanOlxUrl, mapOlxCategoryToPropertyType, cleanOlxDescription } from '@/lib/olx-helpers'
 
 export const dynamic = 'force-dynamic'
@@ -7,6 +7,8 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const ctx = await getRouteContext()
   if (isAuthError(ctx)) return ctx
+  const denied = requireRole(ctx, ADMIN_ROLES)
+  if (denied) return denied
 
   const { org, supabase } = ctx
 
@@ -46,6 +48,8 @@ export async function GET() {
 export async function POST(request: Request) {
   const ctx = await getRouteContext()
   if (isAuthError(ctx)) return ctx
+  const denied = requireRole(ctx, ADMIN_ROLES)
+  if (denied) return denied
 
   const { org, supabase } = ctx
 

@@ -210,7 +210,7 @@ export default function ContactsPage() {
           }}
         >
           <Plus size={16} />
-          <span>Dodaj Novi Kontakt</span>
+          <span>{t('addNewContact')}</span>
         </button>
       </header>
 
@@ -309,7 +309,7 @@ export default function ContactsPage() {
                     <WhatsAppButton phone={c.phone} entityType="contact" entityId={c.id} />
                   </div>
                 ) : (
-                  <p className="text-gray-400 italic">Nema broja telefona</p>
+                  <p className="text-gray-400 italic">{tCommon('noPhone')}</p>
                 )}
 
                 {c.email && (
@@ -350,7 +350,7 @@ export default function ContactsPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Dodaj Novi Kontakt</h3>
+              <h3 className="text-xl font-bold text-gray-900">{t('addNewContact')}</h3>
               <p className="text-xs text-gray-500 mt-1">{t('addDesc')}</p>
             </div>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getRouteContext, isAuthError } from '@/lib/auth'
 import { canAddProperty } from '@/lib/limits'
+import { dispatchWebhookEvent } from '@/lib/webhook-dispatcher'
 
 export async function GET(request: Request) {
   try {
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
       .single()
 
     if (error) throw error
+    void dispatchWebhookEvent(ctx.org.id, 'property.created', data)
     return NextResponse.json({ data }, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })

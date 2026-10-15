@@ -24,15 +24,20 @@ setInterval(() => {
  * @param req NextRequest
  * @param limit Maximum requests allowed in the window
  * @param windowMs Window duration in milliseconds
+ * @param scope Optional bucket owner, e.g. `org:<id>`. Authenticated routes
+ *   pass the organization so one agency cannot burn the shared budget (or be
+ *   throttled by another agency behind the same proxy IP). Defaults to the
+ *   caller's IP, which is right for public endpoints.
  */
 export async function checkRateLimit(
   req: NextRequest,
   limit: number = 30,
-  windowMs: number = 60 * 1000
+  windowMs: number = 60 * 1000,
+  scope?: string
 ): Promise<{ success: boolean; limit: number; remaining: number; reset: number }> {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anonymous'
   const path = req.nextUrl.pathname
-  const key = `${ip}:${path}`
+  const key = `${scope ?? ip}:${path}`
   const now = Date.now()
 
   // Try Upstash Redis if configured

@@ -196,9 +196,17 @@ If the RPC fails (e.g., slug taken), the API route calls `supabaseAdmin.auth.adm
 - [x] Atomic signup flow
 - [x] Stripe webhook signature verification
 - [x] Environment variable validation
-- [ ] Rate limiting on API routes
-- [ ] SQL injection prevention (parameterized queries only)
-- [ ] XSS prevention (React escapes by default)
-- [ ] CSRF protection (Supabase handles this)
+- [x] Rate limiting on API routes (public routes per IP; costly authenticated routes per organization)
+- [x] SQL injection prevention (parameterized queries only)
+- [x] XSS prevention (React escapes by default)
+- [x] CSRF protection (Supabase handles this)
 - [ ] Regular security audits
-- [ ] Penetration testing
+- [ ] Penetration testing- [x] Role checks on API routes (owner/admin vs agent/viewer) with route-level tests
+- [x] Billing, SMS and email fail closed in production when the provider is not configured
+- [x] Outgoing webhooks: https-only, private-address block, timeouts, retries, no redirects
+- [x] API keys (`Authorization: Bearer est_live_...`) hashed at rest, read-only routes only, 120 req/min per key
+- [ ] Migrations 029, 030, 031 applied to production (written, reviewed in PR, **not yet applied**)
+- [ ] Migrations 025-027 and the 006 microsite function applied to production (schema drift)
+- [ ] Next.js upgrade to a patched major version (`npm audit` reports advisories fixed only in a newer major)
+- [ ] Leaked-password protection enabled in Supabase Auth settings
+- [ ] Pin `search_path` on remaining SECURITY DEFINER functions (Supabase advisor warning)

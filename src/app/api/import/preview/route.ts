@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRouteContext } from '@/lib/auth'
+import { getRouteContext, ADMIN_ROLES, requireRole } from '@/lib/auth'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { buildPreview, collectExistingKeys, readSheetFromRequest, MAX_IMPORT_ROWS } from '@/lib/import-server'
 
 export async function POST(req: NextRequest) {
   const ctx = await getRouteContext()
   if (ctx instanceof Response) return ctx
+  const denied = requireRole(ctx, ADMIN_ROLES)
+  if (denied) return denied
+  const rl = await checkRateLimit(req, 10, 60 * 1000, `org:${ctx.org.id}`)
+  if (!rl.success) return rateLimitResponse()
   const { supabase } = ctx
 
   const parsed = await readSheetFromRequest(req)

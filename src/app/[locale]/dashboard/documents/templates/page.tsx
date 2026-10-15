@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { extractPlaceholders, SYSTEM_FIELDS_OPTIONS } from '@/lib/pdf-generator'
 import { createBrowserClient } from '@/lib/supabase'
+import { useTranslations } from 'next-intl'
 
 interface TemplateItem {
   id: string
@@ -102,6 +103,7 @@ export default function DocumentTemplatesPage() {
   const params = useParams()
   const router = useRouter()
   const locale = (params?.locale as string) || 'en'
+  const tr = useTranslations('contractTemplates')
 
   const [templates, setTemplates] = useState<TemplateItem[]>(DEFAULT_CONTRACT_TEMPLATES)
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateItem | null>(DEFAULT_CONTRACT_TEMPLATES[0])
@@ -163,7 +165,7 @@ export default function DocumentTemplatesPage() {
 
     setSelectedTemplate(updated)
     setIsEditing(false)
-    toast('Šablon ugovora je uspješno sačuvan!')
+    toast(tr('saved'))
   }
 
   const handleTestGenerate = async () => {
@@ -209,9 +211,9 @@ export default function DocumentTemplatesPage() {
       a.click()
       a.remove()
 
-      toast('Testni PDF je uspješno generisan i preuzet!')
+      toast(tr('testPdfOk'))
     } catch {
-      toast('Greška pri generisanju testnog PDF-a.')
+      toast(tr('testPdfError'))
     } finally {
       setGenerating(false)
     }
@@ -242,10 +244,10 @@ export default function DocumentTemplatesPage() {
                 className="text-3xl font-bold text-slate-900 tracking-tight"
                 style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
               >
-                Ugovori & Šabloni (PDF Editor)
+                {tr('title')}
               </h1>
               <p className="text-sm text-slate-500 mt-1">
-                Upravljajte šablonima ugovora sa automatskim popunjavanjem varijabli iz baze podataka.
+                {tr('subtitle')}
               </p>
             </div>
           </div>
@@ -256,8 +258,8 @@ export default function DocumentTemplatesPage() {
             onClick={() => {
               const newTmpl: TemplateItem = {
                 id: `tmpl-${Date.now()}`,
-                title: 'Novi Šablon Ugovora',
-                description: 'Opis novog ugovornog šablona',
+                title: tr('newTemplateTitle'),
+                description: tr('newTemplateDesc'),
                 content: 'UGOVOR O POSREDOVANJU\n\nKlijent: ${client_name}\nNekretnina: ${property_title}\nCijena: ${property_price}',
                 placeholders: ['client_name', 'property_title', 'property_price'],
                 mappings: { client_name: 'client_name', property_title: 'property_title', property_price: 'property_price' },
@@ -270,7 +272,7 @@ export default function DocumentTemplatesPage() {
             className="px-4 py-2.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white text-sm font-semibold flex items-center gap-2 shadow-md transition-all"
           >
             <Plus size={16} />
-            <span>Novi Šablon</span>
+            <span>{tr('newTemplate')}</span>
           </button>
         </div>
       </div>
@@ -281,7 +283,7 @@ export default function DocumentTemplatesPage() {
         <div className="lg:col-span-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Dostupni Šabloni ({templates.length})
+              {tr('available', { count: templates.length })}
             </h2>
           </div>
 
@@ -347,7 +349,7 @@ export default function DocumentTemplatesPage() {
                     onClick={() => setIsEditing(!isEditing)}
                     className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-all"
                   >
-                    {isEditing ? 'Otkaži' : 'Uredi Tekst'}
+                    {isEditing ? tr('cancel') : tr('editText')}
                   </button>
                 </div>
               </div>
@@ -357,7 +359,7 @@ export default function DocumentTemplatesPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                      Naziv Šablona
+                      {tr('nameLabel')}
                     </label>
                     <input
                       type="text"
@@ -368,7 +370,7 @@ export default function DocumentTemplatesPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                      Opis Šablona
+                      {tr('descLabel')}
                     </label>
                     <input
                       type="text"
@@ -383,9 +385,9 @@ export default function DocumentTemplatesPage() {
               {/* Contract Body Text Area */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
-                  <span>Sadržaj Ugovora sa Varijablama ($&#123;naziv_polja&#125;)</span>
+                  <span>{tr('contentLabel')} ($&#123;naziv_polja&#125;)</span>
                   <span className="text-amber-600 font-normal normal-case text-xs flex items-center gap-1">
-                    <Sparkles size={12} /> Auto-detect placeholdera aktivan
+                    <Sparkles size={12} /> {tr('autoDetect')}
                   </span>
                 </label>
 
@@ -451,7 +453,7 @@ export default function DocumentTemplatesPage() {
                   className="px-5 py-2.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white text-sm font-semibold shadow-md transition-all flex items-center gap-2"
                 >
                   <Check size={16} />
-                  <span>Spremi Šablon & Mapiranje</span>
+                  <span>{tr('saveTemplate')}</span>
                 </button>
               </div>
             </div>

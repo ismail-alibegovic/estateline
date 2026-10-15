@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getRouteContext, isAuthError, WRITER_ROLES, requireRole } from '@/lib/auth'
 import { generateContractPdf, type DocumentBranding, type SystemVariables } from '@/lib/pdf-generator'
 
 // Field names below match the `properties` table as defined in
@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
     // the authenticated user is permitted to see.
     const ctx = await getRouteContext()
     if (isAuthError(ctx)) return ctx
+    const denied = requireRole(ctx, WRITER_ROLES)
+    if (denied) return denied
     const { org, supabase } = ctx
 
     const { property_id, contact_id, deal_id } = await req.json()

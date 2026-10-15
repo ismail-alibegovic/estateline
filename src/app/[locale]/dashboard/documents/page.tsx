@@ -27,6 +27,7 @@ interface DocumentItem {
 export default function DocumentsPage() {
   const params = useParams()
   const locale = (params?.locale as string) || 'en'
+  const tr = useTranslations('documents')
   const [activeTab, setActiveTab] = useState<'library' | 'builder'>('library')
   const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,7 +127,7 @@ export default function DocumentsPage() {
     }
 
     setDocuments(prev => [newDoc, ...prev])
-    toast('Dokument je uspješno dodan u biblioteku!')
+    toast(tr('added'))
     setNewTitle('')
     setSelectedFile(null)
     setIsOpen(false)
@@ -134,9 +135,9 @@ export default function DocumentsPage() {
   }
 
   const deleteDoc = (id: string) => {
-    if (!confirm('Da li ste sigurni da želite obrisati ovaj dokument?')) return
+    if (!confirm(tr('confirmDelete'))) return
     setDocuments(prev => prev.filter(d => d.id !== id))
-    toast('Dokument je obrisan!')
+    toast(tr('deleted'))
   }
 
   const filteredDocs = documents.filter(d => {
@@ -184,10 +185,10 @@ export default function DocumentsPage() {
             className="text-3xl font-bold text-gray-900"
             style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
           >
-            Dokumenti & Ugovori
+            {tr('title')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Arhiva zk izvadaka, posredničkih ugovora i generator zvaničnih predugovora.
+            {tr('subtitle')}
           </p>
         </div>
 
@@ -199,7 +200,7 @@ export default function DocumentsPage() {
               activeTab === 'library' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            Biblioteka Dokumenta
+            {tr('libraryTab')}
           </button>
           <button
             onClick={() => setActiveTab('builder')}
@@ -208,14 +209,14 @@ export default function DocumentsPage() {
             }`}
           >
             <Sparkles size={14} />
-            <span>Generator Ugovora</span>
+            <span>{tr('contractGenerator')}</span>
           </button>
           <Link
             href={`/${locale}/dashboard/documents/templates`}
             className="px-4 py-2 text-xs font-bold rounded-xl text-slate-700 hover:text-slate-900 hover:bg-white/60 transition-all flex items-center gap-1.5"
           >
             <FileText size={14} className="text-[#C9963B]" />
-            <span>Šabloni & PDF Editor</span>
+            <span>{tr('templatesEditor')}</span>
           </Link>
         </div>
       </header>
@@ -229,7 +230,7 @@ export default function DocumentsPage() {
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Pretraži dokumente po nazivu..."
+                placeholder={tr('searchPlaceholder')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -245,17 +246,17 @@ export default function DocumentsPage() {
               }}
             >
               <Upload size={16} />
-              <span>Dodaj Dokument</span>
+              <span>{tr('addDocument')}</span>
             </button>
           </div>
 
           {/* Folder Categories */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
-              { key: 'all', label: 'Svi Dokumenti', count: documents.length },
-              { key: 'contracts', label: 'Posrednički Ugovori', count: documents.filter(d => d.category === 'contracts').length },
-              { key: 'leases', label: 'ZK Izvadci & Vlasništvo', count: documents.filter(d => d.category === 'leases').length },
-              { key: 'templates', label: 'Šabloni & Predugovori', count: documents.filter(d => d.category === 'templates').length },
+              { key: 'all', label: tr('catAll'), count: documents.length },
+              { key: 'contracts', label: tr('catContracts'), count: documents.filter(d => d.category === 'contracts').length },
+              { key: 'leases', label: tr('catLeases'), count: documents.filter(d => d.category === 'leases').length },
+              { key: 'templates', label: tr('catTemplates'), count: documents.filter(d => d.category === 'templates').length },
             ].map(folder => (
               <div
                 key={folder.key}
@@ -312,13 +313,13 @@ export default function DocumentsPage() {
           {/* Builder Controls */}
           <div className="bg-white rounded-3xl border border-gray-200/70 p-6 sm:p-8 shadow-sm space-y-6">
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Postavke Predugovora</h3>
-              <p className="text-xs text-gray-500 mt-1">Prilagodite naslov, proviziju i klauzule ugovora u realnom vremenu.</p>
+              <h3 className="text-xl font-bold text-gray-900">{tr('builderTitle')}</h3>
+              <p className="text-xs text-gray-500 mt-1">{tr('builderHint')}</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">Naslov Ugovora</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">{tr('contractTitle')}</label>
                 <input
                   type="text"
                   value={customTitle}
@@ -328,7 +329,7 @@ export default function DocumentsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">Agencijska Provizija (%)</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">{tr('agencyFeeLabel')}</label>
                 <input
                   type="number"
                   step="0.5"
@@ -339,7 +340,7 @@ export default function DocumentsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Klauzule Ugovora</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">{tr('clauses')}</label>
                 <div className="space-y-2">
                   {customTerms.map((term, index) => (
                     <div key={index} className="flex items-center gap-2">
@@ -424,17 +425,17 @@ export default function DocumentsPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Dodaj Dokument u Biblioteku</h3>
-              <p className="text-xs text-gray-500 mt-1">Unesite naziv dokumenta i izaberite kategoriju.</p>
+              <h3 className="text-xl font-bold text-gray-900">{tr('addToLibrary')}</h3>
+              <p className="text-xs text-gray-500 mt-1">{tr('addToLibraryHint')}</p>
             </div>
 
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Naziv Dokumenta *</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{tr('docName')}</label>
                 <input
                   type="text"
                   required
-                  placeholder="ZK Izvadak / Posrednički Ugovor"
+                  placeholder={tr('docNamePlaceholder')}
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -442,15 +443,15 @@ export default function DocumentsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Kategorija</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{tr('category')}</label>
                 <select
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
                 >
-                  <option value="contracts">Posrednički Ugovori</option>
-                  <option value="leases">ZK Izvadci & Vlasništvo</option>
-                  <option value="templates">Šabloni & Predugovori</option>
+                  <option value="contracts">{tr('catContracts')}</option>
+                  <option value="leases">{tr('catLeases')}</option>
+                  <option value="templates">{tr('catTemplates')}</option>
                 </select>
               </div>
 
@@ -460,14 +461,14 @@ export default function DocumentsPage() {
                   onClick={() => setIsOpen(false)}
                   className="px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
                 >
-                  Odustani
+                  {tr('cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={uploading}
                   className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors"
                 >
-                  {uploading ? 'Dodavanje...' : 'Sačuvaj Dokument'}
+                  {uploading ? tr('adding') : tr('saveDocument')}
                 </button>
               </div>
             </form>

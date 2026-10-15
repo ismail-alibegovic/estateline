@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getRouteContext, isAuthError, ADMIN_ROLES, requireRole } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getRouteContext()
     if (isAuthError(ctx)) return ctx
+    const denied = requireRole(ctx, ADMIN_ROLES)
+    if (denied) return denied
     const { org, supabase } = ctx
 
     const { searchParams } = new URL(req.url)

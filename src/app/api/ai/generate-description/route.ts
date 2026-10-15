@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getRouteContext, isAuthError, WRITER_ROLES, requireRole } from '@/lib/auth'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { generatePropertyDescription } from '@/lib/ai-service'
 
 export async function POST(req: NextRequest) {
   try {
     const ctx = await getRouteContext()
     if (isAuthError(ctx)) return ctx
+    const denied = requireRole(ctx, WRITER_ROLES)
+    if (denied) return denied
+    const rl = await checkRateLimit(req, 10, 60 * 1000, `org:${ctx.org.id}`)
+    if (!rl.success) return rateLimitResponse()
 
     const body = await req.json()
 

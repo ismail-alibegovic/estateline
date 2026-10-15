@@ -33,6 +33,7 @@ type ActiveTab = 'inbox' | 'logs' | 'settings'
 export default function CommunicationsPage() {
   const tNav = useTranslations('nav')
   const tCommon = useTranslations('common')
+  const tc = useTranslations('communications')
   const [activeTab, setActiveTab] = useState<ActiveTab>('inbox')
   
   const [comms, setComms] = useState<Communication[]>([])
@@ -117,7 +118,7 @@ export default function CommunicationsPage() {
           smtpUser: orgData.smtp_user || '',
           smtpPassword: orgData.smtp_host ? '••••••••••••' : '',
           imapHost: orgData.imap_host || '',
-          signature: orgData.email_signature || `Srdačan pozdrav,\n${orgData.name}\nTelefon: +387 33 000 000`,
+          signature: orgData.email_signature || tc('defaultSignature', { name: orgData.name }),
           useSSL: true,
         })
       }
@@ -162,10 +163,10 @@ export default function CommunicationsPage() {
 
       if (error) throw error
       setIsEmailConnected(true)
-      toast('E-mail agencije je uspješno povezan!')
+      toast(tc('connected'))
       setActiveTab('inbox')
     } catch (err: any) {
-      toast('Greška pri povezivanju: ' + err.message, 'error')
+      toast(tc('connectError', { message: err.message }), 'error')
     } finally {
       setSavingConfig(false)
     }
@@ -213,7 +214,7 @@ export default function CommunicationsPage() {
         })
       }
 
-      toast('E-mail je uspješno poslan sa vašeg računa!')
+      toast(tc('sent'))
       setIsComposeOpen(false)
       setEmailTo('')
       setEmailSubject('')
@@ -259,7 +260,7 @@ export default function CommunicationsPage() {
       })
 
       if (error) throw error
-      toast('Zapis je sačuvan u dnevnik!')
+      toast(tc('logSaved'))
       setIsLogOpen(false)
       setLogTitle('')
       setLogSummary('')
@@ -300,12 +301,12 @@ export default function CommunicationsPage() {
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/60 pb-6">
         <div>
-          <p className="page-eyebrow mb-1">KOMUNIKACIJA & E-MAIL</p>
+          <p className="page-eyebrow mb-1">{tc('eyebrow')}</p>
           <h1 className="text-3xl font-semibold text-gray-900" style={{ fontFamily: 'var(--font-display), serif' }}>
-            Poruke & E-mail Sanduče Agencije
+            {tc('title')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Povežite službeni e-mail agencije, šaljite ponude klijentima i pratite komunikaciju.
+            {tc('subtitle')}
           </p>
         </div>
 
@@ -336,7 +337,7 @@ export default function CommunicationsPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
           >
             <Plus size={16} />
-            <span>Zabilježi Poziv / Sastanak</span>
+            <span>{tc('logCall')}</span>
           </button>
         </div>
       </header>
@@ -352,7 +353,7 @@ export default function CommunicationsPage() {
           }`}
         >
           <Inbox size={18} />
-          <span>E-mail Sanduče</span>
+          <span>{tc('inboxTab')}</span>
           {isEmailConnected && (
             <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
               {emailComms.length}
@@ -403,9 +404,9 @@ export default function CommunicationsPage() {
                 <Lock size={28} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-gray-900">E-mail Račun Agencije Nije Povezan</h3>
+                <h3 className="text-xl font-bold text-gray-900">{tc('notConnectedTitle')}</h3>
                 <p className="text-sm text-gray-500 max-w-md mx-auto">
-                  Da biste slali i primali e-mail poruke i ponude direktno kroz EstateLine, prvo morate povezati zvanični e-mail nalog agencije (npr. info@agencija.ba).
+                  {tc('notConnectedBody')}
                 </p>
               </div>
               <button
@@ -413,7 +414,7 @@ export default function CommunicationsPage() {
                 className="px-6 py-3 bg-[#C9963B] hover:bg-[#b88328] text-white font-semibold text-sm rounded-xl transition-all shadow-md inline-flex items-center gap-2"
               >
                 <LinkIcon size={16} />
-                <span>Poveži E-mail Račun Agencije Odmah</span>
+                <span>{tc('connectNow')}</span>
               </button>
             </div>
           ) : (
@@ -438,7 +439,7 @@ export default function CommunicationsPage() {
                     <span className="font-semibold text-gray-800">{emailConfig.smtpHost}</span>
                   </div>
                   <div className="flex justify-between py-1.5">
-                    <span className="text-gray-500">Sigurnost</span>
+                    <span className="text-gray-500">{tc('security')}</span>
                     <span className="font-semibold text-gray-800">TLS / SSL (587)</span>
                   </div>
                 </div>
@@ -448,7 +449,7 @@ export default function CommunicationsPage() {
                   className="w-full py-3 bg-[#C9963B] hover:bg-[#b88328] text-white font-semibold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
                 >
                   <Send size={16} />
-                  <span>Napiši Novi E-mail</span>
+                  <span>{tc('composeNew')}</span>
                 </button>
               </div>
 
@@ -490,12 +491,12 @@ export default function CommunicationsPage() {
                 ) : (
                   <div className="py-16 text-center text-gray-400 space-y-3">
                     <Mail size={32} className="mx-auto text-gray-300" />
-                    <p className="text-sm font-medium">Nema poruka u sandučetu</p>
+                    <p className="text-sm font-medium">{tc('emptyInbox')}</p>
                     <button
                       onClick={() => setIsComposeOpen(true)}
                       className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-semibold transition-colors"
                     >
-                      Pošalji prvi e-mail
+                      {tc('sendFirst')}
                     </button>
                   </div>
                 )}
@@ -513,7 +514,7 @@ export default function CommunicationsPage() {
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Pretraži poruke i zapise..."
+                placeholder={tc('searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -569,9 +570,9 @@ export default function CommunicationsPage() {
       {activeTab === 'settings' && (
         <div className="bg-white rounded-3xl border border-gray-200/70 p-8 shadow-sm max-w-3xl mx-auto space-y-6 animate-fade-in">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">Povezivanje Službenog E-maila Agencije</h3>
+            <h3 className="text-xl font-bold text-gray-900">{tc('connectTitle')}</h3>
             <p className="text-sm text-gray-500 mt-1">
-              Unesite podatke vašeg SMTP servera (npr. info@agencija.ba) kako bi agencija mogla slati i primati e-mailove.
+              {tc('connectHint')}
             </p>
           </div>
 
@@ -579,7 +580,7 @@ export default function CommunicationsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Službeni E-mail Agencije
+                  {tc('officialEmail')}
                 </label>
                 <input
                   type="email"
@@ -593,7 +594,7 @@ export default function CommunicationsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Naziv Pošiljaoca (Prikaz u mailu)
+                  {tc('senderName')}
                 </label>
                 <input
                   type="text"
@@ -625,7 +626,7 @@ export default function CommunicationsPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="587 ili 465"
+                  placeholder={tc('portPlaceholder')}
                   value={emailConfig.smtpPort}
                   onChange={(e) => setEmailConfig(prev => ({ ...prev, smtpPort: e.target.value }))}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -640,7 +641,7 @@ export default function CommunicationsPage() {
               </label>
               <textarea
                 rows={3}
-                placeholder="Srdačan pozdrav, Prestige Real Estate..."
+                placeholder={tc('signaturePlaceholder')}
                 value={emailConfig.signature}
                 onChange={(e) => setEmailConfig(prev => ({ ...prev, signature: e.target.value }))}
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -653,7 +654,7 @@ export default function CommunicationsPage() {
                 disabled={savingConfig}
                 className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold rounded-xl text-sm shadow-md hover:bg-[#b88328] transition-colors"
               >
-                {savingConfig ? 'Povezivanje...' : 'Sačuvaj i Poveži Račun'}
+                {savingConfig ? tc('connecting') : tc('saveAndConnect')}
               </button>
 
               <button
@@ -682,8 +683,8 @@ export default function CommunicationsPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Sastavi i Pošalji E-mail</h3>
-              <p className="text-xs text-gray-500 mt-1">Šalje se sa službene adrese: <b>{emailConfig.companyEmail}</b></p>
+              <h3 className="text-xl font-bold text-gray-900">{tc('composeTitle')}</h3>
+              <p className="text-xs text-gray-500 mt-1">{tc('sendingFrom')} <b>{emailConfig.companyEmail}</b></p>
             </div>
 
             <form onSubmit={handleSendEmail} className="space-y-4">
@@ -707,7 +708,7 @@ export default function CommunicationsPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Ponuda nekretnine / Informacije o obilasku"
+                  placeholder={tc('subjectPlaceholder')}
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -721,7 +722,7 @@ export default function CommunicationsPage() {
                 </label>
                 <textarea
                   rows={5}
-                  placeholder="Poštovani, u prilogu se nalaze detalji nekretnine..."
+                  placeholder={tc('bodyPlaceholder')}
                   value={emailBody}
                   onChange={(e) => setEmailBody(e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -743,7 +744,7 @@ export default function CommunicationsPage() {
                   className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-sm rounded-xl shadow-md hover:bg-[#b88328] transition-colors flex items-center gap-2"
                 >
                   <Send size={15} />
-                  <span>{sendingEmail ? 'Slanje...' : 'Pošalji E-mail'}</span>
+                  <span>{sendingEmail ? tc('sending') : tc('sendEmail')}</span>
                 </button>
               </div>
             </form>
@@ -763,8 +764,8 @@ export default function CommunicationsPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Zabilježi Poziv ili Sastanak</h3>
-              <p className="text-xs text-gray-500 mt-1">Evidentirajte detalje obavljenog poziva ili održanog sastanka.</p>
+              <h3 className="text-xl font-bold text-gray-900">{tc('logTitle')}</h3>
+              <p className="text-xs text-gray-500 mt-1">{tc('logHint')}</p>
             </div>
 
             <form onSubmit={handleCreateLog} className="space-y-4">
@@ -800,7 +801,7 @@ export default function CommunicationsPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Razgovor sa kupcem / Obilazak stana"
+                  placeholder={tc('logSubjectPlaceholder')}
                   value={logTitle}
                   onChange={(e) => setLogTitle(e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -810,11 +811,11 @@ export default function CommunicationsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                  Zabilješke / Sažetak
+                  {tc('notesLabel')}
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Klijent je zainteresovan za stan u centru, traži ponudu u ponedjeljak..."
+                  placeholder={tc('logNotesPlaceholder')}
                   value={logSummary}
                   onChange={(e) => setLogSummary(e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -834,7 +835,7 @@ export default function CommunicationsPage() {
                   disabled={savingLog}
                   className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-sm rounded-xl shadow-md hover:bg-[#b88328] transition-colors"
                 >
-                  {savingLog ? 'Sačuvavanje...' : 'Sačuvaj Zapis'}
+                  {savingLog ? tc('saving') : tc('saveLog')}
                 </button>
               </div>
             </form>

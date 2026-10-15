@@ -1,11 +1,11 @@
 import { NextResponse, NextRequest } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getReadContext } from '@/lib/api-key-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const ctx = await getRouteContext()
-  if (isAuthError(ctx)) return ctx
+  const ctx = await getReadContext(request)
+  if (ctx instanceof Response) return ctx
 
   const { org, supabase } = ctx
   const searchParams = request.nextUrl.searchParams

@@ -133,11 +133,11 @@ export default function LeadsPage() {
       return
     }
     setLeads(prev => prev.map(l => l.id === id ? { ...l, stage, status: stage === 'converted' ? 'won' : 'open' } : l))
-    toast(locale === 'bs' ? `Faza je promijenjena u "${STAGE_LABELS[stage]?.bs || stage}"` : `Stage updated to "${stage}"`)
+    toast(t('stageUpdated', { stage: (locale === 'bs' ? STAGE_LABELS[stage]?.bs : STAGE_LABELS[stage]?.en) || stage }))
   }
 
   const deleteLead = async (id: string) => {
-    if (!confirm(locale === 'bs' ? 'Da li ste sigurni da želite obrisati ovog klijenta?' : 'Are you sure you want to delete this lead?')) return
+    if (!confirm(t('confirmDelete'))) return
     const supabase = createBrowserClient()
     const { error } = await supabase.from('leads').delete().eq('id', id)
     if (error) {
@@ -187,7 +187,7 @@ export default function LeadsPage() {
   const bulkStageLeads = async (stage: string) => {
     if (!(await bulkCall('stage', stage))) return
     setLeads(prev => prev.map(l => selectedIds.has(l.id) ? { ...l, stage, status: stage === 'converted' ? 'won' : 'open' } : l))
-    toast(`${selectedIds.size} klijenata prebačeno u "${STAGE_LABELS[stage]?.bs || stage}"`)
+    toast(t('bulkMoved', { count: selectedIds.size, stage: (locale === 'bs' ? STAGE_LABELS[stage]?.bs : STAGE_LABELS[stage]?.en) || stage }))
     setSelectedIds(new Set())
   }
 
@@ -364,7 +364,7 @@ export default function LeadsPage() {
             {t('title') || 'Potencijalni Kupci (Leads)'}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Praćenje zahtjeva kupaca po fazama pregovora i kupovine nekretnine.
+            {t('pageSubtitle')}
           </p>
         </div>
 
@@ -376,7 +376,7 @@ export default function LeadsPage() {
             }`}
           >
             <CheckSquare size={15} />
-            <span>{bulkMode ? 'Otkaži' : 'Odaberi'}</span>
+            <span>{bulkMode ? t('cancelSelect') : t('select')}</span>
           </button>
 
           <button
@@ -385,7 +385,7 @@ export default function LeadsPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-gray-700 bg-gray-100 border border-gray-200 hover:bg-gray-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={15} />
-            <span>Izvoz CSV</span>
+            <span>{t('exportCsv')}</span>
           </button>
 
           <button
@@ -397,7 +397,7 @@ export default function LeadsPage() {
             }}
           >
             <Plus size={16} />
-            <span>Dodaj Klijenta</span>
+            <span>{t('addClient')}</span>
           </button>
         </div>
       </header>
@@ -408,7 +408,7 @@ export default function LeadsPage() {
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Pretraži po imenu, emailu ili telefonu..."
+            placeholder={t('searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -423,10 +423,10 @@ export default function LeadsPage() {
             className="px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#C9963B]"
           >
             <option value="all">Status: Svi</option>
-            <option value="open">Otvoreni</option>
-            <option value="won">Dobijeni</option>
-            <option value="lost">Izgubljeni</option>
-            <option value="junk">Odbačeni</option>
+            <option value="open">{t('statusOpen')}</option>
+            <option value="won">{t('statusWon')}</option>
+            <option value="lost">{t('statusLost')}</option>
+            <option value="junk">{t('statusJunk')}</option>
           </select>
           <select
             value={sourceFilter}
@@ -436,9 +436,9 @@ export default function LeadsPage() {
             <option value="all">Izvor: Svi</option>
             <option value="website">Website</option>
             <option value="olx">OLX</option>
-            <option value="referral">Preporuka</option>
+            <option value="referral">{t('sourceReferral')}</option>
             <option value="walk_in">Walk-in</option>
-            <option value="phone">Telefon</option>
+            <option value="phone">{t('sourcePhone')}</option>
           </select>
         </div>
 
@@ -450,7 +450,7 @@ export default function LeadsPage() {
             }`}
           >
             <LayoutGrid size={14} />
-            <span>Kanban Ljevak</span>
+            <span>{t('viewKanban')}</span>
           </button>
           <button
             onClick={() => setViewMode('table')}
@@ -459,7 +459,7 @@ export default function LeadsPage() {
             }`}
           >
             <List size={14} />
-            <span>Tabela</span>
+            <span>{t('viewTable')}</span>
           </button>
         </div>
       </div>
@@ -472,12 +472,10 @@ export default function LeadsPage() {
           </div>
           <div className="space-y-1 max-w-md mx-auto">
             <h3 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}>
-              {locale === 'bs' ? 'Upišite svoju prvu stranku' : 'Capture your first lead'}
+              {t('captureFirstLead')}
             </h3>
             <p className="text-xs text-gray-600">
-              {locale === 'bs'
-                ? 'Dodajte potencijalnog kupca ili prodavca i pokrenite vaš prodajni pipeline.'
-                : 'Add your first buyer or seller and start moving them through your pipeline.'}
+              {t('captureFirstLeadShort')}
             </p>
           </div>
           <button
@@ -485,7 +483,7 @@ export default function LeadsPage() {
             className="px-6 py-3 bg-[#C9963B] hover:bg-[#b88328] text-white font-bold text-xs rounded-xl shadow-lg transition-all"
           >
             <Plus size={14} className="inline mr-1" />
-            {locale === 'bs' ? 'Dodaj prvog klijenta' : 'Add first lead'}
+            {t('addFirstLead')}
           </button>
         </div>
       )}
@@ -567,7 +565,7 @@ export default function LeadsPage() {
                         {/* Budget Tag */}
                         {(lead.budget_min || lead.budget_max) && (
                           <div className="bg-white border border-gray-200/80 rounded-xl p-2 text-xs">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Budžet Klijenta</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{t('clientBudget')}</span>
                             <span className="font-bold text-gray-900">
                               {lead.budget_min ? formatPrice(lead.budget_min) : '—'} - {lead.budget_max ? formatPrice(lead.budget_max) : '—'}
                             </span>
@@ -614,11 +612,11 @@ export default function LeadsPage() {
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100">
-                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Ime Klijenta</th>
-                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Telefon & WhatsApp</th>
-                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Faza Pregovora</th>
-                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">Budžet</th>
-                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-right">Akcije</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">{t('colName')}</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">{t('colPhone')}</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">{t('colStage')}</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider">{t('colBudget')}</th>
+                <th className="px-6 py-4 font-semibold text-xs text-gray-500 uppercase tracking-wider text-right">{t('colActions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -686,8 +684,8 @@ export default function LeadsPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Dodaj Novog Kupca / Zahtjev</h3>
-              <p className="text-xs text-gray-500 mt-1">Unesite kontakt podatke kupca i njegov budžet.</p>
+              <h3 className="text-xl font-bold text-gray-900">{t('addNewTitle')}</h3>
+              <p className="text-xs text-gray-500 mt-1">{t('addNewHint')}</p>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
@@ -697,17 +695,17 @@ export default function LeadsPage() {
                   <input
                     type="text"
                     required
-                    placeholder="Emir"
+                    placeholder={t('firstNamePlaceholder')}
                     value={form.first_name}
                     onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Prezime</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('lastName')}</label>
                   <input
                     type="text"
-                    placeholder="Hadžić"
+                    placeholder={t('lastNamePlaceholder')}
                     value={form.last_name}
                     onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -716,7 +714,7 @@ export default function LeadsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Broj Telefona</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('phoneNumber')}</label>
                 <input
                   type="tel"
                   placeholder="+387 61 000 000"
@@ -739,7 +737,7 @@ export default function LeadsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Budžet Min (€)</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('budgetMin')}</label>
                   <input
                     type="number"
                     placeholder="100000"
@@ -749,7 +747,7 @@ export default function LeadsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Budžet Max (€)</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('budgetMax')}</label>
                   <input
                     type="number"
                     placeholder="200000"
@@ -773,7 +771,7 @@ export default function LeadsPage() {
                   disabled={saving}
                   className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors"
                 >
-                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Klijenta'}
+                  {saving ? t('saving') : t('saveClient')}
                 </button>
               </div>
             </form>
@@ -784,8 +782,8 @@ export default function LeadsPage() {
       {/* Bulk Action Bar */}
       {bulkMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl border border-gray-800">
-          <span className="text-sm font-semibold">{selectedIds.size} odabrano</span>
-          <button onClick={selectAllLeads} className="text-xs text-gray-300 hover:text-white underline">Odaberi sve</button>
+          <span className="text-sm font-semibold">{t('selectedCount', { count: selectedIds.size })}</span>
+          <button onClick={selectAllLeads} className="text-xs text-gray-300 hover:text-white underline">{t('selectAll')}</button>
           <select
             defaultValue=""
             onChange={e => { const v = e.target.value; e.target.value = ''; if (v) bulkAssignLeads(v) }}
@@ -808,13 +806,13 @@ export default function LeadsPage() {
           </select>
           <button onClick={exportSelectedLeadsCSV} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs font-semibold transition-colors">
             <Download size={14} />
-            Izvezi CSV
+            {t('exportCsvShort')}
           </button>
           <button onClick={bulkDeleteLeads} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold transition-colors">
             <Trash2 size={14} />
-            Obriši odabrano
+            {t('deleteSelected')}
           </button>
-          <button onClick={() => { setBulkMode(false); setSelectedIds(new Set()) }} className="text-xs text-gray-400 hover:text-white">Odustani</button>
+          <button onClick={() => { setBulkMode(false); setSelectedIds(new Set()) }} className="text-xs text-gray-400 hover:text-white">{t('cancel')}</button>
         </div>
       )}
     </div>

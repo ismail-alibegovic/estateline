@@ -136,3 +136,8 @@ export async function getRouteContext(
 export function isAuthError(ctx: RouteContext | Response): ctx is Response {
   return ctx instanceof Response
 }
+
+// Role helpers live in ./roles (pure, no env access) and are re-exported here
+// so routes can import everything auth-related from '@/lib/auth'.
+export { ADMIN_ROLES, WRITER_ROLES, requireRole } from './roles'
+export type { Role } from './roles'

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
-import { integrationEnv } from '@/lib/integration-env'
+import { createRouteClient, getRouteContext, isAuthError, WRITER_ROLES, requireRole } from '@/lib/auth'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import {
+  allowMockIntegrations,
+  integrationEnv,
+  integrationNotConfiguredResponse,
+} from '@/lib/integration-env'
 import { maskPhone } from '@/lib/redact'
 import twilio from 'twilio'
 
@@ -44,6 +49,10 @@ function renderSmsTemplate(template: string, payload: Record<string, any>): stri
 export async function POST(req: NextRequest) {
   const ctx = await getRouteContext()
   if (isAuthError(ctx)) return ctx
+  const denied = requireRole(ctx, WRITER_ROLES)
+  if (denied) return denied
+  const rl = await checkRateLimit(req, 20, 60 * 1000, `org:${ctx.org.id}`)
+  if (!rl.success) return rateLimitResponse()
 
   let body: any
   try {
@@ -56,6 +65,10 @@ export async function POST(req: NextRequest) {
 
   if (!to || typeof to !== 'string') {
     return NextResponse.json({ error: 'Recipient phone number "to" is required' }, { status: 400 })
+  }
+
+  if (!(twilioClient && fromNumber) && !allowMockIntegrations()) {
+    return integrationNotConfiguredResponse('SMS')
   }
 
   const messageText = renderSmsTemplate(template || 'custom', payload)

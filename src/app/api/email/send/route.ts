@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteClient, getRouteContext, isAuthError } from '@/lib/auth'
-import { integrationEnv } from '@/lib/integration-env'
+import { createRouteClient, getRouteContext, isAuthError, WRITER_ROLES, requireRole } from '@/lib/auth'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import {
+  allowMockIntegrations,
+  integrationEnv,
+  integrationNotConfiguredResponse,
+} from '@/lib/integration-env'
 import { maskEmail } from '@/lib/redact'
 import { recordEmailOutcome } from '@/lib/email-log'
 import { Resend } from 'resend'
@@ -79,6 +84,10 @@ function renderTemplate(template: string, payload: Record<string, any>): { subje
 export async function POST(req: NextRequest) {
   const ctx = await getRouteContext()
   if (isAuthError(ctx)) return ctx
+  const denied = requireRole(ctx, WRITER_ROLES)
+  if (denied) return denied
+  const rl = await checkRateLimit(req, 30, 60 * 1000, `org:${ctx.org.id}`)
+  if (!rl.success) return rateLimitResponse()
 
   let body: any
   try {
@@ -91,6 +100,10 @@ export async function POST(req: NextRequest) {
 
   if (!to || typeof to !== 'string') {
     return NextResponse.json({ error: 'Recipient email "to" is required' }, { status: 400 })
+  }
+
+  if (!resend && !allowMockIntegrations()) {
+    return integrationNotConfiguredResponse('Email')
   }
 
   const { subject, html } = renderTemplate(template || 'custom', payload)
