@@ -85,7 +85,7 @@ export async function middleware(request: NextRequest) {
     subdomain = cleanHost.replace('.localhost', '')
   } else {
     const mainDomains = ['estateline.ba', 'estateline.io', 'getestateline.com']
-    const platformDomains = ['.zocomputer.io', '.zo.computer']
+    const platformDomains = ['.zocomputer.io', '.zo.computer', '.vercel.app']
     const isMainDomain =
       mainDomains.some(d => cleanHost === d || cleanHost.endsWith('.' + d)) ||
       platformDomains.some(d => cleanHost.endsWith(d))
