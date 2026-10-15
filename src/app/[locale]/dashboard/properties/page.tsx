@@ -154,7 +154,7 @@ export default function PropertiesPage() {
     setSaving(true)
 
     if (!orgId) {
-      toast('Organizacija nije pronađena — kontaktirajte podršku.', 'error')
+      toast(t('orgNotFound'), 'error')
       setSaving(false)
       return
     }
@@ -175,7 +175,7 @@ export default function PropertiesPage() {
     }).select().single()
 
     if (insertErr) {
-      toast(`Greška pri dodavanju: ${insertErr.message}`, 'error')
+      toast(t('addError', { message: insertErr.message }), 'error')
       setSaving(false)
       return
     }
@@ -279,7 +279,7 @@ export default function PropertiesPage() {
   const bulkStatusProperties = async (status: string) => {
     if (!(await bulkCallProps('status', status))) return
     setProperties(prev => prev.map(p => selectedIds.has(p.id) ? { ...p, status } : p))
-    const label = status === 'active' ? 'Aktivne' : status === 'sold' ? 'Prodano' : status === 'rented' ? 'Iznajmljeno' : status === 'inactive' ? 'Neaktivne' : 'Nacrt'
+    const label = status === 'active' ? t('bulkActive') : status === 'sold' ? t('bulkSold') : status === 'rented' ? t('bulkRented') : status === 'inactive' ? t('bulkInactive') : t('bulkDraft')
     toast(`${selectedIds.size} → ${label}`)
     setSelectedIds(new Set())
   }
@@ -361,7 +361,7 @@ export default function PropertiesPage() {
     }
 
     setProperties(prev => prev.map(p => p.id === selectedProp.id ? updatedProp : p))
-    toast('Nekretnina je ažurirana!')
+    toast(t('updated'))
     setIsEditOpen(false)
     setSaving(false)
   }
@@ -369,12 +369,12 @@ export default function PropertiesPage() {
   const saveNote = async () => {
     if (!selectedProp) return
     setProperties(prev => prev.map(p => p.id === selectedProp.id ? { ...p, notes: noteInput } : p))
-    toast('Interna napomena je sačuvana!')
+    toast(t('noteSaved'))
     setIsNoteOpen(false)
   }
 
   const deleteProperty = async (id: string) => {
-    if (!confirm('Da li ste sigurni da želite obrisati ovu nekretninu iz ponude?')) return
+    if (!confirm(t('confirmDeleteOne'))) return
     if (orgId) {
       const supabase = createBrowserClient()
       await supabase.from('properties').delete().eq('id', id)
@@ -400,14 +400,14 @@ export default function PropertiesPage() {
       if (res.ok && data.success) {
         const count = data.importedCount || 0
         toast(count > 0
-          ? `Uspješno uvezeno ${count} nekretnina sa OLX.ba!`
-          : 'Nema novih nekretnina za uvoz sa OLX.ba.')
+          ? t('olxImported', { count })
+          : t('olxNothingNew'))
         loadData()
       } else {
-        toast(data.error || 'Neuspješan uvoz sa OLX-a. Provjerite URL.', 'error')
+        toast(data.error || t('olxFailed'), 'error')
       }
     } catch (err) {
-      toast('Došlo je do greške prilikom uvoza sa OLX-a', 'error')
+      toast(t('olxError'), 'error')
     } finally {
       setImporting(false)
       setIsImportOpen(false)
@@ -480,7 +480,7 @@ export default function PropertiesPage() {
             }`}
           >
             <CheckSquare size={15} />
-            <span>{bulkMode ? 'Otkaži' : 'Odaberi'}</span>
+            <span>{bulkMode ? t('cancelSelect') : t('select')}</span>
           </button>
 
           <button
@@ -489,7 +489,7 @@ export default function PropertiesPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-gray-700 bg-gray-100 border border-gray-200 hover:bg-gray-200 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download size={15} />
-            <span>Izvoz CSV</span>
+            <span>{t('exportCsv')}</span>
           </button>
 
           <button
@@ -509,7 +509,7 @@ export default function PropertiesPage() {
             }}
           >
             <Plus size={16} />
-            <span>Dodaj Nekretninu</span>
+            <span>{t('addPropertyBtn')}</span>
           </button>
         </div>
       </header>
@@ -521,7 +521,7 @@ export default function PropertiesPage() {
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Pretraži po nazivu, gradu ili adresi..."
+              placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -535,11 +535,11 @@ export default function PropertiesPage() {
               onChange={(e) => setTypeFilter(e.target.value)}
               className="px-3 py-1.5 text-xs font-bold rounded-xl bg-gray-100 text-gray-600 border border-gray-200 focus:outline-none focus:border-[#C9963B]"
             >
-              <option value="all">Svi tipovi</option>
-              <option value="apartment">Stan</option>
-              <option value="house">Kuća</option>
-              <option value="land">Zemljište</option>
-              <option value="commercial">Poslovni</option>
+              <option value="all">{t('allTypes')}</option>
+              <option value="apartment">{t('typeApartment')}</option>
+              <option value="house">{t('typeHouse')}</option>
+              <option value="land">{t('typeLand')}</option>
+              <option value="commercial">{t('typeCommercial')}</option>
             </select>
 
             {/* Price Range */}
@@ -566,7 +566,7 @@ export default function PropertiesPage() {
                 onClick={() => { setPriceMin(''); setPriceMax(''); setTypeFilter('all') }}
                 className="px-2.5 py-1.5 text-xs font-bold rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200"
               >
-                ✕ Očisti
+                ✕ {t('clear')}
               </button>
             )}
 
@@ -594,9 +594,9 @@ export default function PropertiesPage() {
             <RefreshCw size={28} />
           </div>
           <div className="space-y-1 max-w-md mx-auto">
-            <h3 className="text-xl font-bold text-gray-900">Uvezite Vaše Nekretnine sa OLX.ba</h3>
+            <h3 className="text-xl font-bold text-gray-900">{t('olxImportTitle')}</h3>
             <p className="text-xs text-gray-600">
-              Unesite link vašeg OLX profila ili pojedinačnog oglasa za automatsko povlačenje svih fotografija, cijena i detalja.
+              {t('olxImportHint')}
             </p>
           </div>
           <button
@@ -723,7 +723,7 @@ export default function PropertiesPage() {
       {bulkMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl border border-gray-800">
           <span className="text-sm font-semibold">{selectedIds.size} odabrano</span>
-          <button onClick={selectAllProperties} className="text-xs text-gray-300 hover:text-white underline">Odaberi sve</button>
+          <button onClick={selectAllProperties} className="text-xs text-gray-300 hover:text-white underline">{t('selectAll2')}</button>
           <select
             defaultValue=""
             onChange={e => { const v = e.target.value; e.target.value = ''; if (v) bulkAssignProperties(v) }}
@@ -750,9 +750,9 @@ export default function PropertiesPage() {
           </button>
           <button onClick={bulkDeleteProperties} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-semibold transition-colors">
             <Trash2 size={14} />
-            Obriši odabrano
+            {t('deleteSelected')}
           </button>
-          <button onClick={() => { setBulkMode(false); setSelectedIds(new Set()) }} className="text-xs text-gray-400 hover:text-white">Odustani</button>
+          <button onClick={() => { setBulkMode(false); setSelectedIds(new Set()) }} className="text-xs text-gray-400 hover:text-white">{t('cancel')}</button>
         </div>
       )}
 
@@ -768,9 +768,9 @@ export default function PropertiesPage() {
               <div className="w-12 h-12 rounded-2xl bg-amber-50 text-[#C9963B] flex items-center justify-center mb-3 border border-amber-200">
                 <RefreshCw size={22} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900">Uvoz Nekretnina sa OLX.ba</h3>
+              <h3 className="text-xl font-bold text-gray-900">{t('olxModalTitle')}</h3>
               <p className="text-xs text-gray-500 mt-1">
-                Nalijepite link vaše OLX radnje, profila ili oglasa za automatski uvoz svih detalja i slika.
+                {t('olxModalHint')}
               </p>
             </div>
 
@@ -782,7 +782,7 @@ export default function PropertiesPage() {
                 <input
                   type="url"
                   required
-                  placeholder="https://olx.ba/artikal/1234567 ili profil"
+                  placeholder={t('olxUrlPlaceholder')}
                   value={olxUrl}
                   onChange={e => setOlxUrl(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -805,10 +805,10 @@ export default function PropertiesPage() {
                   {importing ? (
                     <>
                       <RefreshCw size={14} className="animate-spin" />
-                      <span>Uvoženje...</span>
+                      <span>{t('importing')}</span>
                     </>
                   ) : (
-                    <span>Uvezi sa OLX.ba</span>
+                    <span>{t('importFromOlx')}</span>
                   )}
                 </button>
               </div>
@@ -826,7 +826,7 @@ export default function PropertiesPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Dodaj Novu Nekretninu</h3>
+              <h3 className="text-xl font-bold text-gray-900">{t('addNewTitle')}</h3>
               <p className="text-xs text-gray-500 mt-1">Unesite osnovne podatke o novoj nekretnini u ponudi.</p>
             </div>
 
@@ -836,7 +836,7 @@ export default function PropertiesPage() {
                 <input
                   type="text"
                   required
-                  placeholder="Dvoetažni Luksuzni Stan sa Garažom"
+                  placeholder={t('newTitlePlaceholder2')}
                   value={form.title}
                   onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -845,16 +845,16 @@ export default function PropertiesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Vrsta</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('kind')}</label>
                   <select
                     value={form.type}
                     onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
                   >
-                    <option value="Stan">Stan</option>
-                    <option value="Kuća">Kuća / Vila</option>
-                    <option value="Poslovni prostor">Poslovni prostor</option>
-                    <option value="Zemljište">Zemljište</option>
+                    <option value="Stan">{t('typeApartment')}</option>
+                    <option value="Kuća">{t('typeHouseVilla')}</option>
+                    <option value="Poslovni prostor">{t('typeCommercialSpace')}</option>
+                    <option value="Zemljište">{t('typeLand')}</option>
                   </select>
                 </div>
                 <div>
@@ -872,10 +872,10 @@ export default function PropertiesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Grad</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('cityLabel')}</label>
                   <input
                     type="text"
-                    placeholder="Sarajevo"
+                    placeholder={t('cityPlaceholder2')}
                     value={form.city}
                     onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -885,7 +885,7 @@ export default function PropertiesPage() {
                   <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Adresa / Lokacija</label>
                   <input
                     type="text"
-                    placeholder="Skenderija"
+                    placeholder={t('districtPlaceholder')}
                     value={form.address}
                     onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -895,7 +895,7 @@ export default function PropertiesPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Soba</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('rooms')}</label>
                   <input
                     type="number"
                     value={form.bedrooms}
@@ -904,7 +904,7 @@ export default function PropertiesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Kupatila</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('bathrooms')}</label>
                   <input
                     type="number"
                     value={form.bathrooms}
@@ -913,7 +913,7 @@ export default function PropertiesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Površina (m²)</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('areaLabel')}</label>
                   <input
                     type="number"
                     value={form.area_size}
@@ -924,10 +924,10 @@ export default function PropertiesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Interna Napomena Agencije</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('agencyNoteLabel')}</label>
                 <textarea
                   rows={2}
-                  placeholder="Prodavac spreman na pregovore..."
+                  placeholder={t('notePlaceholder2')}
                   value={form.notes}
                   onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -939,7 +939,7 @@ export default function PropertiesPage() {
                   Odustani
                 </button>
                 <button type="submit" disabled={saving} className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors">
-                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Nekretninu'}
+                  {saving ? t('saving') : t('saveProperty')}
                 </button>
               </div>
             </form>
@@ -956,13 +956,13 @@ export default function PropertiesPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Izmjeni Nekretninu</h3>
-              <p className="text-xs text-gray-500 mt-1">Ažurirajte cijenu, kvadraturu ili opise nekretnine.</p>
+              <h3 className="text-xl font-bold text-gray-900">{t('editTitle')}</h3>
+              <p className="text-xs text-gray-500 mt-1">{t('editHint')}</p>
             </div>
 
             <form onSubmit={handleEditProperty} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Naziv Nekretnine</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('nameLabel')}</label>
                 <input
                   type="text"
                   required
@@ -983,7 +983,7 @@ export default function PropertiesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Površina (m²)</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('areaLabel')}</label>
                   <input
                     type="number"
                     value={form.area_size}
@@ -994,7 +994,7 @@ export default function PropertiesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Interna Napomena</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{t('internalNoteLabel')}</label>
                 <textarea
                   rows={3}
                   value={form.notes}
@@ -1008,7 +1008,7 @@ export default function PropertiesPage() {
                   Odustani
                 </button>
                 <button type="submit" disabled={saving} className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors">
-                  {saving ? 'Ažuriranje...' : 'Sačuvaj Izmjene'}
+                  {saving ? t('updating') : t('saveChanges')}
                 </button>
               </div>
             </form>
@@ -1025,21 +1025,21 @@ export default function PropertiesPage() {
             </button>
 
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Agencijska Napomena</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t('agencyNoteTitle')}</h3>
               <p className="text-xs text-gray-500 mt-0.5">{selectedProp.title}</p>
             </div>
 
             <textarea
               rows={4}
-              placeholder="Unesite tajnu napomenu za agencijski tim (npr. popust, kontakt prodavca)..."
+              placeholder={t('secretNotePlaceholder')}
               value={noteInput}
               onChange={e => setNoteInput(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
             />
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setIsNoteOpen(false)} className="px-4 py-2 text-xs font-semibold text-gray-600">Odustani</button>
-              <button onClick={saveNote} className="px-5 py-2 bg-[#C9963B] text-white text-xs font-semibold rounded-xl">Sačuvaj Napomenu</button>
+              <button onClick={() => setIsNoteOpen(false)} className="px-4 py-2 text-xs font-semibold text-gray-600">{t('cancel')}</button>
+              <button onClick={saveNote} className="px-5 py-2 bg-[#C9963B] text-white text-xs font-semibold rounded-xl">{t('saveNote')}</button>
             </div>
           </div>
         </div>
