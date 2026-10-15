@@ -201,7 +201,8 @@
       "tenant": "Tenant",
       "vendor": "Partner / Notary",
       "other": "Other"
-    }
+    },
+    "addNewContact": "Add new contact"
   },
   "dashboard": {
     "active": "Active",
@@ -576,7 +577,31 @@
     }
   },
   "tasks": {
-    "noTasks": "No tasks yet. Create a new task to get started."
+    "noTasks": "No tasks yet. Create a new task to get started.",
+    "eyebrow": "ORGANISATION & WORK",
+    "addTask": "Add task",
+    "searchPlaceholder": "Search tasks and to-dos...",
+    "addNewTask": "Add new task",
+    "addNewTaskHint": "Enter a description, priority and due date.",
+    "titleLabel": "Task title *",
+    "titlePlaceholder": "Prepare the buyer contract...",
+    "descLabel": "Description",
+    "descPlaceholder": "Check the documents and notary fees...",
+    "priorityLabel": "Priority",
+    "dueLabel": "Due date",
+    "cancel": "Cancel",
+    "priorityLow": "Low",
+    "priorityMedium": "Medium",
+    "priorityHigh": "Urgent",
+    "priorityHighUrgent": "High (urgent)",
+    "filterAll": "All ({count})",
+    "statusTodo": "To do",
+    "statusInProgress": "In progress",
+    "statusDone": "Done",
+    "saving": "Saving...",
+    "saveTask": "Save task",
+    "created": "Task created successfully!",
+    "deleted": "Task deleted!"
   },
   "viewings": {
     "addViewing": "Add Viewing",
@@ -589,7 +614,11 @@
     "noViewingsScheduledShort": "No viewings scheduled",
     "scheduleFirst": "+ Schedule your first viewing",
     "scheduled": "Scheduled",
-    "title": "Viewings"
+    "title": "Viewings",
+    "newViewing": "Schedule new viewing",
+    "placeholderTitle": "Duplex luxury apartment - Skenderija",
+    "placeholderName": "Emir Hadzic",
+    "placeholderNotes": "Buyer is asking about the garage space..."
   },
   "integrationsSettings": {
     "eyebrow": "INTEGRATIONS & PORTALS",

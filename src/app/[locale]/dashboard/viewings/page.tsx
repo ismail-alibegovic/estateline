@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { Plus, X, Calendar, Clock, User, Building2, CheckCircle2, MapPin, Phone } from 'lucide-react'
 
 interface Viewing {
@@ -22,7 +22,6 @@ interface Viewing {
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function ViewingsPage() {
-  const locale = useLocale()
   const t = useTranslations('viewings')
   const [viewings, setViewings] = useState<Viewing[]>([])
   const [loading, setLoading] = useState(true)
@@ -165,7 +164,7 @@ export default function ViewingsPage() {
           }}
         >
           <Plus size={16} />
-          <span>Zakazi Novi Obilazak</span>
+          <span>{t('newViewing')}</span>
         </button>
       </header>
 
@@ -192,7 +191,7 @@ export default function ViewingsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-[#C9963B] uppercase tracking-wider">{dateStr}</span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 capitalize">
-                      {v.status === 'confirmed' ? 'Potvrđeno' : v.status === 'completed' ? 'Završeno' : 'Zakazano'}
+                      {v.status === 'confirmed' ? t('confirmed') : v.status === 'completed' ? t('completed') : t('scheduled')}
                     </span>
                   </div>
 
@@ -229,13 +228,13 @@ export default function ViewingsPage() {
               <Calendar size={28} className="text-gray-300" />
             </div>
             <p className="text-gray-400 font-medium text-sm">
-              {locale === 'bs' ? 'Nema zakazanih obilazaka' : 'No viewings scheduled'}
+              {t('noViewings')}
             </p>
             <button
               onClick={() => setShowModal(true)}
               className="mt-4 text-xs font-semibold text-[#C9963B] hover:underline"
             >
-              {locale === 'bs' ? '+ Zakazi prvi obilazak' : '+ Schedule your first viewing'}
+              {t('scheduleFirst')}
             </button>
           </div>
         )}
@@ -263,7 +262,7 @@ export default function ViewingsPage() {
                 <input
                   type="text"
                   required
-                  placeholder="Dvoetažni Luksuzni Stan - Skenderija"
+                  placeholder={t('placeholderTitle')}
                   value={newViewing.title}
                   onChange={e => setNewViewing(p => ({ ...p, title: e.target.value }))}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -275,7 +274,7 @@ export default function ViewingsPage() {
                   <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Ime Kupca</label>
                   <input
                     type="text"
-                    placeholder="Emir Hadžić"
+                    placeholder={t('placeholderName')}
                     value={newViewing.client_name}
                     onChange={e => setNewViewing(p => ({ ...p, client_name: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -319,7 +318,7 @@ export default function ViewingsPage() {
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Napomena za Obilazak</label>
                 <textarea
                   rows={2}
-                  placeholder="Kupac traži informacije o garažnom mjestu..."
+                  placeholder={t('placeholderNotes')}
                   value={newViewing.notes}
                   onChange={e => setNewViewing(p => ({ ...p, notes: e.target.value }))}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"

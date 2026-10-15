@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { createBrowserClient } from '@/lib/supabase'
 import {
   CheckSquare, Square, Plus, Search, Calendar,
@@ -24,7 +24,7 @@ interface Task {
 type Toast = { id: string; message: string; type: 'success' | 'error' }
 
 export default function TasksPage() {
-  const locale = useLocale()
+  const tr = useTranslations('tasks')
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
@@ -101,7 +101,7 @@ export default function TasksPage() {
       if (error) {
         toast(error.message, 'error')
       } else {
-        toast('Zadatak je uspješno kreiran!')
+        toast(tr('created'))
         setNewTitle(''); setNewDesc(''); setNewPriority('medium'); setNewDueDate('')
         setIsOpen(false)
         loadData()
@@ -117,7 +117,7 @@ export default function TasksPage() {
         created_at: new Date().toISOString(),
       }
       setTasks(prev => [newTask, ...prev])
-      toast('Zadatak je kreiran!')
+      toast(tr('created'))
       setNewTitle(''); setNewDesc(''); setNewPriority('medium'); setNewDueDate('')
       setIsOpen(false)
     }
@@ -138,7 +138,7 @@ export default function TasksPage() {
     const supabase = createBrowserClient()
     await supabase.from('tasks').delete().eq('id', id)
     setTasks(prev => prev.filter(t => t.id !== id))
-    toast('Zadatak je obrisan!')
+    toast(tr('deleted'))
   }
 
   const filteredTasks = tasks.filter(t => {
@@ -181,7 +181,7 @@ export default function TasksPage() {
       {/* Header */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/70 pb-6">
         <div>
-          <p className="page-eyebrow mb-1">ORGANIZACIJA & POSLOVI</p>
+          <p className="page-eyebrow mb-1">{tr('eyebrow')}</p>
           <h1
             className="text-3xl font-bold text-gray-900"
             style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
@@ -202,7 +202,7 @@ export default function TasksPage() {
           }}
         >
           <Plus size={16} />
-          <span>Dodaj Zadatak</span>
+          <span>{tr('addTask')}</span>
         </button>
       </header>
 
@@ -212,7 +212,7 @@ export default function TasksPage() {
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Pretraži zadatke i obaveze..."
+            placeholder={tr('searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -230,7 +230,7 @@ export default function TasksPage() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {status === 'all' ? `Svi (${tasks.length})` : status === 'todo' ? 'Za Uraditi' : status === 'in_progress' ? 'U Toku' : 'Završeno'}
+              {status === 'all' ? tr('filterAll', { count: tasks.length }) : status === 'todo' ? tr('statusTodo') : status === 'in_progress' ? tr('statusInProgress') : tr('statusDone')}
             </button>
           ))}
         </div>
@@ -272,7 +272,7 @@ export default function TasksPage() {
                       ? 'bg-amber-50 text-amber-800 border border-amber-200'
                       : 'bg-gray-100 text-gray-600'
                   }`}>
-                    {t.priority === 'high' ? 'Hitno' : t.priority === 'medium' ? 'Srednji' : 'Nizak'}
+                    {t.priority === 'high' ? tr('priorityHigh') : t.priority === 'medium' ? tr('priorityMedium') : tr('priorityLow')}
                   </span>
                 </div>
 
@@ -303,7 +303,7 @@ export default function TasksPage() {
               <CheckSquare size={28} className="text-gray-300" />
             </div>
             <p className="text-gray-500 text-sm font-medium">
-              {locale === 'bs' ? 'Nema zadataka. Kreirajte novi zadatak da započnete.' : 'No tasks yet. Create a new task to get started.'}
+              {tr('noTasks')}
             </p>
           </div>
         )}
@@ -321,17 +321,17 @@ export default function TasksPage() {
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Dodaj Novi Zadatak</h3>
-              <p className="text-xs text-gray-500 mt-1">Unesite opis zadatka, prioritet i rok izvršenja.</p>
+              <h3 className="text-xl font-bold text-gray-900">{tr('addNewTask')}</h3>
+              <p className="text-xs text-gray-500 mt-1">{tr('addNewTaskHint')}</p>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Naslov Zadatka *</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{tr('titleLabel')}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Pripremi ugovor za kupca..."
+                  placeholder={tr('titlePlaceholder')}
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -339,10 +339,10 @@ export default function TasksPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Detaljan Opis</label>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{tr('descLabel')}</label>
                 <textarea
                   rows={3}
-                  placeholder="Provjeriti dokumentaciju i notarske takse..."
+                  placeholder={tr('descPlaceholder')}
                   value={newDesc}
                   onChange={e => setNewDesc(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
@@ -351,20 +351,20 @@ export default function TasksPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Prioritet</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{tr('priorityLabel')}</label>
                   <select
                     value={newPriority}
                     onChange={e => setNewPriority(e.target.value as any)}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#C9963B]"
                   >
-                    <option value="low">Nizak</option>
-                    <option value="medium">Srednji</option>
-                    <option value="high">Visok (Hitno)</option>
+                    <option value="low">{tr('priorityLow')}</option>
+                    <option value="medium">{tr('priorityMedium')}</option>
+                    <option value="high">{tr('priorityHighUrgent')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Rok (Datum)</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">{tr('dueLabel')}</label>
                   <input
                     type="date"
                     value={newDueDate}
@@ -387,7 +387,7 @@ export default function TasksPage() {
                   disabled={saving}
                   className="px-6 py-2.5 bg-[#C9963B] text-white font-semibold text-xs rounded-xl shadow-md hover:bg-[#b88328] transition-colors"
                 >
-                  {saving ? 'Sačuvavanje...' : 'Sačuvaj Zadatak'}
+                  {saving ? tr('saving') : tr('saveTask')}
                 </button>
               </div>
             </form>

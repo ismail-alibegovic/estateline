@@ -201,7 +201,8 @@
       "tenant": "Zakupac",
       "vendor": "Partner / Notar",
       "other": "Ostalo"
-    }
+    },
+    "addNewContact": "Dodaj novi kontakt"
   },
   "dashboard": {
     "active": "Aktivne",
@@ -576,7 +577,31 @@
     }
   },
   "tasks": {
-    "noTasks": "Nema zadataka. Kreirajte novi zadatak da započnete."
+    "noTasks": "Nema zadataka. Kreirajte novi zadatak da započnete.",
+    "eyebrow": "ORGANIZACIJA & POSLOVI",
+    "addTask": "Dodaj zadatak",
+    "searchPlaceholder": "Pretraži zadatke i obaveze...",
+    "addNewTask": "Dodaj novi zadatak",
+    "addNewTaskHint": "Unesite opis zadatka, prioritet i rok izvršenja.",
+    "titleLabel": "Naslov zadatka *",
+    "titlePlaceholder": "Pripremi ugovor za kupca...",
+    "descLabel": "Detaljan opis",
+    "descPlaceholder": "Provjeriti dokumentaciju i notarske takse...",
+    "priorityLabel": "Prioritet",
+    "dueLabel": "Rok (datum)",
+    "cancel": "Odustani",
+    "priorityLow": "Nizak",
+    "priorityMedium": "Srednji",
+    "priorityHigh": "Hitno",
+    "priorityHighUrgent": "Visok (hitno)",
+    "filterAll": "Svi ({count})",
+    "statusTodo": "Za uraditi",
+    "statusInProgress": "U toku",
+    "statusDone": "Završeno",
+    "saving": "Sačuvavanje...",
+    "saveTask": "Sačuvaj zadatak",
+    "created": "Zadatak je uspješno kreiran!",
+    "deleted": "Zadatak je obrisan!"
   },
   "viewings": {
     "addViewing": "Dodaj obilazak",
@@ -589,7 +614,11 @@
     "noViewingsScheduledShort": "Nema zakazanih obilazaka",
     "scheduleFirst": "+ Zakaži prvi obilazak",
     "scheduled": "Zakazano",
-    "title": "Obilasci"
+    "title": "Obilasci",
+    "newViewing": "Zakaži novi obilazak",
+    "placeholderTitle": "Dvoetažni luksuzni stan - Skenderija",
+    "placeholderName": "Emir Hadžić",
+    "placeholderNotes": "Kupac traži informacije o garažnom mjestu..."
   },
   "integrationsSettings": {
     "eyebrow": "INTEGRACIJE & PORTE",
