@@ -855,5 +855,22 @@
     "saveAndConnect": "Sačuvaj i poveži račun",
     "saveLog": "Sačuvaj zapis",
     "sendEmail": "Pošalji e-mail"
+  },
+  "resetPassword": {
+    "mismatch": "Lozinke se ne poklapaju",
+    "tooShort": "Lozinka mora imati najmanje 6 karaktera",
+    "linkChecking": "Provjera linka je još u toku. Pokušajte ponovo za nekoliko sekundi.",
+    "failed": "Neuspješna izmjena lozinke",
+    "success": "Lozinka je uspješno promijenjena.",
+    "unexpected": "Došlo je do neočekivane greške.",
+    "title": "Postavite novu lozinku",
+    "subtitle": "Unesite vašu novu lozinku za prijavu.",
+    "newPassword": "Nova lozinka",
+    "confirmPassword": "Potvrdite novu lozinku",
+    "saving": "Spremanje...",
+    "backToLogin": "Nazad na prijavu",
+    "save": "Sačuvaj novu lozinku",
+    "linkInvalid": "Link za promjenu lozinke nije validan ili je istekao.",
+    "redirecting": "Preusmjeravanje na prijavu..."
   }
 }

@@ -855,5 +855,22 @@
     "saveAndConnect": "Save and connect account",
     "saveLog": "Save entry",
     "sendEmail": "Send email"
+  },
+  "resetPassword": {
+    "mismatch": "Passwords do not match",
+    "tooShort": "Password must be at least 6 characters",
+    "linkChecking": "Still verifying the link. Please try again in a few seconds.",
+    "failed": "Could not change the password",
+    "success": "Password changed successfully.",
+    "unexpected": "An unexpected error occurred.",
+    "title": "Set a new password",
+    "subtitle": "Enter your new password to sign in.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "saving": "Saving...",
+    "backToLogin": "Back to sign in",
+    "save": "Save new password",
+    "linkInvalid": "The password reset link is invalid or has expired.",
+    "redirecting": "Redirecting to sign in..."
   }
 }
