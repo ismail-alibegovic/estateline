@@ -61,12 +61,12 @@ export default function DashboardHome() {
         body: JSON.stringify({ url: olxUrl }),
       })
       if (!res.ok) throw new Error('Failed')
-      toast('Uvoz sa OLX-a je uspješno završen!')
+      toast(t('homeOlxImportDone'))
       setShowOLXModal(false)
       setOlxUrl('')
       loadData()
     } catch {
-      toast('Greška pri uvozu sa OLX-a.')
+      toast(t('homeOlxImportError'))
     } finally {
       setImportingOLX(false)
     }
@@ -261,10 +261,10 @@ export default function DashboardHome() {
       })
       const data = await res.json()
       if (res.ok && data.success) {
-        toast(`OLX Sinhronizacija uspješna! Dodano ${data.addedCount || 0} novih nekretnina.`)
+        toast(t('homeOlxSyncDone', { count: data.addedCount || 0 }))
         loadData()
       } else {
-        toast(data.error || 'Učitane su aktivne nekretnine sa OLX.ba profila.')
+        toast(data.error || t('homeOlxLoaded'))
       }
     } catch {
       toast('Konekcija sa OLX.ba uspostavljena.')
@@ -310,14 +310,14 @@ export default function DashboardHome() {
     if (!iso) return null
     const diff = Date.now() - new Date(iso).getTime()
     const mins = Math.floor(diff / 60000)
-    if (mins < 1) return t('common.justNow')
-    if (mins < 60) return t('common.minutesAgo', { mins })
+    if (mins < 1) return tCommon('justNow')
+    if (mins < 60) return tCommon('minutesAgo', { count: mins })
     const hours = Math.floor(mins / 60)
-    if (hours < 24) return t('common.hoursAgo', { hours })
+    if (hours < 24) return tCommon('hoursAgo', { count: hours })
     const days = Math.floor(hours / 24)
-    return t('common.daysAgo', { days })
+    return tCommon('daysAgo', { count: days })
   }
-  const olxSyncLabel = relativeTime(lastOlxSync) || (t('dashboard.notSynced'))
+  const olxSyncLabel = relativeTime(lastOlxSync) || (t('notSynced'))
 
   return (
     <div className="w-full space-y-8 pb-12 font-sans animate-fade-in">
@@ -347,7 +347,7 @@ export default function DashboardHome() {
             {t('welcomeBack') || 'Welcome back'}, {user?.full_name?.split(' ')[0] || 'Agent'}
           </h1>
           <p className="text-sm text-gray-500">
-            Pregled aktivnosti, nekretnina i prodajnog ljevka za <b>{org?.name || 'Vašu Agenciju'}</b>
+            {t('homeOverviewFor')} <b>{org?.name || t('homeYourAgency')}</b>
           </p>
         </div>
 
@@ -387,7 +387,7 @@ export default function DashboardHome() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs text-[#C9963B] bg-amber-50 border border-amber-200/80 hover:bg-amber-100 transition-colors"
           >
             <RefreshCw size={15} className={syncingOlx ? 'animate-spin' : ''} />
-            <span>{syncingOlx ? 'Sinhronizujem...' : 'Ažuriraj sa OLX'}</span>
+            <span>{syncingOlx ? t('homeSyncing') : t('homeSyncOlx')}</span>
           </button>
         </div>
       </header>
@@ -454,10 +454,10 @@ export default function DashboardHome() {
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Poslovi u Pregovorima</p>
             <div className="flex items-baseline gap-2">
               <h3 className="text-3xl font-bold text-gray-900">{counts.activeDeals || leadStages.negotiation || 3}</h3>
-              <span className="text-xs text-gray-500 font-medium">ugovora</span>
+              <span className="text-xs text-gray-500 font-medium">{t('homeContracts')}</span>
             </div>
             <p className="text-xs text-gray-500 mt-2 font-medium">
-              Očekivana provizija: <b className="text-[#C9963B]">{formatPrice(12400)}</b>
+              {t('homeExpectedCommission')}: <b className="text-[#C9963B]">{formatPrice(12400)}</b>
             </p>
           </div>
         </div>
@@ -494,10 +494,10 @@ export default function DashboardHome() {
               className="text-2xl font-bold text-gray-900"
               style={{ fontFamily: 'var(--font-display), "Cormorant Garamond", Georgia, serif' }}
             >
-              Prodajni Ljevak Klijenata (Pipeline)
+              {t('homePipelineTitle')}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Status kupaca od prvog kontakta do potpisivanja ugovora i preuzimanja ključeva.
+              {t('homePipelineHint')}
             </p>
           </div>
 
@@ -551,7 +551,7 @@ export default function DashboardHome() {
             <div className="h-1.5 w-full bg-purple-200/60 rounded-full overflow-hidden">
               <div className="h-full bg-purple-600" style={{ width: `${pipelineBars.viewing}%` }} />
             </div>
-            <p className="text-[11px] text-gray-500 font-medium">Potvrđen termin pregleda</p>
+            <p className="text-[11px] text-gray-500 font-medium">{t('homeViewingConfirmed')}</p>
           </div>
 
           {/* Stage 4: Pregovori */}
@@ -565,7 +565,7 @@ export default function DashboardHome() {
             <div className="h-1.5 w-full bg-amber-300/60 rounded-full overflow-hidden">
               <div className="h-full bg-[#C9963B]" style={{ width: `${pipelineBars.negotiation}%` }} />
             </div>
-            <p className="text-[11px] text-amber-800 font-medium">Predana zvanična ponuda</p>
+            <p className="text-[11px] text-amber-800 font-medium">{t('homeOfferSubmitted')}</p>
           </div>
 
           {/* Stage 5: Prodano */}
@@ -587,18 +587,18 @@ export default function DashboardHome() {
           {/* SECTION 3b: PROPERTY STATUS DISTRIBUTION */}
           <section className="bg-white rounded-3xl border border-gray-200/70 p-6 sm:p-8 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900 mb-1">
-              {t('dashboard.propertiesByStatus')}
+              {t('propertiesByStatus')}
             </h3>
             <p className="text-xs text-gray-500 mb-5">
-              {t('dashboard.portfolioDistribution')}
+              {t('portfolioDistribution')}
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { key: 'active', label: t('dashboard.active'), color: '#C9963B', bg: 'bg-amber-50' },
-                { key: 'sold', label: t('dashboard.sold'), color: '#059669', bg: 'bg-emerald-50' },
-                { key: 'rented', label: t('dashboard.rented'), color: '#2563EB', bg: 'bg-blue-50' },
-                { key: 'off_market', label: t('dashboard.offMarket'), color: '#6B7280', bg: 'bg-gray-50' },
+                { key: 'active', label: t('active'), color: '#C9963B', bg: 'bg-amber-50' },
+                { key: 'sold', label: t('sold'), color: '#059669', bg: 'bg-emerald-50' },
+                { key: 'rented', label: t('rented'), color: '#2563EB', bg: 'bg-blue-50' },
+                { key: 'off_market', label: t('offMarket'), color: '#6B7280', bg: 'bg-gray-50' },
               ].map(({ key, label, color, bg }) => {
                 const total = propertyStatusCounts.active + propertyStatusCounts.sold + propertyStatusCounts.rented + propertyStatusCounts.off_market
                 const count = propertyStatusCounts[key as keyof typeof propertyStatusCounts]
@@ -633,10 +633,10 @@ export default function DashboardHome() {
                   className="text-2xl font-bold text-gray-900"
                   style={{ fontFamily: 'var(--font-display), serif' }}
                 >
-                  Najnovije Nekretnine u Ponudi
+                  {t('homeLatestProperties')}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Aktivni stanovi i kuće spremljeni za ponudu klijentima.
+                  {t('homeLatestPropertiesHint')}
                 </p>
               </div>
 
@@ -719,10 +719,10 @@ export default function DashboardHome() {
                   className="text-2xl font-bold text-gray-900"
                   style={{ fontFamily: 'var(--font-display), serif' }}
                 >
-                  Zadnji Potencijalni Kupci
+                  {t('homeLatestLeads')}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Najnoviji zahtjevi kupaca koji traže nekretninu.
+                  {t('homeLatestLeadsHint')}
                 </p>
               </div>
 
@@ -744,7 +744,7 @@ export default function DashboardHome() {
                     </div>
                     <div>
                       <p className="font-semibold text-sm text-gray-900">{lead.first_name} {lead.last_name}</p>
-                      <p className="text-xs text-gray-400">Budžet: <b className="text-gray-700">{lead.budget_min || lead.budget_max ? `${lead.budget_min ? formatPrice(lead.budget_min) : '0 KM'} – ${lead.budget_max ? formatPrice(lead.budget_max) : '∞'}` : 'Po dogovoru'}</b></p>
+                      <p className="text-xs text-gray-400">{t('homeBudget')}: <b className="text-gray-700">{lead.budget_min || lead.budget_max ? `${lead.budget_min ? formatPrice(lead.budget_min) : '0 KM'} – ${lead.budget_max ? formatPrice(lead.budget_max) : '∞'}` : t('homeNegotiable')}</b></p>
                     </div>
                   </div>
 
@@ -776,10 +776,10 @@ export default function DashboardHome() {
                 <div className="w-8 h-8 rounded-xl bg-amber-50 text-[#C9963B] flex items-center justify-center font-bold">
                   <Calendar size={18} />
                 </div>
-                <h3 className="font-bold text-gray-900 text-base">Današnji Obilasci</h3>
+                <h3 className="font-bold text-gray-900 text-base">{t('homeTodayViewings')}</h3>
               </div>
               <span className="text-xs font-bold text-[#C9963B] bg-amber-50 px-2 py-0.5 rounded-full">
-                {todayViewings.length} {t('dashboard.scheduled')}
+                {todayViewings.length} {t('scheduled')}
               </span>
             </div>
 
@@ -804,13 +804,13 @@ export default function DashboardHome() {
                     </div>
                     {who && (
                       <p className="text-xs text-gray-500">
-                        {t('contact.client')}: {who}
+                        {tCommon('client')}: {who}
                       </p>
                     )}
                     {phone && (
                       <div className="flex items-center gap-2 pt-1">
                         <a href={`tel:${phone}`} className="text-[11px] font-bold text-[#C9963B] flex items-center gap-1 hover:underline">
-                          <Phone size={12} /> {t('lead.callClient')}
+                          <Phone size={12} /> {t('callClient')}
                         </a>
                       </div>
                     )}
@@ -820,10 +820,10 @@ export default function DashboardHome() {
                 <div className="py-8 text-center space-y-2 border border-dashed border-gray-200 rounded-2xl">
                   <Calendar size={24} className="text-gray-300 mx-auto" />
                   <p className="text-xs text-gray-400">
-                    {t('dashboard.noViewingsToday')}
+                    {t('noViewingsToday')}
                   </p>
                   <Link href={`/${locale}/dashboard/calendar`} className="inline-flex items-center gap-1 text-[11px] font-bold text-[#C9963B] hover:underline">
-                    {t('lead.scheduleViewing')}
+                    {t('scheduleViewing')}
                     <ArrowRight size={12} />
                   </Link>
                 </div>
@@ -862,7 +862,7 @@ export default function DashboardHome() {
               href={`/${locale}/dashboard/communications`}
               className="w-full py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-bold rounded-xl transition-colors text-center block"
             >
-              Otvori E-mail Sanduče Agencije
+              {t('homeOpenInbox')}
             </Link>
           </div>
 
@@ -875,17 +875,17 @@ export default function DashboardHome() {
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-[#C9963B]">
-                {t('dashboard.closedThisMonth')}
+                {t('closedThisMonth')}
               </span>
               <span className="text-xs font-bold bg-white/10 px-2.5 py-1 rounded-full text-amber-300">
-                {monthlyRevenue.count} {t('dashboard.dealsUnit')}
+                {monthlyRevenue.count} {t('dealsUnit')}
               </span>
             </div>
 
             <div>
               <h4 className="text-2xl font-bold">{formatPrice(monthlyRevenue.value)}</h4>
               <p className="text-xs text-gray-400 mt-0.5">
-                {t('dashboard.totalClosedValue')}
+                {t('totalClosedValue')}
               </p>
             </div>
 
@@ -898,12 +898,8 @@ export default function DashboardHome() {
 
             <p className="text-[11px] text-gray-400">
               {monthlyRevenue.count > 0
-                ? locale === 'bs'
-                  ? `Prosječna vrijednost: ${formatPrice(monthlyRevenue.value / monthlyRevenue.count)}`
-                  : `Average deal: ${formatPrice(monthlyRevenue.value / monthlyRevenue.count)}`
-                : locale === 'bs'
-                  ? 'Još nema zatvorenih poslova ovog mjeseca.'
-                  : 'No closed deals yet this month.'}
+                ? t('homeAverageDeal', { value: formatPrice(monthlyRevenue.value / monthlyRevenue.count) })
+                : t('homeNoClosedDeals')}
             </p>
           </div>
         </div>
@@ -916,7 +912,7 @@ export default function DashboardHome() {
             <div className="w-8 h-8 rounded-xl bg-[#C9963B]/10 text-[#C9963B] flex items-center justify-center font-bold">
               <Activity size={18} />
             </div>
-            <h3 className="font-bold text-gray-900 text-base">{t('dashboard.recentActivity')}</h3>
+            <h3 className="font-bold text-gray-900 text-base">{t('recentActivity')}</h3>
           </div>
         </div>
         <ActivityTimeline activities={activities} locale={locale} compact />
@@ -926,8 +922,8 @@ export default function DashboardHome() {
       {showOLXModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 className="font-bold text-lg text-gray-900">Uvoz sa OLX.ba</h3>
-            <p className="text-xs text-gray-500">Unesite OLX URL ili ID oglasa za automatsko učitavanje.</p>
+            <h3 className="font-bold text-lg text-gray-900">{t('homeOlxModalTitle')}</h3>
+            <p className="text-xs text-gray-500">{t('homeOlxModalHint')}</p>
             <input
               type="text"
               placeholder="https://www.olx.ba/artikal/..."
@@ -936,8 +932,8 @@ export default function DashboardHome() {
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-[#C9963B]"
             />
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowOLXModal(false)} className="px-4 py-2 text-xs font-semibold text-gray-600">Odustani</button>
-              <button onClick={handleImportOLX} disabled={importingOLX} className="px-5 py-2 bg-[#C9963B] text-white text-xs font-semibold rounded-xl">{importingOLX ? 'Uvoženje...' : 'Uvezi'}</button>
+              <button onClick={() => setShowOLXModal(false)} className="px-4 py-2 text-xs font-semibold text-gray-600">{t('homeCancel')}</button>
+              <button onClick={handleImportOLX} disabled={importingOLX} className="px-5 py-2 bg-[#C9963B] text-white text-xs font-semibold rounded-xl">{importingOLX ? t('homeImporting') : t('homeImport')}</button>
             </div>
           </div>
         </div>
