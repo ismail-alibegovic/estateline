@@ -1,71 +1,12 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { getAgencyBySlug as getAgency, getPublicProperties as getProperties, getPublicPropertyBySlug as getProperty, type Agency, type Property } from '@/lib/microsite'
 import Image from 'next/image'
 import { MapPin, Bed, Bath, Maximize, Phone, Mail, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Suspense } from 'react'
 
 interface Props {
   params: Promise<{ subdomain: string; slug: string }>
-}
-
-interface Agency {
-  id: string
-  name: string
-  slug: string
-  logo_url: string | null
-  phone: string | null
-  email: string | null
-  primary_color: string
-  accent_color: string
-}
-
-interface Property {
-  id: string
-  title: string
-  slug: string
-  price: number
-  currency: string
-  listing_type: string
-  property_type: string
-  bedrooms: number | null
-  bathrooms: number | null
-  area: number | null
-  area_unit: string
-  address: string
-  city: string
-  cover_image: string | null
-  images: string[] | null
-  description: string | null
-  features: string[] | null
-  featured: boolean
-  year_built: number | null
-  created_at: string
-}
-
-async function getAgency(subdomain: string): Promise<Agency | null> {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { get: (name: string) => cookieStore.get(name)?.value } })
-  const { data } = await supabase
-    .from('agencies')
-    .select('id, name, slug, logo_url, phone, email, primary_color, accent_color')
-    .eq('slug', subdomain)
-    .eq('is_active', true)
-    .single()
-  return data
-}
-
-async function getProperty(orgId: string, slug: string): Promise<Property | null> {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { cookies: { get: (name: string) => cookieStore.get(name)?.value } })
-  const { data } = await supabase
-    .from('properties')
-    .select('*')
-    .eq('organization_id', orgId)
-    .eq('slug', slug)
-    .single()
-  return data
 }
 
 function formatPrice(price: number, currency: string) {
