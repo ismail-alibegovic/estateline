@@ -102,8 +102,12 @@ export default function KanbanPage() {
     toast(tCommon('dealStageUpdated'))
 
     if (orgId && !dealId.startsWith('deal-')) {
-      const supabase = createBrowserClient()
-      await supabase.from('deals').update({ stage: nextStage }).eq('id', dealId)
+      // Server route enforces role + org scope and fires the deal.updated webhook.
+      await fetch(`/api/deals/${dealId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage: nextStage }),
+      })
     }
   }
 
