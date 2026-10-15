@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRouteContext, isAuthError } from '@/lib/auth'
+import { getReadContext } from '@/lib/api-key-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
-    const ctx = await getRouteContext()
-    if (isAuthError(ctx)) return ctx
+    const ctx = await getReadContext(req)
+    if (ctx instanceof Response) return ctx
 
     const { searchParams } = new URL(req.url)
     const startDate = searchParams.get('start_date') || null
