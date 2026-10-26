@@ -1,70 +1,71 @@
-# Estateline — Premier Real Estate CRM for the Balkan Market
+# Estateline
 
-Multi-tenant SaaS CRM built specifically for real-estate agencies across Bosnia & Herzegovina, Croatia, Serbia, and Montenegro (BA/HR/RS/ME).
+**A multi-tenant CRM for real-estate agencies in Bosnia & Herzegovina, Croatia, Serbia and Montenegro.** Agencies manage listings, contacts, leads, deals, viewings and commissions in one workspace, and syndicate listings to the region's property portals.
 
----
-
-## 1. Production Architecture Overview
-
-- **Frontend & App Surface**: Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui components, `next-intl` (Bosnian `bs` & English `en` parity).
-- **Database & Data Isolation**: Supabase (Postgres 15 with 18+ strictly additive SQL migrations). Multi-tenancy is enforced at the database layer via **Postgres Row Level Security (RLS)** — every business table requires an `organization_id` check.
-- **Security & Privileged Operations**: All privileged RPCs use `SECURITY DEFINER` with explicit `is_org_member(org_id)` or `is_admin(org_id)` guards.
-- **Integrations**: Stripe (Checkout, Customer Portal, Webhook), Resend Email, Twilio SMS, WhatsApp Cloud API (inbound webhooks + outbound stage transitions), and XML/JSON Outbound Feed Syndication (Njuškalo, Nekretnine.rs, OLX import).
-- **Observability & Rate Limiting**: In-memory token bucket & Upstash Redis rate limiting on public endpoints (`/api/leads/public`, `/api/feeds/*`), with explicit CI env and i18n parity validation.
+> **Status:** v1.0 feature set is implemented and the security audit items pass; launch is waiting on production provider access (payments, SMS/WhatsApp). Not yet launched with a customer agency. Details: [`ESTATELINE_V1_IMPLEMENTATION_STATUS.md`](ESTATELINE_V1_IMPLEMENTATION_STATUS.md).
 
 ---
 
-## 2. Core Modules & Production Features
+## What it does
 
-### A. Business Intelligence & Reporting
-- **Agent Performance & Leaderboard**: Deal volume, sales revenue, viewings conducted, and commissions earned per agent (`get_agent_performance_report` RPC).
-- **Lead Funnel & Source Attribution**: Inbound lead breakdown by channel, stage status, and lost reasons (`get_lead_conversion_report` RPC).
-- **Transaction Velocity (Time-to-Close)**: Average, minimum, and maximum days to close deals grouped by property/deal type (`get_time_to_close_report` RPC).
-- **Financial & Commission Forecasting**: Probability-weighted pipeline revenue, total closed-won revenue, and earned vs paid commission tracking (`get_financial_forecasting_report` RPC).
+| Area | Capabilities |
+| --- | --- |
+| Inventory | Properties with media, map view (Leaflet), bulk actions, import/export (Excel) |
+| Pipeline | Leads, contacts, drag-and-drop deal pipeline, viewings calendar, tasks |
+| Money | Commissions, quotes, invoices (PDF generation), plan-based usage limits |
+| Communication | Activity timeline, e-mail (Resend), SMS (Twilio), WhatsApp Cloud API webhooks with opt-in tracking |
+| Distribution | XML/JSON listing feeds for OLX, Njuškalo and Nekretnine.rs; embeddable lead-capture form |
+| Reporting | Agent performance, lead-source funnel, time-to-close and probability-weighted revenue forecasts |
+| Admin | Organizations, invitations, roles, audit logs, global search, Stripe billing |
 
-### B. Communications & WhatsApp Loop
-- Inbound WhatsApp webhook (`/api/whatsapp/webhook`) creates leads and contact records with explicit opt-in tracking (`whatsapp_opted_in`, `whatsapp_consent_at`).
-- Stage-transition trigger sends automated WhatsApp template messages on lead stage changes.
-- Unified Chronological Activity & Communications timeline for leads and contacts.
+The UI ships in Bosnian and English with a CI check for translation parity.
 
-### C. Plan Limits & Billing Enforcement
-- Enforced tier caps (`beta`, `starter`, `pro`, `agency`) for active agents, property listings, and monthly WhatsApp messages via `src/lib/limits.ts`.
-- Real-time "Plan Usage & Tier Caps" widget rendered in Settings → Billing.
+## Architecture
 
-### D. Testing & QA Infrastructure
-- **CI Workflows**: GitHub Actions (`.github/workflows/ci.yml`) runs linting, TypeScript type checks, migration smoke tests, RLS tenant isolation tests, i18n key parity checks, and env variable completeness checks.
-- **Unit & E2E Testing**: Vitest for helper logic (`npm run test:unit`) and Playwright for E2E tenant isolation (`npm run test:e2e`).
-
----
-
-## 3. Quick Start & Commands
-
-```bash
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Run environment and translation parity checks
-npm run check:env
-npm run check:i18n
-
-# Run unit tests
-npm run test:unit
-
-# Run database migration & RLS integration tests
-npm run test:migrations
-npm run test:rls
-npm run test:rpcs
-
-# Start local development server
-npm run dev
+```text
+Next.js 14 (App Router, next-intl)
+  ├─ Server components & route handlers  ─┐
+  ├─ /api/feeds/*, /api/leads/public      │  rate-limited public endpoints
+  └─ /api/whatsapp, /api/billing (webhooks)│
+                                           ▼
+                     Supabase PostgreSQL ── Row Level Security on every business table
+                                         ── SECURITY DEFINER RPCs guarded by is_org_member() / is_admin()
 ```
 
----
+- **Tenant isolation at the database layer.** Every business table carries an `organization_id`, and RLS policies — not application code alone — decide what a user can read or write.
+- **Reporting in SQL.** Leaderboards, funnels and forecasts are Postgres RPCs, so aggregation happens next to the data and respects the same tenant rules.
+- **Feeds that fail closed.** An unknown organization id returns an empty feed rather than another tenant's listings.
+- **32 additive SQL migrations**, smoke-tested from scratch in CI.
 
-## 4. Environment Variables
+## Quality and operations
 
-Documented in [.env.example](file://./.env.example):
-- Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`
-- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_AGENCY`
-- Email & Communications: `RESEND_API_KEY`, `EMAIL_FROM`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `WHATSAPP_VERIFY_TOKEN`
-- Rate Limiting: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+- GitHub Actions: lint, typecheck, migration smoke test, RLS tenant-isolation tests, reporting-RPC tests, i18n and environment-variable parity checks.
+- Vitest unit tests and a Playwright tenant-isolation suite.
+- Sentry error monitoring, Lighthouse CI, Upstash/in-memory rate limiting.
+- Scheduled storage backups and a documented [backup/restore runbook](docs/OPERATIONS_BACKUP_RUNBOOK.md).
+
+## Tech stack
+
+Next.js 14 · TypeScript · Tailwind CSS · shadcn/ui · next-intl · Supabase (PostgreSQL, Auth, Storage) · TanStack Table · Recharts · Leaflet · pdf-lib · ExcelJS · Stripe · Resend · Twilio · Sentry · Vitest · Playwright
+
+## Running locally
+
+```bash
+npm install --legacy-peer-deps
+cp .env.example .env.local     # Supabase URL/keys; payment and messaging keys are optional
+npm run dev                    # http://localhost:3000
+```
+
+Checks:
+
+```bash
+npm run check:env && npm run check:i18n
+npm run test:unit
+npm run test:migrations && npm run test:rls && npm run test:rpcs   # need DATABASE_URL
+```
+
+All variables are documented in [`.env.example`](.env.example). Further reading: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`SETUP.md`](SETUP.md), [`SECURITY.md`](SECURITY.md).
+
+## Author
+
+Built by [Ismail Alibegović](https://github.com/ismail-alibegovic) — Sarajevo, Bosnia and Herzegovina.
